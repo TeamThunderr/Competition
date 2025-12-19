@@ -21,8 +21,9 @@ app.use('/api/student', studentRoutes);
 app.use('/api/faculty', facultyRoutes);
 app.use('/api/hod', hodRoutes);
 app.use('/api/admin', adminRoutes);
-
-
+app.use('/api/competitions', require('./routes/competition.routes'));
+app.use('/api/teams', require('./routes/team.routes'));
+app.use('/api/approvals', require('./routes/approval.routes'));
 // Error Handler
 app.use(errorHandler);
 
