@@ -5,11 +5,11 @@
 const express = require('express');
 const router = express.Router();
 const hodController = require('../controllers/hod/hod.controller');
-const authMiddleware = require('../middleware/authMiddleware');
-const roleMiddleware = require('../middleware/roleMiddleware');
+//const authMiddleware = require('../middleware/authMiddleware');
+//const roleMiddleware = require('../middleware/roleMiddleware');
 
-router.use(authMiddleware);
-router.use(roleMiddleware('hod'));
+//router.use(authMiddleware);
+//router.use(roleMiddleware('hod'));
 
 router.get('/stats', hodController.getDepartmentStats);
 

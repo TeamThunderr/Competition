@@ -5,18 +5,18 @@
 const express = require('express');
 const router = express.Router();
 const approvalController = require('../controllers/approval.controller');
-const checkRole = require('../middleware/role.middleware');
+// const checkRole = require('../middleware/role.middleware'); // Removed for public access
 
 // Student requests permission
-router.post('/request', checkRole('STUDENT'), approvalController.requestApproval);
+router.post('/request', approvalController.requestApproval);
 
 // Faculty approves/rejects
-router.post('/faculty', checkRole('FACULTY'), approvalController.updateFacultyStatus);
+router.post('/faculty', approvalController.updateFacultyStatus);
 
 // HOD approves/rejects
-router.post('/hod', checkRole('HOD'), approvalController.updateHodStatus);
+router.post('/hod', approvalController.updateHodStatus);
 
-// Get list of approvals (Faculty and HOD)
-router.get('/list', checkRole(['FACULTY', 'HOD']), approvalController.getDepartmentApprovals);
+// Get list of approvals (Filtered by department of the user in x-user-id)
+router.get('/list', approvalController.getDepartmentApprovals);
 
 module.exports = router;
