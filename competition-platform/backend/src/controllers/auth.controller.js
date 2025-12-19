@@ -24,9 +24,6 @@ const syncUser = async (req, res) => {
         // Ensure role is uppercase to match Database ENUM
         assignedRole = assignedRole.toUpperCase();
 
-        // Example: hardcode admin for testing
-        // if (email === 'admin@citchennai.net') assignedRole = 'ADMIN';
-
         const { data, error } = await supabase
             .from('users')
             .upsert({

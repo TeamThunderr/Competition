@@ -5,11 +5,11 @@
 const express = require('express');
 const router = express.Router();
 const facultyController = require('../controllers/faculty/faculty.controller');
-const authMiddleware = require('../middleware/authMiddleware');
-const roleMiddleware = require('../middleware/roleMiddleware');
+//const authMiddleware = require('../middleware/authMiddleware');
+//const roleMiddleware = require('../middleware/roleMiddleware');
 
-router.use(authMiddleware);
-router.use(roleMiddleware('faculty'));
+//router.use(authMiddleware);
+//router.use(roleMiddleware('faculty'));
 
 router.get('/students', facultyController.getMyStudents);
 

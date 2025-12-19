@@ -80,7 +80,6 @@ const getDepartmentApprovals = async (req, res) => {
 
         // 2. Get approvals for users in this department
         // We perform a join (conceptually) by filtering users.
-        // Supabase-js syntax for foreign table filtering:
         const { data, error } = await supabase
             .from('approvals')
             .select(`
