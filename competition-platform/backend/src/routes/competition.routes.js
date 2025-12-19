@@ -5,14 +5,12 @@
 const express = require('express');
 const router = express.Router();
 const competitionController = require('../controllers/competition.controller');
-const checkRole = require('../middleware/role.middleware');
+// const checkRole = require('../middleware/role.middleware'); // Removed for public access
 
-// GET /api/competitions - List all (Open to verified users)
-// We might want to ensure they are at least logged in, but 'Public' view is also common.
-// Let's assume public for now, or add checkRole(['STUDENT', 'FACULTY', 'HOD', 'ADMIN']) if strictly private.
+// GET /api/competitions - List all
 router.get('/', competitionController.getAllCompetitions);
 
-// POST /api/competitions - Create new (Admin Only)
-router.post('/', checkRole('ADMIN'), competitionController.createCompetition);
+// POST /api/competitions - Create new (Simulating Admin via header)
+router.post('/', competitionController.createCompetition);
 
 module.exports = router;

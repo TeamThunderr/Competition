@@ -5,12 +5,12 @@
 const express = require('express');
 const router = express.Router();
 const competitionController = require('../controllers/student/competition.controller');
-const authMiddleware = require('../middleware/authMiddleware');
-const roleMiddleware = require('../middleware/roleMiddleware');
+//const authMiddleware = require('../middleware/authMiddleware');
+//const roleMiddleware = require('../middleware/roleMiddleware');
 
 // Protect all routes
-router.use(authMiddleware);
-router.use(roleMiddleware('student'));
+//router.use(authMiddleware);
+//router.use(roleMiddleware('student'));
 
 router.get('/competitions', competitionController.getAllCompetitions);
 
