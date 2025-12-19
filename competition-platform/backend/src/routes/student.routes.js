@@ -5,13 +5,14 @@
 const express = require('express');
 const router = express.Router();
 const competitionController = require('../controllers/student/competition.controller');
-//const authMiddleware = require('../middleware/authMiddleware');
-//const roleMiddleware = require('../middleware/roleMiddleware');
+const registrationController = require('../controllers/student/registration.controller');
+const checkRole = require('../middleware/role.middleware');
 
-// Protect all routes
-//router.use(authMiddleware);
-//router.use(roleMiddleware('student'));
+// All routes here require the user to be a STUDENT
+// This middleware checks the 'x-user-id' header and the database role
+router.use(checkRole('STUDENT'));
 
 router.get('/competitions', competitionController.getAllCompetitions);
+router.post('/register', registrationController.registerForCompetition);
 
 module.exports = router;
