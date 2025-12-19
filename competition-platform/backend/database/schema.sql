@@ -26,6 +26,7 @@ CREATE TABLE users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT UNIQUE NOT NULL,
     full_name TEXT,
+    section TEXT,
     avatar_url TEXT,
     role user_role DEFAULT 'STUDENT',
     department_id UUID REFERENCES departments(id),

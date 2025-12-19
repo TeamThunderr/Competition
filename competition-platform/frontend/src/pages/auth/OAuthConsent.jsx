@@ -54,7 +54,7 @@ const OAuthConsent = () => {
                                 email: user.email,
                                 full_name: user.user_metadata.full_name,
                                 avatar_url: user.user_metadata.avatar_url,
-                                role: 'student' // Defaulting to student, backend preserves existing role
+                                role: localStorage.getItem('requestedRole') || 'STUDENT'
                             }),
                         });
 
