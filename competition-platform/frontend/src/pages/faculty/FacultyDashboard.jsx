@@ -1,9 +1,8 @@
-import React from 'react';
-import Sidebar from './Sidebar';
-import { Bell, Clock, Activity, Download } from 'lucide-react';
-import  { useEffect, useState } from 'react';
-import CompetitionCard from "../../components/features/competitions/CompetitionCard";
 
+import React, { useEffect, useState } from 'react';
+import { Bell, Clock, Activity, Download } from 'lucide-react';
+import Sidebar from './Sidebar';
+import CompetitionCard from "../../components/features/competitions/CompetitionCard";
 
 const FacultyDashboard = () => {
     // Top Stats Cards Data
@@ -14,25 +13,13 @@ const FacultyDashboard = () => {
         { label: 'OD REQUESTS', value: '0', subtext: 'Pending Coordinator' },
     ];
 
-    // Placeholder data for the table - Structure only
+    // Placeholder data for the table
     const registrations = [
-        // Empty array or minimal placeholders as requested to remove "fake details"
-        // keeping one empty object to show structure idea if needed, 
-        // but user asked to remove fake details. 
-        // I will keep the table headers and maybe a "No recent data" or empty rows state 
-        // if strictly required, but usually an empty table is better for "real" app start.
-        // However, user said "other columns rows should be present", implies he wants the rows VISIBLE but maybe empty/generic?
-        // "fake detail should be reomove and but other columns rows should be present"
-        // This likely means keeping the LAYOUT of the rows but having generic/empty data?
-        // Or perhaps just the headers. I will stick to a clean table structure with maybe 1-2 generic placeholders
-        // like "-" if strictly needed, or just an empty state. 
-        // Let's interpret "rows should be present" as keeping the Visual Mock Rows but with "---" or generic names?
-        // Actually, "fake detail should be remove" usually means "don't show 'Sarah Lee'".
-        // I will render a few rows with placeholders.
-        { name: '', regNo: '-', competition: '-', team: '-', deadline: '-', status: 'Pending' },
+        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: 'Pending' },
         { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: 'Pending' },
         { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: 'Pending' },
     ];
+
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -86,7 +73,8 @@ const FacultyDashboard = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                     {/* Left Column - Student Registrations (Span 2) */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="lg:col-span-2 space-y-8">
+                        {/* Registrations Table */}
                         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                             <div className="p-6 border-b border-gray-50 flex justify-between items-start">
                                 <div>
@@ -136,11 +124,26 @@ const FacultyDashboard = () => {
                                     </tbody>
                                 </table>
                             </div>
-                            <div className="p-4 border-t border-gray-50 text-center">
-                                <button className="text-sm text-gray-500 hover:text-blue-600 font-medium transition-colors">
-                                    Showing 5 most recent entries
-                                </button>
-                            </div>
+                        </div>
+
+                        {/* Competition Overview (Existing Logic) */}
+                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                            <h2 className="text-lg font-bold text-gray-900 mb-6">Active Competitions</h2>
+                            {loading ? (
+                                <div className="text-gray-500">Loading events...</div>
+                            ) : competitions.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {competitions.map(comp => (
+                                        <CompetitionCard
+                                            key={comp.id}
+                                            competition={comp}
+                                            showRegister={false}
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-gray-500">No active competitions.</div>
+                            )}
                         </div>
                     </div>
 
@@ -190,25 +193,6 @@ const FacultyDashboard = () => {
                                 <Activity className="text-blue-500" size={20} />
                                 <h3 className="font-bold text-gray-900">Recent Activity</h3>
                             </div>
-                             <h2 className="text-xl font-semibold text-gray-800 mb-6">Competition Overview</h2>
-
-                {loading ? (
-                    <div className="text-gray-500">Loading events...</div>
-                ) : competitions.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {competitions.map(comp => (
-                            <CompetitionCard
-                                key={comp.id}
-                                competition={comp}
-                                showRegister={false}
-                            />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-gray-500">No active competitions.</div>
-                )}
-            </section>
-        </div>
                             <div className="space-y-4 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
                                 {/* Placeholder Activity */}
                                 <div className="relative pl-6">
@@ -228,4 +212,4 @@ const FacultyDashboard = () => {
     );
 };
 
-
+export default FacultyDashboard;
