@@ -4,7 +4,7 @@
 
 const express = require('express');
 const router = express.Router();
-const competitionController = require('../controllers/competition.controller');
+const competitionController = require('../../controllers/competition.controller');
 // const checkRole = require('../middleware/role.middleware'); // Removed for public access
 
 // GET /api/competitions - List all

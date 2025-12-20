@@ -4,7 +4,7 @@
 
 const express = require('express');
 const router = express.Router();
-const teamController = require('../controllers/team.controller');
+const teamController = require('../../controllers/team.controller');
 // const checkRole = require('../middleware/role.middleware'); // Removed for public access
 
 // All routes rely on x-user-id header

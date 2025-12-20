@@ -26,6 +26,7 @@ CREATE TABLE users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT UNIQUE NOT NULL,
     full_name TEXT,
+    section TEXT,
     avatar_url TEXT,
     role user_role DEFAULT 'STUDENT',
     department_id UUID REFERENCES departments(id),
@@ -75,7 +76,15 @@ CREATE TABLE approvals (
     hod_status status_type DEFAULT 'PENDING',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
+-- Registrations Table
+-- Stores student participation in competitions
+CREATE TABLE registrations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    competition_id UUID REFERENCES competitions(id) ON DELETE CASCADE,
+    registered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE (student_id, competition_id)
+);
 -- 3. ROW LEVEL SECURITY (RLS)
 -- This restricts direct database access from the frontend
 -- Note: Our Backend Service Role (Node.js) bypasses these checks!

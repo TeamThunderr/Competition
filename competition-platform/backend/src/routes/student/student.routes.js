@@ -4,9 +4,9 @@
 
 const express = require('express');
 const router = express.Router();
-const competitionController = require('../controllers/student/competition.controller');
-const registrationController = require('../controllers/student/registration.controller');
-const checkRole = require('../middleware/role.middleware');
+const competitionController = require('../../controllers/student/competition.controller');
+const registrationController = require('../../controllers/student/registration.controller');
+const checkRole = require('../../middleware/role.middleware');
 //const authMiddleware = require('../middleware/authMiddleware');
 //const roleMiddleware = require('../middleware/roleMiddleware');
 
