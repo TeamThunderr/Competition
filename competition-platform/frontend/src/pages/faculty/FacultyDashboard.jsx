@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import CompetitionCard from '../../components/CompetitionCard';
+import CompetitionCard from "../../components/features/competitions/CompetitionCard";
 
 const FacultyDashboard = () => {
     const [competitions, setCompetitions] = useState([]);
