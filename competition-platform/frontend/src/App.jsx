@@ -4,6 +4,8 @@ import Login from './pages/auth/Login';
 import OAuthConsent from './pages/auth/OAuthConsent';
 import StudentDashboard from './pages/student/StudentDashboard';
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
+import StudentList from './pages/faculty/StudentList';
+import FacultyAlerts from './pages/faculty/FacultyAlerts';
 import HodDashboard from './pages/hod/HodDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentSearch from './pages/admin/StudentSearch';
@@ -21,6 +23,8 @@ function App() {
       {/* Role Based Routes - Can protect these later with Middleware */}
       <Route path="/student" element={<StudentDashboard />} />
       <Route path="/faculty" element={<FacultyDashboard />} />
+      <Route path="/faculty/students" element={<StudentList />} />
+      <Route path="/faculty/alerts" element={<FacultyAlerts />} />
       <Route path="/hod" element={<HodDashboard />} />
 
       {/* Admin Routes */}
