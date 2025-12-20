@@ -4,7 +4,7 @@
 
 const express = require('express');
 const router = express.Router();
-const approvalController = require('../controllers/approval.controller');
+const approvalController = require('../../controllers/approval.controller');
 // const checkRole = require('../middleware/role.middleware'); // Removed for public access
 
 // Student requests permission

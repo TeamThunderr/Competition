@@ -99,16 +99,6 @@ const syncUser = async (req, res) => {
     }
 };
 
-const login = async (req, res) => {
-    res.status(200).json({ message: 'Login handled by Frontend via Supabase Auth' });
-}
-
-const signup = async (req, res) => {
-    res.status(200).json({ message: 'Signup handled by Frontend via Supabase Auth' });
-}
-
 module.exports = {
-    syncUser,
-    login,
-    signup
+    syncUser
 };

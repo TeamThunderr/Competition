@@ -4,9 +4,8 @@
 
 const express = require('express');
 const router = express.Router();
-const hodController = require('../controllers/hod/hod.controller');
-//const authMiddleware = require('../middleware/authMiddleware');
-//const roleMiddleware = require('../middleware/roleMiddleware');
+const hodController = require('../../controllers/hod/hod.controller');
+const checkRole = require('../../middleware/role.middleware');
 
 //router.use(authMiddleware);
 //router.use(roleMiddleware('hod'));

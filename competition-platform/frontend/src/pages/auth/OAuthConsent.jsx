@@ -59,18 +59,40 @@ const OAuthConsent = () => {
                         });
 
                         if (response.ok) {
-                            console.log('User synced to backend successfully');
+                            const data = await response.json();
+                            console.log('User synced:', data);
+
+                            const role = data.role;
+
+                            // Role-based redirection
+                            switch (role) {
+                                case 'STUDENT':
+                                    navigate('/student');
+                                    break;
+                                case 'FACULTY':
+                                    navigate('/faculty');
+                                    break;
+                                case 'HOD':
+                                    navigate('/hod');
+                                    break;
+                                case 'ADMIN':
+                                    navigate('/admin');
+                                    break;
+                                default:
+                                    console.warn('Unknown role:', role);
+                                    navigate('/'); // Fallback to home
+                            }
                         } else {
                             const errorText = await response.text();
                             console.error('Failed to sync user to backend. Status:', response.status);
                             console.error('Response body:', errorText);
-                            alert(`Sync failed: ${errorText}`); // Alert the user to the specific error
+                            alert(`Sync failed: ${errorText}`);
+                            navigate('/login');
                         }
                     } catch (err) {
                         console.error('Error calling backend sync:', err);
+                        navigate('/login');
                     }
-
-                    navigate('/');
                 } else {
                     console.warn('User email not verified');
                     navigate('/login');

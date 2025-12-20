@@ -11,6 +11,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "concurrently": "^9.1.0"
+        "concurrently": "^9.1.0",
+        "multer": "^2.0.2"
     }
 }

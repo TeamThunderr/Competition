@@ -1,9 +1,68 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { Upload, FileText } from 'lucide-react';
+import supabase from '../../services/supabaseClient';
 
 const UploadCompetitions = () => {
-    const [activeTab, setActiveTab] = useState('excel'); // 'excel' or 'manual'
+    const [activeTab, setActiveTab] = useState('excel');
+    const [formData, setFormData] = useState({
+        title: '',
+        platform: 'Devfolio',
+        deadline: '',
+        link: '',
+        description: '',
+        min_team_size: 1,
+        max_team_size: 4
+    });
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleSubmit = async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert('You must be logged in');
+                return;
+            }
+
+            const response = await fetch('http://localhost:5000/api/competitions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': session.user.id
+                },
+                body: JSON.stringify({
+                    ...formData,
+                    team_allowed: true // Defaulting to true for now
+                })
+            });
+
+            if (response.ok) {
+                alert('Competition created successfully!');
+                setFormData({
+                    title: '',
+                    platform: 'Devfolio',
+                    deadline: '',
+                    link: '',
+                    description: '',
+                    min_team_size: 1,
+                    max_team_size: 4
+                });
+            } else {
+                const error = await response.json();
+                alert(`Error: ${error.error}`);
+            }
+        } catch (err) {
+            console.error('Error uploading competition:', err);
+            alert('Failed to upload competition');
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
@@ -64,6 +123,9 @@ const UploadCompetitions = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Competition Name</label>
                                 <input
                                     type="text"
+                                    name="title"
+                                    value={formData.title}
+                                    onChange={handleInputChange}
                                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
                                     placeholder="e.g. HackTheFuture 2025"
                                 />
@@ -71,7 +133,12 @@ const UploadCompetitions = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Platform</label>
                                 <div className="relative">
-                                    <select className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none bg-white">
+                                    <select
+                                        name="platform"
+                                        value={formData.platform}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none bg-white"
+                                    >
                                         <option>Devfolio</option>
                                         <option>Unstop</option>
                                         <option>HackerRank</option>
@@ -89,19 +156,21 @@ const UploadCompetitions = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Deadline</label>
                                 <div className="relative">
                                     <input
-                                        type="text"
+                                        type="date"
+                                        name="deadline"
+                                        value={formData.deadline}
+                                        onChange={handleInputChange}
                                         className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                        placeholder="dd-mm-yyyy"
                                     />
-                                    <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-400">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                    </div>
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">More Info Link</label>
                                 <input
                                     type="text"
+                                    name="link"
+                                    value={formData.link}
+                                    onChange={handleInputChange}
                                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
                                     placeholder="https://"
                                 />
@@ -111,6 +180,9 @@ const UploadCompetitions = () => {
                         <div className="mb-8">
                             <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                             <textarea
+                                name="description"
+                                value={formData.description}
+                                onChange={handleInputChange}
                                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm h-32 resize-none"
                                 placeholder="Event details..."
                             ></textarea>
@@ -120,7 +192,10 @@ const UploadCompetitions = () => {
                             <button className="px-6 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
                                 Cancel
                             </button>
-                            <button className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                            <button
+                                onClick={handleSubmit}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                            >
                                 Add Competition
                             </button>
                         </div>
