@@ -2,7 +2,7 @@
 // Purpose: Manage approvals by Faculty and HOD
 // Written for beginner developers
 
-const supabase = require('../config/supabaseClient');
+const supabase = require('../../config/supabaseClient');
 
 // Student requests approval
 const requestApproval = async (req, res) => {

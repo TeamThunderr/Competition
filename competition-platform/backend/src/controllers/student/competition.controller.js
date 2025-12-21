@@ -6,16 +6,55 @@ const supabase = require('../../config/supabaseClient');
 
 const getAllCompetitions = async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const userId = req.userId; // valid thanks to authMiddleware
+
+        // Fetch competitions
+        const { data: competitions, error: compError } = await supabase
             .from('competitions')
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) {
-            return res.status(500).json({ error: error.message });
-        }
+        if (compError) throw compError;
 
-        res.status(200).json(data);
+        // Fetch user's registrations for these competitions
+        const { data: registrations, error: regError } = await supabase
+            .from('registrations')
+            .select('competition_id, source, verified, proof_url')
+            .eq('user_id', userId);
+
+        if (regError) throw regError;
+
+        // Fetch user's status (shortlist/winner)
+        const { data: statusList, error: statusError } = await supabase
+            .from('competition_status')
+            .select('competition_id, is_shortlisted, is_winner')
+            .eq('user_id', userId);
+
+        if (statusError) throw statusError;
+
+        // Fetch user's OD requests
+        const { data: odRequests, error: odError } = await supabase
+            .from('od_requests')
+            .select('competition_id, status')
+            .eq('user_id', userId);
+
+        if (odError) throw odError;
+
+        // Merge data
+        const enrichedCompetitions = competitions.map(comp => {
+            const reg = registrations.find(r => r.competition_id === comp.id);
+            const stat = statusList.find(s => s.competition_id === comp.id);
+            const od = odRequests.find(o => o.competition_id === comp.id);
+
+            return {
+                ...comp,
+                my_registration: reg || null,
+                my_status: stat || null,
+                my_od: od || null
+            };
+        });
+
+        res.status(200).json(enrichedCompetitions);
     } catch (err) {
         console.error('Error fetching competitions:', err);
         res.status(500).json({ error: 'Internal Server Error' });
