@@ -1,0 +1,7 @@
+/* File Name: index.css */
+/* Purpose: Global styles and Tailwind imports */
+/* Written for beginner developers */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
