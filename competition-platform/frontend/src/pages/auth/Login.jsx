@@ -12,7 +12,7 @@ const Login = () => {
         }
     };
 
-    const tabs = ['Student', 'Faculty', 'Coord.', 'CIT'];
+    const tabs = ['Student', 'Faculty', 'Hod', 'CIT'];
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50 font-sans">
