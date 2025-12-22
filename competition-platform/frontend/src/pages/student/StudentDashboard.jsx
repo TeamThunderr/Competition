@@ -1,59 +1,112 @@
 import React, { useEffect, useState } from 'react';
-import CompetitionCard from '../../components/CompetitionCard';
-import { getCurrentUser } from '../../services/authService';
+import CompetitionCard from '../../components/features/competitions/CompetitionCard';
+import supabase from '../../services/supabaseClient';
 
 const StudentDashboard = () => {
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchCompetitions = async () => {
-            try {
-                const response = await fetch('http://localhost:5000/api/competitions');
-                if (response.ok) {
-                    const data = await response.json();
-                    setCompetitions(data);
-                } else {
-                    console.error('Failed to fetch competitions');
-                }
-            } catch (err) {
-                console.error('Error:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchCompetitions();
-    }, []);
-
-    const handleRegister = async (competitionId) => {
+    const fetchCompetitions = async () => {
+        setLoading(true);
         try {
-            const user = await getCurrentUser();
-            if (!user) {
-                alert('Please login to register');
+            // Need user ID for headers
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id;
+
+            if (!userId) {
+                console.error("No user session found");
                 return;
             }
 
-            const response = await fetch('http://localhost:5000/api/student/register', {
-                method: 'POST',
+            const response = await fetch('http://localhost:5000/api/student/competitions', {
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user.id // Using header as per backend middleware
-                },
-                body: JSON.stringify({ competition_id: competitionId })
+                    'x-user-id': userId // Pass ID for backend middleware
+                }
             });
 
-            const data = await response.json();
-
             if (response.ok) {
-                alert('Registered successfully!');
+                const data = await response.json();
+                setCompetitions(data);
             } else {
-                alert(`Registration failed: ${data.message || data.error}`);
+                console.error('Failed to fetch competitions');
             }
+        } catch (err) {
+            console.error('Error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        } catch (error) {
-            console.error('Registration error:', error);
-            alert('An error occurred during registration.');
+    useEffect(() => {
+        fetchCompetitions();
+    }, []);
+
+    // Handlers
+    const handleCheckStatus = async (compId) => {
+        alert("Scanning your Gmail for registration confirmation... (Mock Service)");
+
+        // Mock API Call
+        const { data: { session } } = await supabase.auth.getSession();
+        const response = await fetch('http://localhost:5000/api/student/check-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': session?.user?.id
+            },
+            body: JSON.stringify({ competition_id: compId })
+        });
+
+        const resData = await response.json();
+
+        if (resData.status === 'NOT_FOUND') {
+            const proofUrl = prompt("Gmail detection failed. Please paste the screenshot URL of your registration proof:");
+            if (proofUrl) {
+                handleUploadProof(compId, proofUrl);
+            }
+        } else {
+            alert("Registration Detected via Gmail!");
+            fetchCompetitions(); // Refresh
+        }
+    };
+
+    const handleUploadProof = async (compId, proofUrl) => {
+        const { data: { session } } = await supabase.auth.getSession();
+        const response = await fetch('http://localhost:5000/api/student/upload-proof', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': session?.user?.id
+            },
+            body: JSON.stringify({ competition_id: compId, proof_url: proofUrl })
+        });
+
+        if (response.ok) {
+            alert("Proof uploaded! Waiting for faculty approval.");
+            fetchCompetitions();
+        } else {
+            alert("Upload failed.");
+        }
+    };
+
+    const handleRequestOD = async (compId) => {
+        const reason = prompt("Enter reason for OD request:");
+        if (!reason) return;
+
+        const { data: { session } } = await supabase.auth.getSession();
+        const response = await fetch('http://localhost:5000/api/student/request-od', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': session?.user?.id
+            },
+            body: JSON.stringify({ competition_id: compId, reason })
+        });
+
+        if (response.ok) {
+            alert("OD Request Sent to HOD.");
+            fetchCompetitions();
+        } else {
+            alert("Request failed.");
         }
     };
 
@@ -62,7 +115,10 @@ const StudentDashboard = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-8">Student Dashboard</h1>
 
             <section>
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Upcoming Competitions</h2>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold text-gray-800">Competitions</h2>
+                    <button onClick={fetchCompetitions} className="text-blue-600 text-sm hover:underline">Refresh Status</button>
+                </div>
 
                 {loading ? (
                     <div className="text-gray-500">Loading events...</div>
@@ -72,8 +128,9 @@ const StudentDashboard = () => {
                             <CompetitionCard
                                 key={comp.id}
                                 competition={comp}
-                                showRegister={true}
-                                onRegister={handleRegister}
+                                onCheckStatus={handleCheckStatus}
+                                onUploadProof={handleUploadProof}
+                                onRequestOD={handleRequestOD}
                             />
                         ))}
                     </div>

@@ -1,4 +1,3 @@
-```javascript
 const supabase = require("../config/supabaseClient");
 
 const authMiddleware = async (req, res, next) => {
@@ -10,7 +9,7 @@ const authMiddleware = async (req, res, next) => {
     if (!userId) {
       // Option 1: Error if no ID provided
       return res.status(400).json({ message: "Public Mode: Please provide 'x-user-id' header" });
-      
+
       // Option 2 (Uncomment if you want a hardcoded default for testing without headers)
       // req.userId = "your-test-user-uuid-here";
       // return next();
@@ -24,7 +23,7 @@ const authMiddleware = async (req, res, next) => {
       .single();
 
     if (error || !user) {
-        return res.status(404).json({ message: "User ID provided in header not found in database" });
+      return res.status(404).json({ message: "User ID provided in header not found in database" });
     }
 
     req.user = user;
@@ -38,4 +37,3 @@ const authMiddleware = async (req, res, next) => {
 };
 
 module.exports = authMiddleware;
-```

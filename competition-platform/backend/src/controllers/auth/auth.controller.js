@@ -1,7 +1,7 @@
 // File Name: auth.controller.js
 // Purpose: specific logic for authentication routes
 
-const supabase = require('../config/supabaseClient');
+const supabase = require('../../config/supabaseClient');
 
 const syncUser = async (req, res) => {
     try {
@@ -80,7 +80,7 @@ const syncUser = async (req, res) => {
                 id: uid,
                 email: email,
                 full_name: full_name,
-                avatar_url: avatar_url,
+
                 role: finalRole
                 // created_at is default NOW(), updated_at removed as per schema
             }, { onConflict: 'id' })

@@ -2,7 +2,7 @@
 // Purpose: Logic for managing competitions
 // Written for beginner developers
 
-const supabase = require('../config/supabaseClient');
+const supabase = require('../../config/supabaseClient');
 
 // Get all competitions (Public)
 const getAllCompetitions = async (req, res) => {

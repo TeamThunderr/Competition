@@ -6,15 +6,27 @@ const express = require('express');
 const router = express.Router();
 const competitionController = require('../../controllers/student/competition.controller');
 const registrationController = require('../../controllers/student/registration.controller');
-const checkRole = require('../../middleware/role.middleware');
-//const authMiddleware = require('../middleware/authMiddleware');
-//const roleMiddleware = require('../middleware/roleMiddleware');
+const odController = require('../../controllers/student/od.controller');
+const authMiddleware = require('../../middleware/authMiddleware');
+const roleMiddleware = require('../../middleware/role.middleware');
 
-// All routes here require the user to be a STUDENT
-// This middleware checks the 'x-user-id' header and the database role
-router.use(checkRole('STUDENT'));
+// 1. Check Authentication (Who are you?)
+router.use(authMiddleware);
 
+// 2. Check Role (Are you a Student?)
+router.use(roleMiddleware('STUDENT'));
+
+// --- Routes ---
+
+// Competitions
 router.get('/competitions', competitionController.getAllCompetitions);
-router.post('/register', registrationController.registerForCompetition);
+
+// Registration / Verification Flow
+router.post('/check-status', registrationController.checkRegistrationStatus);
+router.post('/upload-proof', registrationController.uploadProof);
+
+// OD Requests
+router.post('/request-od', odController.requestOD);
+router.get('/od-requests', odController.getMyODRequests);
 
 module.exports = router;

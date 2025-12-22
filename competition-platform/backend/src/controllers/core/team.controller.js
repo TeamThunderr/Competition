@@ -2,7 +2,7 @@
 // Purpose: Manage teams and memberships
 // Written for beginner developers
 
-const supabase = require('../config/supabaseClient');
+const supabase = require('../../config/supabaseClient');
 
 // Create a new team
 const createTeam = async (req, res) => {
