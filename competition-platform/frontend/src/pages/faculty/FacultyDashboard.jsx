@@ -1,45 +1,104 @@
 
 import React, { useEffect, useState } from 'react';
-import { Bell, Clock, Activity, Download } from 'lucide-react';
+import { Bell, Clock, Activity, Download, CheckCircle, XCircle } from 'lucide-react';
 import Sidebar from './Sidebar';
 import CompetitionCard from "../../components/features/competitions/CompetitionCard";
+import supabase from '../../services/supabaseClient';
 
 const FacultyDashboard = () => {
     // Top Stats Cards Data
-    const stats = [
+    const [stats, setStats] = useState([
         { label: 'TOTAL STUDENTS', value: '0', subtext: 'CSE-A' },
         { label: 'COMP. REGISTERED', value: '0', subtext: 'Active Participations' },
         { label: 'COMP. QUALIFIED', value: '0', subtext: 'Round 1 Cleared' },
         { label: 'OD REQUESTS', value: '0', subtext: 'Pending Coordinator' },
-    ];
-
-    // Placeholder data for the table
-    const registrations = [
-        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: 'Pending' },
-        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: 'Pending' },
-        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: 'Pending' },
-    ];
+    ]);
 
     const [competitions, setCompetitions] = useState([]);
+    const [verifications, setVerifications] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchCompetitions = async () => {
-            try {
-                const response = await fetch('http://localhost:5000/api/competitions');
-                if (response.ok) {
-                    const data = await response.json();
-                    setCompetitions(data);
-                }
-            } catch (err) {
-                console.error('Error:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            // 1. Get Session for Headers
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id;
+            const headers = { 'Content-Type': 'application/json', 'x-user-id': userId };
 
-        fetchCompetitions();
+            // 2. Fetch Competitions
+            const compRes = await fetch('http://localhost:5000/api/competitions');
+            if (compRes.ok) {
+                setCompetitions(await compRes.json());
+            }
+
+            // 3. Fetch Pending Verifications
+            if (userId) {
+                const verifyRes = await fetch('http://localhost:5000/api/faculty/pending-verifications', { headers });
+                if (verifyRes.ok) {
+                    const verifyData = await verifyRes.json();
+                    setVerifications(verifyData);
+
+                    // Update stats with Pending Cnt
+                    setStats(prev => {
+                        const newStats = [...prev];
+                        newStats[3].value = verifyData.length.toString();
+                        return newStats;
+                    });
+                }
+
+                // 4. Fetch Faculty Stats
+                const statsRes = await fetch('http://localhost:5000/api/faculty/stats', { headers });
+                if (statsRes.ok) {
+                    const getRes = await statsRes.json();
+                    if (getRes.success) {
+                        const statData = getRes.data;
+                        setStats(prev => {
+                            const newStats = [...prev];
+                            newStats[1].value = statData.total_registrations.toString();
+                            newStats[2].value = (statData.verified_registrations || 0).toString();
+                            return newStats;
+                        });
+                    }
+                }
+            }
+
+        } catch (err) {
+            console.error('Error fetching dashboard data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
     }, []);
+
+    const handleVerify = async (regId, status) => {
+        if (!window.confirm(`Are you sure you want to ${status} this registration?`)) return;
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch('http://localhost:5000/api/faculty/verify-registration', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': session?.user?.id
+                },
+                body: JSON.stringify({ registration_id: regId, status })
+            });
+
+            if (response.ok) {
+                alert(`Registration ${status} successfully!`);
+                fetchData(); // Refresh list
+            } else {
+                alert("Action failed. Please try again.");
+            }
+        } catch (err) {
+            console.error("Verification Error:", err);
+            alert("Error processing request.");
+        }
+    };
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
@@ -78,51 +137,67 @@ const FacultyDashboard = () => {
                         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                             <div className="p-6 border-b border-gray-50 flex justify-between items-start">
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900">Student Registrations</h2>
-                                    <p className="text-sm text-gray-500 mt-1">Monitoring participation details</p>
+                                    <h2 className="text-lg font-bold text-gray-900">Pending Verifications</h2>
+                                    <p className="text-sm text-gray-500 mt-1">Students requiring proof approval</p>
                                 </div>
-                                <button className="text-blue-600 text-sm font-medium hover:text-blue-700 flex items-center gap-1">
-                                    <Download size={16} />
-                                    Export Report
+                                <button onClick={fetchData} className="text-blue-600 text-sm font-medium hover:text-blue-700 flex items-center gap-1">
+                                    Refresh List
                                 </button>
                             </div>
 
                             <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-gray-50/50">
-                                        <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            <th className="px-6 py-4">Student</th>
-                                            <th className="px-6 py-4">Competition</th>
-                                            <th className="px-6 py-4">Team</th>
-                                            <th className="px-6 py-4">Deadline</th>
-                                            <th className="px-6 py-4">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {registrations.map((row, index) => (
-                                            <tr key={index} className="hover:bg-gray-50/50 transition-colors">
-                                                <td className="px-6 py-4">
-                                                    <div>
-                                                        <div className="font-medium text-gray-900">{row.name}</div>
-                                                        <div className="text-xs text-gray-500">{row.regNo}</div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-600">{row.competition}</td>
-                                                <td className="px-6 py-4">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                        {row.team}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-500">{row.deadline}</td>
-                                                <td className="px-6 py-4">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-100">
-                                                        {row.status}
-                                                    </span>
-                                                </td>
+                                {verifications.length > 0 ? (
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50/50">
+                                            <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-6 py-4">Student</th>
+                                                <th className="px-6 py-4">Competition</th>
+                                                <th className="px-6 py-4">Proof</th>
+                                                <th className="px-6 py-4">Actions</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {verifications.map((row) => (
+                                                <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <div>
+                                                            <div className="font-medium text-gray-900">{row.users?.full_name || 'Unknown'}</div>
+                                                            <div className="text-xs text-gray-500">{row.users?.registration_no || row.student_id}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-gray-600">
+                                                        {row.competitions?.title || 'Unknown Event'}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <a href={row.proof_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs hover:underline">
+                                                            View Proof
+                                                        </a>
+                                                    </td>
+                                                    <td className="px-6 py-4 flex gap-2">
+                                                        <button
+                                                            onClick={() => handleVerify(row.id, 'APPROVED')}
+                                                            className="text-green-600 hover:bg-green-50 p-1 rounded transition-colors"
+                                                            title="Approve"
+                                                        >
+                                                            <CheckCircle size={20} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleVerify(row.id, 'REJECTED')}
+                                                            className="text-red-600 hover:bg-red-50 p-1 rounded transition-colors"
+                                                            title="Reject"
+                                                        >
+                                                            <XCircle size={20} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div className="p-8 text-center text-gray-500">
+                                        No pending verifications found.
+                                    </div>
+                                )}
                             </div>
                         </div>
 

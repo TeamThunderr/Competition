@@ -31,7 +31,7 @@ const getDepartmentStats = async () => {
     }
 
     // 3. Extract User IDs
-    const userIds = [...new Set(registrations.map(r => r.student_id))];
+    const userIds = [...new Set(registrations.map(r => r.user_id))];
 
     // 4. Fetch Users (Plain)
     // Select * to ensure we don't miss fields due to casing or schema changes
@@ -53,10 +53,10 @@ const getDepartmentStats = async () => {
     const stats = {};
 
     registrations.forEach(reg => {
-        const user = userMap[reg.student_id];
+        const user = userMap[reg.user_id];
 
         if (!user) {
-            console.warn(`[StatsService] Orphaned Registration: ${reg.id}`);
+            console.warn(`[StatsService] Orphaned Registration: ${reg.id} (User ID: ${reg.user_id})`);
             return;
         }
 
@@ -70,11 +70,15 @@ const getDepartmentStats = async () => {
                 department_id: deptId,
                 department_name: deptName,
                 total_registrations: 0,
+                verified_registrations: 0,
                 sections: {}
             };
         }
 
         stats[deptId].total_registrations++;
+        if (reg.verified) {
+            stats[deptId].verified_registrations++;
+        }
 
         if (!stats[deptId].sections[section]) {
             stats[deptId].sections[section] = {
@@ -89,7 +93,8 @@ const getDepartmentStats = async () => {
             student_id: user.id,
             full_name: user.full_name,
             email: user.email,
-            competition_id: reg.competition_id
+            competition_id: reg.competition_id,
+            verified: reg.verified || false
         });
     });
 

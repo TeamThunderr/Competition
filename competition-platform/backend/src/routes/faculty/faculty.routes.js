@@ -14,6 +14,7 @@ router.use(authMiddleware);
 router.use(roleMiddleware('FACULTY'));
 
 router.get('/students', facultyController.getMyStudents);
+router.get('/stats', facultyController.getStats);
 
 // Verification Routes
 router.get('/pending-verifications', verificationController.getPendingVerifications);
