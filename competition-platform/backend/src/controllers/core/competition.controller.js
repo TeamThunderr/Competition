@@ -59,7 +59,33 @@ const createCompetition = async (req, res) => {
     }
 };
 
+// Get single competition by ID
+const getCompetitionById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data, error } = await supabase
+            .from('competitions')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            return res.status(500).json({ error: error.message });
+        }
+
+        if (!data) {
+            return res.status(404).json({ error: 'Competition not found' });
+        }
+
+        res.status(200).json(data);
+    } catch (err) {
+        console.error('Error fetching competition:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
     getAllCompetitions,
-    createCompetition
+    createCompetition,
+    getCompetitionById
 };

@@ -12,7 +12,7 @@ const getAllCompetitions = async (req, res) => {
         const { data: competitions, error: compError } = await supabase
             .from('competitions')
             .select('*')
-            .order('created_at', { ascending: false });
+            .order('registration_deadline', { ascending: true })
 
         if (compError) throw compError;
 
@@ -61,4 +61,22 @@ const getAllCompetitions = async (req, res) => {
     }
 };
 
-module.exports = { getAllCompetitions };
+const getCompetitionDetails = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('competitions')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+
+    if (error) throw error;
+
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+
+module.exports = { getAllCompetitions, getCompetitionDetails };
+

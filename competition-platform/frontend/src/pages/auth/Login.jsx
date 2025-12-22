@@ -6,6 +6,18 @@ const Login = () => {
     const [error, setError] = useState('');
 
     const handleGoogleLogin = async () => {
+        // Map the display tab to the backend system role
+        const roleMapping = {
+            'Student': 'STUDENT',
+            'Faculty': 'FACULTY',
+            'Coord.': 'HOD',
+            'CIT': 'ADMIN'
+        };
+
+        const role = roleMapping[activeTab] || 'STUDENT';
+        localStorage.setItem('requestedRole', role);
+        console.log('Login requested for role:', role);
+
         const result = await signInWithGoogle();
         if (!result.success) {
             setError(result.error);
@@ -28,8 +40,8 @@ const Login = () => {
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={`pb-2 text-sm font-medium transition-colors duration-200 relative ${activeTab === tab
-                                    ? 'text-blue-600'
-                                    : 'text-gray-400 hover:text-gray-600'
+                                ? 'text-blue-600'
+                                : 'text-gray-400 hover:text-gray-600'
                                 }`}
                         >
                             {tab}

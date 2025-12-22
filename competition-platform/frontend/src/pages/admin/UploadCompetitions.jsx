@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Sidebar from './Sidebar';
 import { Upload, FileText } from 'lucide-react';
 import supabase from '../../services/supabaseClient';
 
 const UploadCompetitions = () => {
     const [activeTab, setActiveTab] = useState('excel');
+    const fileInputRef = useRef(null);
+    const [uploading, setUploading] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
         platform: 'Devfolio',
@@ -23,6 +25,52 @@ const UploadCompetitions = () => {
         }));
     };
 
+    const handleFileSelect = () => {
+        fileInputRef.current.click();
+    };
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        setUploading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert('You must be logged in');
+                setUploading(false);
+                return;
+            }
+
+            const response = await fetch('http://localhost:5000/api/admin/competition/upload', {
+                method: 'POST',
+                headers: {
+                    'x-user-id': session.user.id
+                },
+                body: formData
+            });
+
+            if (response.ok) {
+                alert('Competitions uploaded successfully!');
+                e.target.value = null; // Reset input
+            } else {
+                const error = await response.json();
+                alert(`Upload failed: ${error.message || 'Unknown error'}`);
+            }
+        } catch (err) {
+            console.error('Error uploading file:', err);
+            alert('Failed to upload file');
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
     const handleSubmit = async () => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -39,7 +87,9 @@ const UploadCompetitions = () => {
                 },
                 body: JSON.stringify({
                     ...formData,
-                    team_allowed: true // Defaulting to true for now
+                    team_allowed: true,
+                    min_team_size: formData.min_team_size,
+                    max_team_size: formData.max_team_size
                 })
             });
 
@@ -100,13 +150,23 @@ const UploadCompetitions = () => {
                 {/* Content */}
                 {activeTab === 'excel' && (
                     <div className="bg-white p-12 rounded-xl border border-gray-100 shadow-sm text-center">
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 flex flex-col items-center justify-center">
+                        <div
+                            className="border-2 border-dashed border-gray-300 rounded-lg p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+                            onClick={handleFileSelect}
+                        >
+                            <input
+                                type="file"
+                                accept=".xlsx, .xls, .csv"
+                                className="hidden"
+                                ref={fileInputRef}
+                                onChange={handleFileUpload}
+                            />
                             <div className="h-12 w-12 text-gray-400 mb-4">
                                 <FileText className="w-full h-full" />
                             </div>
                             <h3 className="text-lg font-medium text-gray-900">Drag and drop Excel file here</h3>
                             <p className="text-gray-500 text-sm mt-1 mb-6">or click to browse from computer</p>
-                            <button className="bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition-colors">
+                            <button className="bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition-colors pointer-events-none">
                                 Select File
                             </button>
                         </div>

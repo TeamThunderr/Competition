@@ -11,7 +11,9 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentSearch from './pages/admin/StudentSearch';
 import UploadCompetitions from './pages/admin/UploadCompetitions';
 import GlobalRepository from './pages/admin/GlobalRepository';
+
 import DeptPerformance from './pages/admin/DeptPerformance';
+import CompetitionDetails from './pages/common/CompetitionDetails';
 import './App.css';
 
 function App() {
@@ -34,6 +36,9 @@ function App() {
       <Route path="/admin/upload" element={<UploadCompetitions />} />
       <Route path="/admin/repository" element={<GlobalRepository />} />
       <Route path="/admin/performance" element={<DeptPerformance />} />
+
+      {/* Common Routes */}
+      <Route path="/competitions/:id" element={<CompetitionDetails />} />
     </Routes>
   );
 }

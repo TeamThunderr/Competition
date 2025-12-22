@@ -20,6 +20,7 @@ router.use(roleMiddleware('STUDENT'));
 
 // Competitions
 router.get('/competitions', competitionController.getAllCompetitions);
+router.get('/competition/:id', competitionController.getCompetitionDetails);
 
 // Registration / Verification Flow
 router.post('/check-status', registrationController.checkRegistrationStatus);
