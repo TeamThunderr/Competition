@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Clock } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
-
+import StudentSidebar from './Sidebar';
 
 const StudentDashboard = () => {
+    const navigate = useNavigate();
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
 

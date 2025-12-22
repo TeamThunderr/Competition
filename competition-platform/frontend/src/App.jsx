@@ -2,7 +2,7 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
-
+import StudentCompetitions from './pages/student/StudentCompetitions';
 import StudentDashboard from './pages/student/StudentDashboard';
 import MyTeams from './pages/student/MyTeams';
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
