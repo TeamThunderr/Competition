@@ -1,5 +1,6 @@
 import React from 'react';
 import Sidebar from './Sidebar';
+import { Link } from 'react-router-dom';
 import { Upload } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -64,10 +65,10 @@ const AdminDashboard = () => {
                             <p className="text-blue-100 mb-8 max-w-md">
                                 Upload new competition details via Excel or manually add upcoming events to the global repository.
                             </p>
-                            <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-blue-50 transition-colors shadow-sm">
+                            <Link to="/admin/upload" className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-blue-50 transition-colors shadow-sm inline-flex">
                                 <Upload size={20} />
                                 Launch Upload Panel
-                            </button>
+                            </Link>
                         </div>
                     </div>
 

@@ -1,8 +1,8 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
-import OAuthConsent from './pages/auth/OAuthConsent';
-import StudentCompetitions from './pages/student/competitionDashboard';
+
 import StudentDashboard from './pages/student/StudentDashboard';
 import MyTeams from './pages/student/MyTeams';
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
@@ -18,15 +18,21 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentSearch from './pages/admin/StudentSearch';
 import UploadCompetitions from './pages/admin/UploadCompetitions';
 import GlobalRepository from './pages/admin/GlobalRepository';
+
 import DeptPerformance from './pages/admin/DeptPerformance';
+import CompetitionDetails from './pages/common/CompetitionDetails';
 import './App.css';
 
 function App() {
+  // Simple Auth Check on Mount (Optional)
+  // Since we use localStorage in Login.jsx, we can just rely on protected routes or component checks.
+  // For now, removing Supabase Auth Listener completely.
+
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/oauth/consent" element={<OAuthConsent />} />
+      
 
       {/* Role Based Routes - Can protect these later with Middleware */}
       <Route path="/student" element={<StudentDashboard />} />
@@ -50,6 +56,9 @@ function App() {
       <Route path="/admin/upload" element={<UploadCompetitions />} />
       <Route path="/admin/repository" element={<GlobalRepository />} />
       <Route path="/admin/performance" element={<DeptPerformance />} />
+
+      {/* Common Routes */}
+      <Route path="/competitions/:id" element={<CompetitionDetails />} />
     </Routes>
   );
 }

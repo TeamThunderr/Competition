@@ -1,10 +1,23 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
 
-const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestOD }) => {
+const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestOD, showRegister = true }) => {
     const { my_registration, my_status, my_od } = competition;
 
     const renderAction = () => {
+        // If showRegister is false (Faculty/HOD), do not show any actionable buttons (actions are for students)
+        if (!showRegister) {
+            return (
+                <Link
+                    to={`/competitions/${competition.id}`}
+                    className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors text-center"
+                >
+                    View Details
+                </Link>
+            );
+        }
+
         // 1. Not Registered
         if (!my_registration) {
             return (
@@ -40,8 +53,8 @@ const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestO
             if (my_od) {
                 return (
                     <div className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium text-center ${my_od.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                            my_od.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                                'bg-purple-50 text-purple-700'
+                        my_od.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                            'bg-purple-50 text-purple-700'
                         }`}>
                         OD: {my_od.status}
                     </div>
@@ -109,7 +122,7 @@ const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestO
             <div className="flex gap-3 flex-col sm:flex-row">
                 {renderAction()}
 
-                {competition.external_link && (
+                {competition.external_link && showRegister && (
                     <a
                         href={competition.external_link}
                         target="_blank"
