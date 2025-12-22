@@ -13,7 +13,7 @@ const StudentDashboard = () => {
             <div className="flex-1 ml-64 p-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Welcome back, Alex!</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Welcome back !</h1>
                     <p className="text-gray-500 mt-1">Here's what's happening with your competitions.</p>
                 </div>
 

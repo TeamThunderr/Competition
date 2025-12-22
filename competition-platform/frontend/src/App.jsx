@@ -8,6 +8,7 @@ import MyTeams from './pages/student/MyTeams';
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import StudentList from './pages/faculty/StudentList';
 import FacultyAlerts from './pages/faculty/FacultyAlerts';
+import ActiveCompetitions from './pages/faculty/ActiveCompetitions';
 import HodDashboard from './pages/hod/HodDashboard';
 import OdApprovals from './pages/hod/OdApprovals';
 import HodAnalytics from './pages/hod/HodAnalytics';
@@ -34,6 +35,7 @@ function App() {
       <Route path="/faculty" element={<FacultyDashboard />} />
       <Route path="/faculty/students" element={<StudentList />} />
       <Route path="/faculty/alerts" element={<FacultyAlerts />} />
+      <Route path="/faculty/competitions" element={<ActiveCompetitions />} />
 
       {/* HOD Routes */}
       <Route path="/hod" element={<HodDashboard />} />
