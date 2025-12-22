@@ -1,43 +1,26 @@
-import supabase from './supabaseClient';
+// File Name: authService.js
+// Purpose: Handle Authentication API calls to Backend
+// Written for beginner developers
 
-export const signInWithGoogle = async () => {
+const API_URL = 'http://localhost:5000/api/auth';
+
+export const loginUser = async (email) => {
     try {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: 'http://localhost:5173/oauth/consent',
-                queryParams: {
-                    access_type: 'offline',
-                    prompt: 'consent',
-                },
-            },
+        console.log("Logging in with email:", email);
+        const response = await fetch(`${API_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
         });
 
-        if (error) throw error;
-        return { success: true, data };
-    } catch (error) {
-        console.error('Error signing in with Google:', error.message);
-        return { success: false, error: error.message };
-    }
-};
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Login failed');
+        }
 
-export const signOutUser = async () => {
-    try {
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
-        return { success: true };
+        return await response.json();
     } catch (error) {
-        console.error('Error signing out:', error.message);
-        return { success: false, error: error.message };
-    }
-};
-
-export const getCurrentUser = async () => {
-    try {
-        const { data: { user } } = await supabase.auth.getUser();
-        return user;
-    } catch (error) {
-        console.error('Error getting current user:', error.message);
-        return null;
+        console.error("Auth Service Error:", error);
+        throw error;
     }
 };

@@ -13,4 +13,7 @@ router.get('/', competitionController.getAllCompetitions);
 // POST /api/competitions - Create new (Simulating Admin via header)
 router.post('/', competitionController.createCompetition);
 
+// GET /api/competitions/:id - Get single details
+router.get('/:id', competitionController.getCompetitionById);
+
 module.exports = router;

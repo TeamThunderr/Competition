@@ -1,16 +1,17 @@
 // File Name: supabaseClient.js
-// Purpose: Connect the backend to Supabase (Admin access)
-// Written in beginner-friendly style
+// Purpose: Connect to Supabase database
+// Written for beginner developers
 
-// Import the Supabase client creator
 const { createClient } = require('@supabase/supabase-js');
+const dotenv = require('dotenv');
 
-// Import environment configuration
-const env = require('./env');
+dotenv.config();
 
-// Create the Supabase client
-// We use the Service Role Key for admin access (Backend only)
-const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+// Get these from your Supabase dashboard
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-// Export the client for use in controllers and services
+// Create a single supabase client for interacting with your database
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 module.exports = supabase;

@@ -1,4 +1,5 @@
 const adminService = require("../../services/admin/competition.service");
+const xlsx = require("xlsx");
 
 // ✅ Manual competition add
 exports.addCompetition = async (req, res) => {
@@ -18,22 +19,21 @@ exports.addCompetition = async (req, res) => {
 
 // ✅ Excel / CSV upload
 exports.uploadCompetitions = async (req, res) => {
+    const workbook = xlsx.readFile(req.file.path);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = xlsx.utils.sheet_to_json(sheet);
+
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: "File is required" });
-        }
-
-        // req.file will be parsed later (CSV/Excel logic)
-        await adminService.insertBulkCompetitions([]);
-
+        await adminService.insertBulkCompetitions(rows);
         res.status(200).json({
             success: true,
             message: "Competitions uploaded successfully"
         });
     } catch (error) {
+        console.error("Upload error:", error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: error.message || "Failed to process upload"
         });
     }
 };

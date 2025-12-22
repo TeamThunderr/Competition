@@ -4,9 +4,16 @@
 
 const express = require('express');
 const router = express.Router();
+console.log("Auth Routes Loaded"); // Debug Log
+router.use((req, res, next) => {
+    console.log('Auth Router Hit:', req.method, req.path);
+    next();
+});
 const authController = require('../../controllers/auth/auth.controller');
 
 
-router.post('/sync', authController.syncUser);
+// Route: POST /api/auth/login
+// Desc:  Login via email (Development/Insecure)
+router.post('/login', authController.login);
 
 module.exports = router;
