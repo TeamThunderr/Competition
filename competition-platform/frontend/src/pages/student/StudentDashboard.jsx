@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
-import supabase from '../../services/supabaseClient';
+
 
 const StudentDashboard = () => {
     const [competitions, setCompetitions] = useState([]);
@@ -10,8 +10,9 @@ const StudentDashboard = () => {
         setLoading(true);
         try {
             // Need user ID for headers
-            const { data: { session } } = await supabase.auth.getSession();
-            const userId = session?.user?.id;
+            const storedUser = localStorage.getItem('user');
+            const user = storedUser ? JSON.parse(storedUser) : null;
+            const userId = user?.id;
 
             if (!userId) {
                 console.error("No user session found");
@@ -46,12 +47,14 @@ const StudentDashboard = () => {
         alert("Scanning your Gmail for registration confirmation... (Mock Service)");
 
         // Mock API Call
-        const { data: { session } } = await supabase.auth.getSession();
+        const storedUser = localStorage.getItem('user');
+        const user = storedUser ? JSON.parse(storedUser) : null;
+
         const response = await fetch('http://localhost:5000/api/student/check-status', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-user-id': session?.user?.id
+                'x-user-id': user?.id
             },
             body: JSON.stringify({ competition_id: compId })
         });
@@ -70,12 +73,13 @@ const StudentDashboard = () => {
     };
 
     const handleUploadProof = async (compId, proofUrl) => {
-        const { data: { session } } = await supabase.auth.getSession();
+        const storedUser = localStorage.getItem('user');
+        const user = storedUser ? JSON.parse(storedUser) : null;
         const response = await fetch('http://localhost:5000/api/student/upload-proof', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-user-id': session?.user?.id
+                'x-user-id': user?.id
             },
             body: JSON.stringify({ competition_id: compId, proof_url: proofUrl })
         });
@@ -92,12 +96,13 @@ const StudentDashboard = () => {
         const reason = prompt("Enter reason for OD request:");
         if (!reason) return;
 
-        const { data: { session } } = await supabase.auth.getSession();
+        const storedUser = localStorage.getItem('user');
+        const user = storedUser ? JSON.parse(storedUser) : null;
         const response = await fetch('http://localhost:5000/api/student/request-od', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-user-id': session?.user?.id
+                'x-user-id': user?.id
             },
             body: JSON.stringify({ competition_id: compId, reason })
         });
