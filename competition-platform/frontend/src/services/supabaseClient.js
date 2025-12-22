@@ -13,6 +13,7 @@ if (supabaseUrl && supabaseKey) {
     supabase = {
         auth: {
             session: () => null,
+            getSession: async () => ({ data: { session: null }, error: null }),
             onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } }),
         },
         from: () => ({
