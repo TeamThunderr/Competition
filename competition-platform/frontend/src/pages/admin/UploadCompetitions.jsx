@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Sidebar from './Sidebar';
 import { Upload, FileText } from 'lucide-react';
-import supabase from '../../services/supabaseClient';
+
 
 const UploadCompetitions = () => {
     const [activeTab, setActiveTab] = useState('excel');
@@ -38,8 +38,9 @@ const UploadCompetitions = () => {
 
         setUploading(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
+            const storedUser = localStorage.getItem('user');
+            const user = storedUser ? JSON.parse(storedUser) : null;
+            if (!user) {
                 alert('You must be logged in');
                 setUploading(false);
                 return;
@@ -48,7 +49,7 @@ const UploadCompetitions = () => {
             const response = await fetch('http://localhost:5000/api/admin/competition/upload', {
                 method: 'POST',
                 headers: {
-                    'x-user-id': session.user.id
+                    'x-user-id': user.id
                 },
                 body: formData
             });
@@ -73,8 +74,9 @@ const UploadCompetitions = () => {
 
     const handleSubmit = async () => {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
+            const storedUser = localStorage.getItem('user');
+            const user = storedUser ? JSON.parse(storedUser) : null;
+            if (!user) {
                 alert('You must be logged in');
                 return;
             }
@@ -83,7 +85,7 @@ const UploadCompetitions = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-user-id': session.user.id
+                    'x-user-id': user.id
                 },
                 body: JSON.stringify({
                     ...formData,

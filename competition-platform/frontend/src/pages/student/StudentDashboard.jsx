@@ -1,10 +1,119 @@
-import React from 'react';
-import StudentSidebar from './Sidebar';
-import { Clock, CheckCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import CompetitionCard from '../../components/features/competitions/CompetitionCard';
+
 
 const StudentDashboard = () => {
-    const navigate = useNavigate();
+    const [competitions, setCompetitions] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchCompetitions = async () => {
+        setLoading(true);
+        try {
+            // Need user ID for headers
+            const storedUser = localStorage.getItem('user');
+            const user = storedUser ? JSON.parse(storedUser) : null;
+            const userId = user?.id;
+
+            if (!userId) {
+                console.error("No user session found");
+                return;
+            }
+
+            const response = await fetch('http://localhost:5000/api/student/competitions', {
+                headers: {
+                    'x-user-id': userId // Pass ID for backend middleware
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setCompetitions(data);
+            } else {
+                console.error('Failed to fetch competitions');
+            }
+        } catch (err) {
+            console.error('Error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchCompetitions();
+    }, []);
+
+    // Handlers
+    const handleCheckStatus = async (compId) => {
+        alert("Scanning your Gmail for registration confirmation... (Mock Service)");
+
+        // Mock API Call
+        const storedUser = localStorage.getItem('user');
+        const user = storedUser ? JSON.parse(storedUser) : null;
+
+        const response = await fetch('http://localhost:5000/api/student/check-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user?.id
+            },
+            body: JSON.stringify({ competition_id: compId })
+        });
+
+        const resData = await response.json();
+
+        if (resData.status === 'NOT_FOUND') {
+            const proofUrl = prompt("Gmail detection failed. Please paste the screenshot URL of your registration proof:");
+            if (proofUrl) {
+                handleUploadProof(compId, proofUrl);
+            }
+        } else {
+            alert("Registration Detected via Gmail!");
+            fetchCompetitions(); // Refresh
+        }
+    };
+
+    const handleUploadProof = async (compId, proofUrl) => {
+        const storedUser = localStorage.getItem('user');
+        const user = storedUser ? JSON.parse(storedUser) : null;
+        const response = await fetch('http://localhost:5000/api/student/upload-proof', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user?.id
+            },
+            body: JSON.stringify({ competition_id: compId, proof_url: proofUrl })
+        });
+
+        if (response.ok) {
+            alert("Proof uploaded! Waiting for faculty approval.");
+            fetchCompetitions();
+        } else {
+            alert("Upload failed.");
+        }
+    };
+
+    const handleRequestOD = async (compId) => {
+        const reason = prompt("Enter reason for OD request:");
+        if (!reason) return;
+
+        const storedUser = localStorage.getItem('user');
+        const user = storedUser ? JSON.parse(storedUser) : null;
+        const response = await fetch('http://localhost:5000/api/student/request-od', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user?.id
+            },
+            body: JSON.stringify({ competition_id: compId, reason })
+        });
+
+        if (response.ok) {
+            alert("OD Request Sent to HOD.");
+            fetchCompetitions();
+        } else {
+            alert("Request failed.");
+        }
+    };
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans">
