@@ -9,6 +9,25 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 // Create a single supabase client for interacting with your database
-const supabase = createClient(supabaseUrl, supabaseKey)
+// Create a single supabase client for interacting with your database
+let supabase;
+
+if (supabaseUrl && supabaseKey) {
+    supabase = createClient(supabaseUrl, supabaseKey);
+} else {
+    console.warn('Supabase URL or Key missing. Supabase functionality will be disabled.');
+    // Dummy client to prevent crashes on import, but will fail on usage
+    supabase = {
+        auth: {
+            session: () => null,
+            onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } }),
+            signInWithPassword: async () => ({ error: { message: 'Supabase not configured' } }),
+            signOut: async () => ({ error: null }),
+        },
+        from: () => ({
+            select: () => ({ eq: () => ({ single: async () => ({ data: null, error: { message: 'Supabase not configured' } }) }) })
+        })
+    };
+}
 
 export default supabase

@@ -3,102 +3,97 @@
 
 const supabase = require('../../config/supabaseClient');
 
-const syncUser = async (req, res) => {
+const login = async (req, res) => {
     try {
-        const { uid, email, full_name, avatar_url, role: requestedRole } = req.body;
+        const { email } = req.body;
 
-        if (!uid || !email) {
-            return res.status(400).json({ error: 'UID and Email are required' });
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
         }
 
-        console.log('Syncing user:', { email, requestedRole });
+        console.log('Login attempt for:', email);
 
-        // 1. Fetch Existing User (Secure Role Persistence)
-        // If user already exists, we do NOT change their role based on frontend input
+        // 1. Check if user already exists
         const { data: existingUser } = await supabase
             .from('users')
-            .select('role')
-            .eq('id', uid)
+            .select('*')
+            .eq('email', email)
             .single();
 
-        let finalRole = 'STUDENT'; // Default safe role
+        let finalRole = 'STUDENT';
+        let fullName = email.split('@')[0]; // Default name from email
 
         if (existingUser) {
-            finalRole = existingUser.role; // Preserve existing role
-            console.log(`User exists. Preserving role: ${finalRole}`);
+            console.log(`User found: ${existingUser.email} (${existingUser.role})`);
+            finalRole = existingUser.role;
+            fullName = existingUser.full_name;
         } else {
-            // 2. Validate Requested Role (New User)
-            // STRICT SECURITY CHECK against Registries
+            // 2. New User - Determine Role from Registries
+            console.log('New user. Checking registries...');
 
-            const upperRole = requestedRole ? requestedRole.toUpperCase() : 'STUDENT';
+            // Check Faculty Registry
+            const { data: facultyEntry } = await supabase
+                .from('faculty_registry')
+                .select('email, full_name') // Assuming registry has names
+                .eq('email', email)
+                .single();
 
-            if (upperRole === 'ADMIN') {
-                // ADMIN role cannot be claimed from Frontend. Must be manually inserted in DB.
-                console.warn(`Admin role requested for ${email}. Denied. Defaulting to STUDENT.`);
-                finalRole = 'STUDENT';
-            } else if (upperRole === 'FACULTY') {
-                // Check Faculty Registry
-                const { data: facultyEntry } = await supabase
-                    .from('faculty_registry')
-                    .select('email')
-                    .eq('email', email)
-                    .single();
-
-                if (facultyEntry) {
-                    finalRole = 'FACULTY';
-                    console.log(`Faculty verified: ${email}`);
-                } else {
-                    console.warn(`Unverified Faculty request: ${email}. Defaulting to STUDENT.`);
-                    finalRole = 'STUDENT';
-                }
-            } else if (upperRole === 'HOD') {
+            if (facultyEntry) {
+                finalRole = 'FACULTY';
+                if (facultyEntry.full_name) fullName = facultyEntry.full_name;
+                console.log('Found in Faculty Registry');
+            } else {
                 // Check HOD Registry
                 const { data: hodEntry } = await supabase
                     .from('hod_registry')
-                    .select('email')
+                    .select('email, full_name')
                     .eq('email', email)
                     .single();
 
                 if (hodEntry) {
                     finalRole = 'HOD';
-                    console.log(`HOD verified: ${email}`);
+                    if (hodEntry.full_name) fullName = hodEntry.full_name;
+                    console.log('Found in HOD Registry');
                 } else {
-                    console.warn(`Unverified HOD request: ${email}. Defaulting to STUDENT.`);
-                    finalRole = 'STUDENT';
+                    console.log('Not in registries. Defaulting to STUDENT.');
                 }
-            } else {
-                // Default to Student for 'Student' or any unknown role
-                finalRole = 'STUDENT';
             }
         }
 
-        // 3. Upsert User with Final Verified Role
-        // Using Service Role Key (admin access) to write to DB
-        const { data, error } = await supabase
+        // 3. Upsert User (Sync)
+        // For new users without Supabase Auth, we generate a random UUID if needed.
+        // Ideally we should use a consistent ID if possible, but randomUUID works for "No Auth" bypass.
+        let userId = existingUser ? existingUser.id : crypto.randomUUID();
+
+        const { data: upsertedUser, error: upsertError } = await supabase
             .from('users')
             .upsert({
-                id: uid,
+                id: userId,
                 email: email,
-                full_name: full_name,
-
+                full_name: fullName,
                 role: finalRole
-                // created_at is default NOW(), updated_at removed as per schema
-            }, { onConflict: 'id' })
-            .select();
+            }, { onConflict: 'email' })
+            .select()
+            .single();
 
-        if (error) {
-            console.error('Error syncing user:', error);
-            return res.status(500).json({ error: error.message });
+        if (upsertError) {
+            console.error('Upsert Error:', upsertError);
+            // Fallback: Try to just get the user if upsert fails
+            const { data: fallbackUser } = await supabase.from('users').select('*').eq('email', email).single();
+            if (fallbackUser) {
+                return res.status(200).json({ message: 'Login successful', user: fallbackUser, role: fallbackUser.role });
+            }
+            return res.status(500).json({ error: upsertError.message });
         }
 
-        res.status(200).json({ message: 'User synced successfully', user: data, role: finalRole });
+        res.status(200).json({ message: 'Login successful', user: upsertedUser, role: finalRole });
 
     } catch (err) {
-        console.error('Unexpected error in syncUser:', err);
+        console.error('Unexpected error in login:', err);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
 
 module.exports = {
-    syncUser
+    login
 };

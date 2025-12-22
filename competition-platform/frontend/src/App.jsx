@@ -1,7 +1,8 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
-import OAuthConsent from './pages/auth/OAuthConsent';
+
 import StudentDashboard from './pages/student/StudentDashboard';
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import StudentList from './pages/faculty/StudentList';
@@ -17,11 +18,15 @@ import CompetitionDetails from './pages/common/CompetitionDetails';
 import './App.css';
 
 function App() {
+  // Simple Auth Check on Mount (Optional)
+  // Since we use localStorage in Login.jsx, we can just rely on protected routes or component checks.
+  // For now, removing Supabase Auth Listener completely.
+
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/oauth/consent" element={<OAuthConsent />} />
+      
 
       {/* Role Based Routes - Can protect these later with Middleware */}
       <Route path="/student" element={<StudentDashboard />} />
