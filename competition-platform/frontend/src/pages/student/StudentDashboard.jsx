@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import CompetitionCard from '../../components/CompetitionCard';
+import { getCurrentUser } from '../../services/authService';
 
 const StudentDashboard = () => {
     const [competitions, setCompetitions] = useState([]);
@@ -25,6 +26,37 @@ const StudentDashboard = () => {
         fetchCompetitions();
     }, []);
 
+    const handleRegister = async (competitionId) => {
+        try {
+            const user = await getCurrentUser();
+            if (!user) {
+                alert('Please login to register');
+                return;
+            }
+
+            const response = await fetch('http://localhost:5000/api/student/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': user.id // Using header as per backend middleware
+                },
+                body: JSON.stringify({ competition_id: competitionId })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Registered successfully!');
+            } else {
+                alert(`Registration failed: ${data.message || data.error}`);
+            }
+
+        } catch (error) {
+            console.error('Registration error:', error);
+            alert('An error occurred during registration.');
+        }
+    };
+
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
             <h1 className="text-3xl font-bold text-gray-900 mb-8">Student Dashboard</h1>
@@ -41,6 +73,7 @@ const StudentDashboard = () => {
                                 key={comp.id}
                                 competition={comp}
                                 showRegister={true}
+                                onRegister={handleRegister}
                             />
                         ))}
                     </div>

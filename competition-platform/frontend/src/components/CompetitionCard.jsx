@@ -1,7 +1,7 @@
 import React from 'react';
 import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
 
-const CompetitionCard = ({ competition, showRegister = false }) => {
+const CompetitionCard = ({ competition, showRegister = false, onRegister }) => {
     return (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-6">
             <div className="flex justify-between items-start mb-4">
@@ -33,7 +33,10 @@ const CompetitionCard = ({ competition, showRegister = false }) => {
 
             <div className="flex gap-3">
                 {showRegister ? (
-                    <button className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                    <button
+                        onClick={() => onRegister && onRegister(competition.id)}
+                        className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                    >
                         Register
                     </button>
                 ) : (
