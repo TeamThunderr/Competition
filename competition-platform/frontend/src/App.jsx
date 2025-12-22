@@ -1,22 +1,46 @@
-// File Name: App.jsx
-// Purpose: Main application component, handles routing (if any)
-// Written for beginner developers
+import { Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import Login from './pages/auth/Login';
+import OAuthConsent from './pages/auth/OAuthConsent';
+import StudentDashboard from './pages/student/StudentDashboard';
+import FacultyDashboard from './pages/faculty/FacultyDashboard';
+import StudentList from './pages/faculty/StudentList';
+import FacultyAlerts from './pages/faculty/FacultyAlerts';
+import HodDashboard from './pages/hod/HodDashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import StudentSearch from './pages/admin/StudentSearch';
+import UploadCompetitions from './pages/admin/UploadCompetitions';
+import GlobalRepository from './pages/admin/GlobalRepository';
 
-import { useState } from 'react'
-import Home from './pages/Home'
+import DeptPerformance from './pages/admin/DeptPerformance';
+import CompetitionDetails from './pages/common/CompetitionDetails';
+import './App.css';
 
 function App() {
-    // What this function does: Renders the Home page
-    return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="bg-white shadow p-4">
-                <h1 className="text-xl font-bold text-blue-600">College Competition Platform</h1>
-            </nav>
-            <main className="p-8">
-                <Home />
-            </main>
-        </div>
-    )
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/oauth/consent" element={<OAuthConsent />} />
+
+      {/* Role Based Routes - Can protect these later with Middleware */}
+      <Route path="/student" element={<StudentDashboard />} />
+      <Route path="/faculty" element={<FacultyDashboard />} />
+      <Route path="/faculty/students" element={<StudentList />} />
+      <Route path="/faculty/alerts" element={<FacultyAlerts />} />
+      <Route path="/hod" element={<HodDashboard />} />
+
+      {/* Admin Routes */}
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/admin/search" element={<StudentSearch />} />
+      <Route path="/admin/upload" element={<UploadCompetitions />} />
+      <Route path="/admin/repository" element={<GlobalRepository />} />
+      <Route path="/admin/performance" element={<DeptPerformance />} />
+
+      {/* Common Routes */}
+      <Route path="/competitions/:id" element={<CompetitionDetails />} />
+    </Routes>
+  );
 }
 
-export default App
+export default App;
