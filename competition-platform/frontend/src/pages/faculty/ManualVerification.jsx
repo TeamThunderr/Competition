@@ -4,42 +4,62 @@ import { CheckCircle, XCircle, Eye } from 'lucide-react';
 
 const ManualVerification = () => {
     // Mock Data for Pending Requests
-    const [requests, setRequests] = useState([
-        {
-            id: 1,
-            studentName: 'Arjun Kumar',
-            regNo: '21CSE001',
-            competition: 'Hackathon 2024',
-            proofUrl: 'https://via.placeholder.com/400x300?text=Proof+Image+1', // Placeholder image
-            status: 'Pending',
-            submittedAt: '2024-12-20'
-        },
-        {
-            id: 2,
-            studentName: 'Priya Sharma',
-            regNo: '21CSE045',
-            competition: 'Coding Contest Dec',
-            proofUrl: 'https://via.placeholder.com/400x300?text=Proof+Image+2',
-            status: 'Pending',
-            submittedAt: '2024-12-21'
-        },
-        {
-            id: 3,
-            studentName: 'Rohan Singh',
-            regNo: '21AIDS012',
-            competition: 'AI Summit Project',
-            proofUrl: 'https://via.placeholder.com/400x300?text=Proof+Image+3',
-            status: 'Pending',
-            submittedAt: '2024-12-22'
+    const [requests, setRequests] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchRequests = async () => {
+        try {
+            const storedUser = localStorage.getItem('user');
+            const user = storedUser ? JSON.parse(storedUser) : null;
+            if (!user) return;
+
+            const response = await fetch('http://localhost:5000/api/faculty/pending-verifications', {
+                headers: {
+                    'x-user-id': user.id
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setRequests(data.data || []); // Access .data as wrapper likely sends { success: true, data: [...] }
+            }
+        } catch (error) {
+            console.error("Failed to fetch verifications", error);
+        } finally {
+            setLoading(false);
         }
-    ]);
+    };
+
+    useEffect(() => {
+        fetchRequests();
+    }, []);
 
     const [selectedImage, setSelectedImage] = useState(null);
 
-    const handleAction = (id, action) => {
-        // In a real app, this would make an API call
-        setRequests(prev => prev.filter(req => req.id !== id));
-        alert(`Request ${action === 'approve' ? 'Approved' : 'Rejected'} for ID: ${id}`);
+    const handleAction = async (id, action) => {
+        try {
+            const storedUser = localStorage.getItem('user');
+            const user = storedUser ? JSON.parse(storedUser) : null;
+
+            const response = await fetch('http://localhost:5000/api/faculty/verify-registration', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': user.id
+                },
+                body: JSON.stringify({ registration_id: id, action }) // action: 'approve' or 'reject'
+            });
+
+            if (response.ok) {
+                setRequests(prev => prev.filter(req => req.id !== id));
+                alert(`Request ${action === 'approve' ? 'Approved' : 'Rejected'}`);
+            } else {
+                alert("Action failed. Please try again.");
+            }
+        } catch (error) {
+            console.error("Verification Action Error:", error);
+            alert("Error processing request.");
+        }
     };
 
     return (

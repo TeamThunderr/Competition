@@ -80,7 +80,7 @@ const StudentDashboard = () => {
 
     // Handlers
     const handleCheckStatus = async (compId) => {
-        alert("Scanning your Gmail for registration confirmation... (Mock Service)");
+        // Checking status...
 
         // Mock API Call
         const storedUser = localStorage.getItem('user');
@@ -108,23 +108,50 @@ const StudentDashboard = () => {
         }
     };
 
-    const handleUploadProof = async (compId, proofUrl) => {
-        const storedUser = localStorage.getItem('user');
-        const user = storedUser ? JSON.parse(storedUser) : null;
-        const response = await fetch('http://localhost:5000/api/student/upload-proof', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': user?.id
-            },
-            body: JSON.stringify({ competition_id: compId, proof_url: proofUrl })
-        });
+    const handleUploadProof = async (compId, file) => {
+        try {
+            const storedUser = localStorage.getItem('user');
+            const user = storedUser ? JSON.parse(storedUser) : null;
 
-        if (response.ok) {
-            alert("Proof uploaded! Waiting for faculty approval.");
-            fetchCompetitions();
-        } else {
-            alert("Upload failed.");
+            if (!file) return;
+
+            // 1. Upload to Supabase Storage
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/${compId}_${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage
+                .from('proofs')
+                .upload(fileName, file);
+
+            if (uploadError) {
+                console.error("Storage Upload Error:", uploadError);
+                alert("Failed to upload image. Please try again.");
+                return;
+            }
+
+            // 2. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('proofs')
+                .getPublicUrl(fileName);
+
+            // 3. Send to Backend
+            const response = await fetch('http://localhost:5000/api/student/upload-proof', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': user?.id
+                },
+                body: JSON.stringify({ competition_id: compId, proof_url: publicUrl })
+            });
+
+            if (response.ok) {
+                alert("Proof uploaded! Waiting for faculty approval.");
+                fetchCompetitions();
+            } else {
+                alert("Upload failed.");
+            }
+        } catch (err) {
+            console.error("Upload process error:", err);
+            alert("An error occurred.");
         }
     };
 

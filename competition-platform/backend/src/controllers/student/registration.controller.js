@@ -3,9 +3,6 @@
 // Written for beginner developers
 
 const supabase = require('../../config/supabaseClient');
-const gmailService = require('../../services/external/gmail.service');
-
-// 1. Check Gmail for 'Auto-Detection'
 const checkRegistrationStatus = async (req, res) => {
     try {
         console.log('[Registration] Request received:', req.body, 'User:', req.userId);
@@ -14,14 +11,10 @@ const checkRegistrationStatus = async (req, res) => {
 
         if (!competition_id) return res.status(400).json({ error: 'Competition ID is required' });
 
-        // Call our mock Gmail service
-        // In reality, this might look up the user's email first
-        const { data: user } = await supabase.from('users').select('email').eq('id', student_id).single();
+        // In a real app, this might trigger a specific scan or just check existing records
+        // For now, we rely on the auto-scan that happens on login.
 
-        await gmailService.scanInboxForStudent(student_id, user.email);
-
-        // Attempt to simulate a find (50% chance for demo, or always succeed for specific IDs)
-        // For this demo, let's just return what's in the DB currently 
+        // Attempt to find existing registration
         const { data, error } = await supabase
             .from('registrations')
             .select('*')

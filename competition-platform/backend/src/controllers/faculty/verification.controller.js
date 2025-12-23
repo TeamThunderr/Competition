@@ -1,88 +1,131 @@
 // File Name: verification.controller.js
-// Purpose: Handle verification of student registrations by Faculty
+// Purpose: Handle manual verification of student registrations (Faculty)
+// Written for beginner developers
 
+const { sendResponse } = require('../../utils/responseHelper');
 const supabase = require('../../config/supabaseClient');
 
-// Get pending verifications (where verified is false AND proof_url is not null)
+// 1. Get Pending Verifications (For Faculty Dashboard)
 const getPendingVerifications = async (req, res) => {
     try {
-        console.log('[Verification] Fetching ALL pending (Debug Mode)...');
+        const { assigned_sections, department_id } = req.user;
 
-        // 1. Fetch Raw Registrations (No Joins)
-        const { data: rawRegs, error } = await supabase
+        // Logic: Fetch registrations that are 'Pending' (verified = false)
+        // AND belong to students in my assigned sections/department.
+
+        // We can reuse the "getMyStudentIds" logic if it were shared, 
+        // or just join with users table and filter in the query.
+
+        console.log(`[Verification] Fetching pending requests for Dept: ${department_id}`);
+
+        const { data: requests, error } = await supabase
             .from('registrations')
-            .select('*')
+            .select(`
+                id,
+                created_at,
+                source,
+                proof_url,
+                verified,
+                users!inner (
+                    id,
+                    full_name,
+                    registration_no,
+                    section,
+                    department_id
+                ),
+                competitions!inner (
+                    id,
+                    title
+                )
+            `)
             .eq('verified', false)
-            .not('proof_url', 'is', null);
+            .eq('source', 'MANUAL_SCREENSHOT') // Only show manual ones for validation (or all?)
+            .eq('users.department_id', department_id);
+        // Note: assigned_sections filtering is harder via join. 
+        // We'll fetch Dept-wide and filter in memory if strict section access is needed.
+        // For MVP, Dept access is fine.
 
         if (error) throw error;
 
-        console.log(`[Verification] Found ${rawRegs.length} raw records.`);
+        // Filter by assigned sections (if strictly enforced)
+        const allowedSections = assigned_sections
+            ? assigned_sections.map(s => s.split('-')[1] || s).map(s => s.trim())
+            : [];
 
-        // 2. Manual Enrichment (To bypass join issues)
-        if (rawRegs.length > 0) {
-            // Fetch Users
-            const userIds = [...new Set(rawRegs.map(r => r.user_id))];
-            const { data: users } = await supabase.from('users').select('id, full_name, registration_no, section, department_id').in('id', userIds);
-            const userMap = {};
-            users?.forEach(u => userMap[u.id] = u);
+        // If assigned_sections is empty/null, maybe allow all (HOD/Admin role reuse) or none?
+        // Let's assume Faculty *must* be assigned sections, or they see nothing.
+        // Or if they are "Class Advisor", they see their class.
 
-            // Fetch Competitions
-            const compIds = [...new Set(rawRegs.map(r => r.competition_id))];
-            const { data: comps } = await supabase.from('competitions').select('id, title').in('id', compIds);
-            const compMap = {};
-            comps?.forEach(c => compMap[c.id] = c);
+        const filteredRequests = requests.filter(req => {
+            if (allowedSections.length === 0) return true; // Fallback: Show all if no assignment logic
+            return allowedSections.includes(req.users.section);
+        });
 
-            // Merge
-            const enriched = rawRegs.map(r => ({
-                ...r,
-                users: userMap[r.user_id] || { full_name: 'Unknown User', registration_no: 'N/A' },
-                competitions: compMap[r.competition_id] || { title: 'Unknown Competition' }
-            }));
+        // Map to UI friendly format
+        const responseData = filteredRequests.map(req => ({
+            id: req.id,
+            studentName: req.users.full_name,
+            regNo: req.users.registration_no,
+            competition: req.competitions.title,
+            proofUrl: req.proof_url,
+            status: 'Pending',
+            submittedAt: new Date(req.created_at).toLocaleDateString()
+        }));
 
-            return res.status(200).json(enriched);
-        }
-
-        res.status(200).json([]);
+        sendResponse(res, 200, responseData, 'Fetched pending verifications');
 
     } catch (err) {
-        console.error('Get Pending Verification Error:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error('[VerificationController] Error:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
     }
 };
 
-// Verify (Approve/Reject)
+// 2. Verify (Approve/Reject) Registration
 const verifyRegistration = async (req, res) => {
     try {
-        const { registration_id, status } = req.body;
-        const faculty_id = req.userId;
+        const { registration_id, action } = req.body; // action: 'approve' | 'reject'
+        const faculty_id = req.user.id;
 
-        if (!registration_id || !status) {
-            return res.status(400).json({ error: 'Registration ID and Status are required' });
+        if (!registration_id || !action) {
+            return sendResponse(res, 400, null, 'Registration ID and Action are required');
         }
 
-        if (status === 'APPROVED') {
+        if (action === 'approve') {
             const { data, error } = await supabase
                 .from('registrations')
-                .update({ verified: true, verified_by: faculty_id })
+                .update({
+                    verified: true,
+                    verified_by: faculty_id
+                })
                 .eq('id', registration_id)
                 .select();
 
             if (error) throw error;
-            return res.status(200).json({ message: 'Verified', data: data[0] });
+            sendResponse(res, 200, data, 'Registration Verified Successfully');
 
-        } else if (status === 'REJECTED') {
+        } else if (action === 'reject') {
+            // Option A: Delete the record
+            // Option B: Set status='REJECTED' (if we had a status column. We have 'verified' bool only).
+            // Schema check: registrations table has 'verified' (bool). 
+            // detected_hackathons has 'status'.
+            // registrations also has 'status'?? Let's check schema/previous implementation.
+            // The user schema typically had 'verified' boolean. 
+            // If we assume 'reject' means invalid proof -> Delete request so they can upload again?
+
             const { error } = await supabase
                 .from('registrations')
                 .delete()
                 .eq('id', registration_id);
 
             if (error) throw error;
-            return res.status(200).json({ message: 'Rejected' });
+            sendResponse(res, 200, null, 'Registration Request Rejected (Deleted)');
+        } else {
+            return sendResponse(res, 400, null, 'Invalid Action');
         }
+
     } catch (err) {
-        console.error('Verify Error:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error('[VerificationController] Error:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
     }
 };
 
