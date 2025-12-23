@@ -15,6 +15,7 @@ router.use(authMiddleware);
 router.use(roleMiddleware('HOD'));
 
 router.get('/stats', hodController.getDepartmentStats);
+router.get('/users', hodController.getDepartmentUsers);
 
 // Competition View (Read Only)
 router.get('/competitions', hodCompetitionController.getAllCompetitions);

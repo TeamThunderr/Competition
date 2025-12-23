@@ -15,7 +15,9 @@ router.use(authMiddleware);
 router.use(roleMiddleware('FACULTY'));
 
 router.get('/students', facultyController.getMyStudents);
-router.get('/stats', facultyController.getStats);
+router.get('/stats', facultyController.getStats); // Existing, maybe deprecated?
+router.get('/dashboard-stats', facultyController.getDashboardStats); // New
+router.get('/registrations', facultyController.getRecentRegistrations); // New
 
 // Competition View (Read Only)
 router.get('/competitions', facultyCompetitionController.getAllCompetitions);

@@ -5,40 +5,9 @@ import { AlertCircle, Clock, Info, CheckCircle2, X } from 'lucide-react';
 const FacultyAlerts = () => {
 
     // Alert Types: 'danger', 'warning', 'info', 'success'
-    const alerts = [
-        {
-            id: 1,
-            type: 'danger',
-            title: 'Low Attendance',
-            message: 'Student (ID) has attendance < 75%.',
-            time: '2 hours ago',
-            icon: AlertCircle
-        },
-        {
-            id: 2,
-            type: 'warning',
-            title: 'Deadline Approaching',
-            message: 'Competition registration closes in 24 hours. X students pending.',
-            time: '5 hours ago',
-            icon: Clock
-        },
-        {
-            id: 3,
-            type: 'info',
-            title: 'New Competition Added',
-            message: 'New challenge added to repository.',
-            time: 'Yesterday',
-            icon: Info
-        },
-        {
-            id: 4,
-            type: 'success',
-            title: 'Qualification Update',
-            message: 'Teams from Section A qualified for next round.',
-            time: 'Yesterday',
-            icon: CheckCircle2
-        }
-    ];
+    // Alert Types: 'danger', 'warning', 'info', 'success'
+    // FUTURE: Fetch from backend API
+    const alerts = [];
 
     const getAlertStyles = (type) => {
         switch (type) {
@@ -91,31 +60,39 @@ const FacultyAlerts = () => {
 
                 {/* Alerts List */}
                 <div className="max-w-4xl space-y-4">
-                    {alerts.map((alert) => {
-                        const styles = getAlertStyles(alert.type);
-                        return (
-                            <div
-                                key={alert.id}
-                                className={`${styles.bg} ${styles.border} p-6 rounded-r-xl shadow-sm hover:shadow-md transition-shadow relative group`}
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div className={`p-2 rounded-lg ${styles.iconBg} ${styles.iconColor} shrink-0`}>
-                                        <alert.icon size={24} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className={`font-bold ${styles.titleColor} text-lg mb-1`}>{alert.title}</h3>
-                                        <p className="text-gray-600 text-sm leading-relaxed">{alert.message}</p>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-2 shrink-0">
-                                        <span className="text-xs text-gray-400 font-medium">{alert.time}</span>
-                                        <button className="text-gray-300 hover:text-gray-500 transition-colors p-1 opacity-0 group-hover:opacity-100">
-                                            <X size={16} />
-                                        </button>
+                    {alerts.length === 0 ? (
+                        <div className="p-12 text-center bg-white rounded-xl border border-gray-100 shadow-sm">
+                            <CheckCircle2 className="mx-auto text-green-500 mb-4" size={48} />
+                            <h3 className="text-lg font-bold text-gray-900">No New Alerts</h3>
+                            <p className="text-gray-500 mt-2">Everything is running smoothly. Relax!</p>
+                        </div>
+                    ) : (
+                        alerts.map((alert) => {
+                            const styles = getAlertStyles(alert.type);
+                            return (
+                                <div
+                                    key={alert.id}
+                                    className={`${styles.bg} ${styles.border} p-6 rounded-r-xl shadow-sm hover:shadow-md transition-shadow relative group`}
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div className={`p-2 rounded-lg ${styles.iconBg} ${styles.iconColor} shrink-0`}>
+                                            <alert.icon size={24} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className={`font-bold ${styles.titleColor} text-lg mb-1`}>{alert.title}</h3>
+                                            <p className="text-gray-600 text-sm leading-relaxed">{alert.message}</p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2 shrink-0">
+                                            <span className="text-xs text-gray-400 font-medium">{alert.time}</span>
+                                            <button className="text-gray-300 hover:text-gray-500 transition-colors p-1 opacity-0 group-hover:opacity-100">
+                                                <X size={16} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })
+                    )}
                 </div>
             </main>
         </div>
