@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Bell, Clock, Activity, Download } from 'lucide-react';
 import Sidebar from './Sidebar';
-import CompetitionCard from "../../components/features/competitions/CompetitionCard";
+
 
 const FacultyDashboard = () => {
     // Top Stats Cards Data
@@ -15,31 +15,12 @@ const FacultyDashboard = () => {
 
     // Placeholder data for the table
     const registrations = [
-        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: 'Pending' },
-        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: 'Pending' },
-        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: 'Pending' },
+        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: '-' },
+        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: '-' },
+        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: '-' },
     ];
 
-    const [competitions, setCompetitions] = useState([]);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchCompetitions = async () => {
-            try {
-                const response = await fetch('http://localhost:5000/api/competitions');
-                if (response.ok) {
-                    const data = await response.json();
-                    setCompetitions(data);
-                }
-            } catch (err) {
-                console.error('Error:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchCompetitions();
-    }, []);
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
@@ -126,25 +107,6 @@ const FacultyDashboard = () => {
                             </div>
                         </div>
 
-                        {/* Competition Overview (Existing Logic) */}
-                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-                            <h2 className="text-lg font-bold text-gray-900 mb-6">Active Competitions</h2>
-                            {loading ? (
-                                <div className="text-gray-500">Loading events...</div>
-                            ) : competitions.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {competitions.map(comp => (
-                                        <CompetitionCard
-                                            key={comp.id}
-                                            competition={comp}
-                                            showRegister={false}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-gray-500">No active competitions.</div>
-                            )}
-                        </div>
                     </div>
 
                     {/* Right Column - Alerts & Activity (Span 1) */}
@@ -177,7 +139,7 @@ const FacultyDashboard = () => {
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <div className="text-sm font-bold text-gray-900">Upcoming Event</div>
-                                            <div className="text-xs text-red-600 mt-1">Jan 01</div>
+                                            <div className="text-xs text-red-600 mt-1"></div>
                                         </div>
                                         <div className="text-xs font-bold text-red-600 bg-white px-2 py-1 rounded border border-red-100">
                                             - DAYS
