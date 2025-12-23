@@ -19,23 +19,58 @@ const AdminDashboard = () => {
                 const user = getCurrentUser();
                 const headers = { 'x-user-id': user?.id };
 
-                // Fetch Stats
-                const response = await fetch('http://localhost:5000/api/admin/stats', { headers });
+                // 1. Fetch Department Stats
+                const statsResponse = await fetch('http://localhost:5000/api/admin/stats', { headers });
+                let totalVerified = 0;
 
-                if (response.ok) {
-                    const json = await response.json();
+                if (statsResponse.ok) {
+                    const json = await statsResponse.json();
                     if (json.success && json.data) {
                         const allDepts = json.data;
-                        // Aggregate verified registrations
-                        const totalVerified = allDepts.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
-
-                        setStats({
-                            activeCompetitions: 12, // Placeholder until competition count endpoint
-                            totalParticipation: totalVerified.toString(),
-                            lastSync: new Date().toLocaleTimeString()
-                        });
+                        totalVerified = allDepts.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
                     }
                 }
+
+                // 2. Fetch Competitions for Active Count
+                const compsResponse = await fetch('http://localhost:5000/api/competitions');
+                let activeCount = 0;
+                let activities = [];
+
+                if (compsResponse.ok) {
+                    const comps = await compsResponse.json();
+                    console.log(`[AdminDashboard] Fetched ${comps.length} competitions total.`);
+
+                    const now = new Date();
+
+                    // Filter active competitions (Registration Open)
+                    const activeComps = comps.filter(c => {
+                        if (!c.registration_deadline) return false;
+                        const deadline = new Date(c.registration_deadline);
+                        // Check if valid date and in the future
+                        return !isNaN(deadline.getTime()) && deadline > now;
+                    });
+
+                    activeCount = activeComps.length;
+                    console.log(`[AdminDashboard] Active competitions count: ${activeCount}`);
+
+                    // Generate activity feed from new competitions (mocking activity from extraction)
+                    activities = comps.slice(0, 3).map(c => ({
+                        message: `New competition added: ${c.title}`,
+                        user: "System",
+                        time: c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'
+                    }));
+                }
+
+                setStats({
+                    activeCompetitions: activeCount,
+                    totalParticipation: totalVerified.toString(),
+                    lastSync: new Date().toLocaleTimeString()
+                });
+
+                if (activities.length > 0) {
+                    setRecentActivity(activities);
+                }
+
             } catch (err) {
                 console.error("Fetch Stats Error:", err);
             }
