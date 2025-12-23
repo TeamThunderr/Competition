@@ -4,7 +4,7 @@ import Home from './pages/Home';
 import Login from './pages/auth/Login';
 import StudentCompetitions from './pages/student/StudentCompetitions';
 import StudentDashboard from './pages/student/StudentDashboard';
-import MyTeams from './pages/student/MyTeams';
+
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import StudentList from './pages/faculty/StudentList';
 import FacultyAlerts from './pages/faculty/FacultyAlerts';
@@ -32,12 +32,12 @@ function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
-      
+
 
       {/* Role Based Routes - Can protect these later with Middleware */}
       <Route path="/student" element={<StudentDashboard />} />
       <Route path="/student/competitions" element={<StudentCompetitions />} />
-      <Route path="/student/teams" element={<MyTeams />} />
+
       <Route path="/faculty" element={<FacultyDashboard />} />
       <Route path="/faculty/students" element={<StudentList />} />
       <Route path="/faculty/alerts" element={<FacultyAlerts />} />
