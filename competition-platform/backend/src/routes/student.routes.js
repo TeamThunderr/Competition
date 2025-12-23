@@ -14,8 +14,8 @@ const competitionController = require('../../controllers/student/competition.con
 // req.user must be populated by authMiddleware before this
 router.use(roleMiddleware(['STUDENT']));
 
-// Competitions
-router.get('/competitions', competitionController.getCompetitions);
+// Competitions'
+// router.get('/competitions', competitionController.getCompetitions);
 
 // Registration (Manual Screenshot)
 router.post('/register/manual', registrationController.uploadManualProof);
