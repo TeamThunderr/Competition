@@ -20,7 +20,7 @@ const HodSidebar = () => {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold text-lg">C</span>
                 </div>
-                <span className="text-xl font-bold text-gray-800">CompeteHub</span>
+                <span className="text-xl font-bold text-gray-800">COMPETITION DASHBOARD</span>
             </div>
 
             <nav className="flex-1 px-4 space-y-2 mt-4">
@@ -31,8 +31,8 @@ const HodSidebar = () => {
                             key={index}
                             onClick={() => navigate(item.path)}
                             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-200 ${isActive
-                                    ? 'bg-blue-50 text-blue-600 font-medium'
-                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                ? 'bg-blue-50 text-blue-600 font-medium'
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                 }`}
                         >
                             <item.icon size={20} />

@@ -73,6 +73,14 @@ const UploadCompetitions = () => {
     };
 
     const handleSubmit = async () => {
+        // Validation
+        if (activeTab === 'manual') {
+            if (!formData.title || !formData.platform || !formData.deadline || !formData.link || !formData.description) {
+                alert('Please fill in all mandatory fields');
+                return;
+            }
+        }
+
         try {
             const storedUser = localStorage.getItem('user');
             const user = storedUser ? JSON.parse(storedUser) : null;
@@ -182,10 +190,11 @@ const UploadCompetitions = () => {
                     <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                         <div className="grid grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Competition Name</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Competition Name <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     name="title"
+                                    required
                                     value={formData.title}
                                     onChange={handleInputChange}
                                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
@@ -193,10 +202,11 @@ const UploadCompetitions = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Platform</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Platform <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <select
                                         name="platform"
+                                        required
                                         value={formData.platform}
                                         onChange={handleInputChange}
                                         className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none bg-white"
@@ -215,11 +225,12 @@ const UploadCompetitions = () => {
 
                         <div className="grid grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Deadline</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Deadline <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <input
                                         type="date"
                                         name="deadline"
+                                        required
                                         value={formData.deadline}
                                         onChange={handleInputChange}
                                         className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
@@ -227,10 +238,11 @@ const UploadCompetitions = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">More Info Link</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">More Info Link <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     name="link"
+                                    required
                                     value={formData.link}
                                     onChange={handleInputChange}
                                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
@@ -240,9 +252,10 @@ const UploadCompetitions = () => {
                         </div>
 
                         <div className="mb-8">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Description <span className="text-red-500">*</span></label>
                             <textarea
                                 name="description"
+                                required
                                 value={formData.description}
                                 onChange={handleInputChange}
                                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm h-32 resize-none"
