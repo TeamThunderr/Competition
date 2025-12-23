@@ -15,8 +15,8 @@ const StudentCompetitions = () => {
             const userId = user?.id;
 
             if (!userId) {
-                console.error("No user session found");
-                setLoading(false); // Ensure loading stops
+                console.error("No user ID found in localStorage");
+                setLoading(false);
                 return;
             }
 

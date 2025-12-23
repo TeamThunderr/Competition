@@ -7,6 +7,7 @@ const supabase = require('../../config/supabaseClient');
 const getAllCompetitions = async (req, res) => {
     try {
         const userId = req.userId; // valid thanks to authMiddleware
+        console.log("Student Controller - Fetching competitions for user:", userId);
 
         // Fetch competitions
         const { data: competitions, error: compError } = await supabase
@@ -14,7 +15,12 @@ const getAllCompetitions = async (req, res) => {
             .select('*')
             .order('registration_deadline', { ascending: true })
 
-        if (compError) throw compError;
+        if (compError) {
+            console.log("Student Controller - DB Error:", compError);
+            throw compError;
+        }
+
+        console.log(`Student Controller - Fetched ${competitions.length} competitions`);
 
         // Fetch user's registrations for these competitions
         const { data: registrations, error: regError } = await supabase
@@ -62,19 +68,19 @@ const getAllCompetitions = async (req, res) => {
 };
 
 const getCompetitionDetails = async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('competitions')
-      .select('*')
-      .eq('id', req.params.id)
-      .single();
+    try {
+        const { data, error } = await supabase
+            .from('competitions')
+            .select('*')
+            .eq('id', req.params.id)
+            .single();
 
-    if (error) throw error;
+        if (error) throw error;
 
-    res.status(200).json(data);
-  } catch (err) {
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
+        res.status(200).json(data);
+    } catch (err) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 };
 
 

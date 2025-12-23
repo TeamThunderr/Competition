@@ -8,12 +8,17 @@ const getAllCompetitions = async (req, res) => {
     try {
         // Fetch competitions sorted by deadline
         // Does NOT fetch registration status as HODs don't register
+        console.log("HOD Controller - Fetching competitions");
         const { data: competitions, error } = await supabase
             .from('competitions')
             .select('*')
             .order('registration_deadline', { ascending: true });
 
-        if (error) throw error;
+        if (error) {
+            console.log("HOD Controller - DB Error:", error);
+            throw error;
+        }
+        console.log(`HOD Controller - Fetched ${competitions.length} competitions`);
 
         res.status(200).json(competitions);
     } catch (err) {
