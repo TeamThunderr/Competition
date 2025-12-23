@@ -22,7 +22,7 @@ const getPendingVerifications = async (req, res) => {
             .from('registrations')
             .select(`
                 id,
-                created_at,
+                registered_at,
                 source,
                 proof_url,
                 verified,
@@ -69,7 +69,7 @@ const getPendingVerifications = async (req, res) => {
             competition: req.competitions.title,
             proofUrl: req.proof_url,
             status: 'Pending',
-            submittedAt: new Date(req.created_at).toLocaleDateString()
+            submittedAt: new Date(req.registered_at).toLocaleDateString()
         }));
 
         sendResponse(res, 200, responseData, 'Fetched pending verifications');
