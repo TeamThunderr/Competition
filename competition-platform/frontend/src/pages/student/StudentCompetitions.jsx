@@ -76,37 +76,29 @@ const StudentCompetitions = () => {
         }
     };
 
-    const handleUploadProof = async (compId, file) => {
+
+
+    // Restore Modal Opener
+    const handleRegisterClick = (compId) => {
+        setSelectedCompId(compId);
+        setIsUploadModalOpen(true);   
+    };
+
+    // Modified to accept URL from Modal
+    const handleUploadProof = async (compId, proofUrl) => {
         try {
             const user = getCurrentUser();
-            if (!file) return;
 
-            // 1. Upload to Supabase Storage
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}/${compId}_${Date.now()}.${fileExt}`;
-            const { error: uploadError } = await supabase.storage
-                .from('proofs')
-                .upload(fileName, file);
+            // Note: UploadProofModal handles the Storage upload. 
+            // We just send the URL to the backend here.
 
-            if (uploadError) {
-                console.error("Storage Upload Error:", uploadError);
-                alert("Failed to upload image. Please try again.");
-                return;
-            }
-
-            // 2. Get Public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('proofs')
-                .getPublicUrl(fileName);
-
-            // 3. Send to Backend
             const response = await fetch('http://localhost:5000/api/student/upload-proof', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-user-id': user?.id
                 },
-                body: JSON.stringify({ competition_id: compId, proof_url: publicUrl })
+                body: JSON.stringify({ competition_id: compId, proof_url: proofUrl })
             });
 
             if (response.ok) {
@@ -167,7 +159,7 @@ const StudentCompetitions = () => {
                             <CompetitionCard
                                 key={comp.id}
                                 competition={comp}
-                                onCheckStatus={handleRegisterClick}
+                                onRegister={handleRegisterClick}
                                 onRequestOD={handleRequestOD}
                             />
 

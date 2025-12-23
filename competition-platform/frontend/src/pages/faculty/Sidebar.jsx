@@ -1,6 +1,5 @@
 import React from 'react';
 import { LayoutDashboard, Users, Bell, LogOut, CheckCircle } from 'lucide-react';
-import { LayoutDashboard, Users, Bell, LogOut, CheckCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const Sidebar = () => {

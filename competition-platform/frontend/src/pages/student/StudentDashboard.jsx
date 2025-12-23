@@ -224,7 +224,11 @@ const StudentDashboard = () => {
                                 const diff = deadline - now;
                                 return diff > 0 && diff <= twoDaysInMs;
                             }).map((comp) => (
-                                <CompetitionCard key={comp.id} competition={comp} />
+                                <CompetitionCard
+                                    key={comp.id}
+                                    competition={comp}
+                                    onRegister={() => navigate('/student/competitions')}
+                                />
                             ))}
                         </div>
                     ) : (
@@ -246,8 +250,7 @@ const StudentDashboard = () => {
                                     <CompetitionCard
                                         key={comp.id}
                                         competition={comp}
-                                        onCheckStatus={handleCheckStatus}
-                                        onUploadProof={handleUploadProof}
+                                        onRegister={() => navigate('/student/competitions')}
                                         onRequestOD={handleRequestOD}
                                     />
                                 ))}
