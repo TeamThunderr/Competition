@@ -137,6 +137,7 @@ const StudentDashboard = () => {
 
                     {competitions.filter(comp => {
                         if (!comp.registration_deadline) return false;
+                        if (!comp.my_registration) return false;
                         const deadline = new Date(comp.registration_deadline);
                         const now = new Date();
                         const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
@@ -146,6 +147,7 @@ const StudentDashboard = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {competitions.filter(comp => {
                                 if (!comp.registration_deadline) return false;
+                                if (!comp.my_registration) return false;
                                 const deadline = new Date(comp.registration_deadline);
                                 const now = new Date();
                                 const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
@@ -158,7 +160,7 @@ const StudentDashboard = () => {
                     ) : (
                         <div className="bg-white p-8 rounded-xl border border-gray-100 text-center shadow-sm">
                             <Clock className="mx-auto text-gray-300 mb-2" size={32} />
-                            <p className="text-gray-500">No competitions ending within 2 days.</p>
+                            <p className="text-gray-500">No registered competitions ending within 2 days.</p>
                         </div>
                     )}
                 </section>
