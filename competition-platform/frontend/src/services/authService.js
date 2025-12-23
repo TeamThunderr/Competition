@@ -2,6 +2,8 @@
 // Purpose: Handle Authentication API calls to Backend
 // Written for beginner developers
 
+import supabase from './supabaseClient';
+
 const API_URL = 'http://localhost:5000/api/auth';
 
 export const loginUser = async (email) => {
@@ -23,4 +25,16 @@ export const loginUser = async (email) => {
         console.error("Auth Service Error:", error);
         throw error;
     }
+};
+
+export const getCurrentUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return null;
+
+    // Return user with ID and metadata
+    return {
+        id: session.user.id,
+        email: session.user.email,
+        ...session.user.user_metadata
+    };
 };
