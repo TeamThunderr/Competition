@@ -57,9 +57,9 @@ const FacultyDashboard = () => {
                     <div className="flex items-center gap-2 text-gray-600 mt-2 text-sm">
                         <span>Class {stats.section_label}</span>
                         <span>|</span>
-                        <span>Batch 2024-2028</span>
+                        <span>Batch </span>
                         <span>|</span>
-                        <span className="text-blue-600 font-medium">Read-Only Mode</span>
+                        <span className="text-blue-600 font-medium"></span>
                     </div>
                 </div>
 
