@@ -2,7 +2,7 @@ import React from 'react';
 import Sidebar from './Sidebar';
 
 const DeptPerformance = () => {
-    const departments = ['CSE', 'IT', 'ECE', 'EEE', 'MECH'];
+    const departments = ['CSE', 'AIDS','IT', 'ECE', 'EEE', 'MECH'];
 
     return (
         <div className="min-h-screen bg-gray-50 flex">

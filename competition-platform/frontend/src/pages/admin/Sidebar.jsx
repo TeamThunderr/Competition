@@ -21,7 +21,7 @@ const Sidebar = () => {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
                     C
                 </div>
-                <span className="font-bold text-gray-800 text-lg">CompeteHub</span>
+                <span className="font-bold text-gray-800 text-lg">COMPETITION DASHBOARD</span>
             </div>
 
             {/* Menu Items */}
@@ -33,8 +33,8 @@ const Sidebar = () => {
                             key={index}
                             onClick={() => navigate(item.path)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
-                                    ? 'bg-blue-50 text-blue-600'
-                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                ? 'bg-blue-50 text-blue-600'
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                 }`}
                         >
                             <item.icon size={20} />

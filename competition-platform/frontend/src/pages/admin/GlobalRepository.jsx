@@ -48,7 +48,7 @@ const GlobalRepository = () => {
                             </button>
                             {deptOpen && (
                                 <div className="absolute top-full mt-1 w-full bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-10">
-                                    {['CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'].map(dept => (
+                                    {['CSE', 'AIDS', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'].map(dept => (
                                         <button key={dept} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                                             {dept}
                                         </button>

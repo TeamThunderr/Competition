@@ -8,7 +8,7 @@ const AdminDashboard = () => {
     const stats = {
         activeCompetitions: 0,
         totalParticipation: "0",
-        lastSync: "Never"
+        lastSync: "00:00"
     };
 
     const recentActivity = [];
@@ -22,7 +22,7 @@ const AdminDashboard = () => {
             <div className="flex-1 ml-64 p-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Central IQ Team (CIT)</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">CHENNAI INSTITUTE OF TECHNOLOGY (CIT)</h1>
                     <p className="text-gray-500 mt-1">College-wide Competition Management & Analytics Console.</p>
                 </div>
 
@@ -33,8 +33,7 @@ const AdminDashboard = () => {
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Active Competitions</h3>
                         <div className="text-3xl font-bold text-gray-900 mb-4">{stats.activeCompetitions}</div>
                         <div className="flex gap-2">
-                            <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-md font-medium">12 Ongoing</span>
-                            <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-md font-medium">12 Upcoming</span>
+                            
                         </div>
                     </div>
 

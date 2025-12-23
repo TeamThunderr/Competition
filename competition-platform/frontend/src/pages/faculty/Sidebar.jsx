@@ -20,7 +20,7 @@ const Sidebar = () => {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
                     C
                 </div>
-                <span className="font-bold text-gray-800 text-lg">CompeteHub</span>
+                <span className="font-bold text-gray-800 text-lg">COMPETITION DASHBOARD</span>
             </div>
 
             {/* Menu Items */}
