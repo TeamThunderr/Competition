@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Clock } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
-
+import StudentSidebar from './Sidebar';
 
 const StudentDashboard = () => {
+    const navigate = useNavigate();
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -116,35 +119,75 @@ const StudentDashboard = () => {
     };
 
     return (
-        <div className="p-8 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Student Dashboard</h1>
+        <div className="flex bg-gray-50 min-h-screen font-sans">
+            <StudentSidebar />
 
-            <section>
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-semibold text-gray-800">Competitions</h2>
-                    <button onClick={fetchCompetitions} className="text-blue-600 text-sm hover:underline">Refresh Status</button>
+            <div className="flex-1 ml-64 p-8">
+                {/* Header */}
+                <div className="mb-8">
+                    <h1 className="text-2xl font-bold text-gray-900">Welcome back !</h1>
+                    <p className="text-gray-500 mt-1">Here's what's happening with your competitions.</p>
                 </div>
 
-                {loading ? (
-                    <div className="text-gray-500">Loading events...</div>
-                ) : competitions.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {competitions.map(comp => (
-                            <CompetitionCard
-                                key={comp.id}
-                                competition={comp}
-                                onCheckStatus={handleCheckStatus}
-                                onUploadProof={handleUploadProof}
-                                onRequestOD={handleRequestOD}
-                            />
-                        ))}
+                {/* Upcoming Deadlines (Empty State) */}
+                <section className="mb-10">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-lg font-semibold text-gray-900">Upcoming Deadlines</h2>
+                        <button className="text-sm text-blue-600 hover:underline">View All</button>
                     </div>
-                ) : (
-                    <div className="text-gray-500 bg-white p-8 rounded-lg border text-center">
-                        No competitions active at the moment.
+
+                    <div className="bg-white p-8 rounded-xl border border-gray-100 text-center shadow-sm">
+                        <Clock className="mx-auto text-gray-300 mb-2" size={32} />
+                        <p className="text-gray-500">No upcoming deadlines.</p>
                     </div>
-                )}
-            </section>
+                </section>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Your Competitions List (Empty State) */}
+                    <div className="lg:col-span-2">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Competitions</h2>
+                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden min-h-[300px] flex flex-col items-center justify-center p-8">
+                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                                <span className="text-2xl">🏆</span>
+                            </div>
+                            <h3 className="text-gray-900 font-medium">No active competitions</h3>
+                            <p className="text-gray-500 text-sm mt-1 mb-4">You haven't registered for any events yet.</p>
+                            <button
+                                onClick={() => navigate('/student/competitions')}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                            >
+                                Browse Competitions
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* OD Status Card */}
+                    <div>
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">On-Duty Status</h2>
+                        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                            <div className="text-center mb-8">
+                                <div className="text-4xl font-bold text-gray-900 mb-1">0%</div>
+                                <div className="text-sm text-gray-500">Attendance with OD</div>
+                            </div>
+
+                            <div className="space-y-4 mb-8">
+                                <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
+                                    <span className="text-sm text-gray-700">Pending Requests</span>
+                                    <span className="text-sm font-bold text-yellow-700 bg-yellow-100 px-2 py-1 rounded">0 Pending</span>
+                                </div>
+                                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                                    <span className="text-sm text-gray-700">Approved (This Sem)</span>
+                                    <span className="text-sm font-bold text-green-700">0 Days</span>
+                                </div>
+                            </div>
+
+                            <button className="w-full py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition shadow-lg shadow-gray-200">
+                                Request New OD
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

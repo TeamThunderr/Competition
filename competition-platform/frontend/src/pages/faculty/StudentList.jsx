@@ -7,10 +7,10 @@ const StudentList = () => {
 
     // Placeholder data structure without specific details
     const students = [
-        { rollNo: '---', name: '---', section: '-', email: '---', status: 'Active' },
-        { rollNo: '---', name: '---', section: '-', email: '---', status: 'Active' },
-        { rollNo: '---', name: '---', section: '-', email: '---', status: 'Inactive' },
-        { rollNo: '---', name: '---', section: '-', email: '---', status: 'Active' },
+        { rollNo: '---', name: '---', section: '-', email: '---', status: '---' },
+        { rollNo: '---', name: '---', section: '-', email: '---', status: '---' },
+        { rollNo: '---', name: '---', section: '-', email: '---', status: '---' },
+        { rollNo: '---', name: '---', section: '-', email: '---', status: '---' },
     ];
 
     return (

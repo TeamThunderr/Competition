@@ -10,6 +10,7 @@ const Sidebar = () => {
         { icon: LayoutDashboard, label: 'Mentor Dashboard', path: '/faculty' },
         { icon: Users, label: 'Student List', path: '/faculty/students' },
         { icon: Bell, label: 'Alerts', path: '/faculty/alerts' },
+        { icon: LayoutDashboard, label: 'Active Competitions', path: '/faculty/competitions' },
     ];
 
     return (

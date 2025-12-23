@@ -2,8 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Bell, Clock, Activity, Download, CheckCircle, XCircle } from 'lucide-react';
 import Sidebar from './Sidebar';
-import CompetitionCard from "../../components/features/competitions/CompetitionCard";
-import supabase from '../../services/supabaseClient';
+
 
 const FacultyDashboard = () => {
     // Top Stats Cards Data
@@ -12,93 +11,16 @@ const FacultyDashboard = () => {
         { label: 'COMP. REGISTERED', value: '0', subtext: 'Active Participations' },
         { label: 'COMP. QUALIFIED', value: '0', subtext: 'Round 1 Cleared' },
         { label: 'OD REQUESTS', value: '0', subtext: 'Pending Coordinator' },
-    ]);
+    ];
 
-    const [competitions, setCompetitions] = useState([]);
-    const [verifications, setVerifications] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // Placeholder data for the table
+    const registrations = [
+        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: '-' },
+        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: '-' },
+        { name: '-', regNo: '-', competition: '-', team: '-', deadline: '-', status: '-' },
+    ];
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            // 1. Get Session for Headers
-            const { data: { session } } = await supabase.auth.getSession();
-            const userId = session?.user?.id;
-            const headers = { 'Content-Type': 'application/json', 'x-user-id': userId };
 
-            // 2. Fetch Competitions
-            const compRes = await fetch('http://localhost:5000/api/competitions');
-            if (compRes.ok) {
-                setCompetitions(await compRes.json());
-            }
-
-            // 3. Fetch Pending Verifications
-            if (userId) {
-                const verifyRes = await fetch('http://localhost:5000/api/faculty/pending-verifications', { headers });
-                if (verifyRes.ok) {
-                    const verifyData = await verifyRes.json();
-                    setVerifications(verifyData);
-
-                    // Update stats with Pending Cnt
-                    setStats(prev => {
-                        const newStats = [...prev];
-                        newStats[3].value = verifyData.length.toString();
-                        return newStats;
-                    });
-                }
-
-                // 4. Fetch Faculty Stats
-                const statsRes = await fetch('http://localhost:5000/api/faculty/stats', { headers });
-                if (statsRes.ok) {
-                    const getRes = await statsRes.json();
-                    if (getRes.success) {
-                        const statData = getRes.data;
-                        setStats(prev => {
-                            const newStats = [...prev];
-                            newStats[1].value = statData.total_registrations.toString();
-                            newStats[2].value = (statData.verified_registrations || 0).toString();
-                            return newStats;
-                        });
-                    }
-                }
-            }
-
-        } catch (err) {
-            console.error('Error fetching dashboard data:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const handleVerify = async (regId, status) => {
-        if (!window.confirm(`Are you sure you want to ${status} this registration?`)) return;
-
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch('http://localhost:5000/api/faculty/verify-registration', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': session?.user?.id
-                },
-                body: JSON.stringify({ registration_id: regId, status })
-            });
-
-            if (response.ok) {
-                alert(`Registration ${status} successfully!`);
-                fetchData(); // Refresh list
-            } else {
-                alert("Action failed. Please try again.");
-            }
-        } catch (err) {
-            console.error("Verification Error:", err);
-            alert("Error processing request.");
-        }
-    };
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
@@ -201,25 +123,6 @@ const FacultyDashboard = () => {
                             </div>
                         </div>
 
-                        {/* Competition Overview (Existing Logic) */}
-                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-                            <h2 className="text-lg font-bold text-gray-900 mb-6">Active Competitions</h2>
-                            {loading ? (
-                                <div className="text-gray-500">Loading events...</div>
-                            ) : competitions.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {competitions.map(comp => (
-                                        <CompetitionCard
-                                            key={comp.id}
-                                            competition={comp}
-                                            showRegister={false}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-gray-500">No active competitions.</div>
-                            )}
-                        </div>
                     </div>
 
                     {/* Right Column - Alerts & Activity (Span 1) */}
@@ -252,7 +155,7 @@ const FacultyDashboard = () => {
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <div className="text-sm font-bold text-gray-900">Upcoming Event</div>
-                                            <div className="text-xs text-red-600 mt-1">Jan 01</div>
+                                            <div className="text-xs text-red-600 mt-1"></div>
                                         </div>
                                         <div className="text-xs font-bold text-red-600 bg-white px-2 py-1 rounded border border-red-100">
                                             - DAYS
