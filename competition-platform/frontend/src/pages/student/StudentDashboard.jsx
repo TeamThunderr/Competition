@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock } from 'lucide-react';
+import { Clock, RefreshCcw } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 import StudentSidebar from './Sidebar';
+import { scanInbox } from '../../services/gmailService';
+import { supabase } from '../../services/supabaseClient';
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
@@ -41,9 +43,40 @@ const StudentDashboard = () => {
         }
     };
 
+    const [syncing, setSyncing] = useState(false);
+    const [lastSync, setLastSync] = useState(null);
+
     useEffect(() => {
         fetchCompetitions();
+        // Automatic background scan
+        handleGmailScan();
     }, []);
+
+    const handleGmailScan = async () => {
+        try {
+            setSyncing(true);
+            const { data: { session } } = await supabase.auth.getSession();
+            const providerToken = session?.provider_token;
+
+            if (providerToken) {
+                console.log("Triggering auto-scan...");
+                const result = await scanInbox(providerToken);
+                console.log("Scan Result:", result);
+                if (result.detectedCount > 0) {
+                    // Ideally we should show a notification or update the UI with new detections
+                    // For now, just re-fetch competitions if they were auto-added
+                    // fetchCompetitions(); 
+                }
+                setLastSync(new Date());
+            } else {
+                console.log("No provider token found. Skipping Gmail scan.");
+            }
+        } catch (err) {
+            console.error("Auto-scan failed:", err);
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     // Handlers
     const handleCheckStatus = async (compId) => {
@@ -124,9 +157,21 @@ const StudentDashboard = () => {
 
             <div className="flex-1 ml-64 p-8">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Welcome back !</h1>
-                    <p className="text-gray-500 mt-1">Here's what's happening with your competitions.</p>
+                <div className="mb-8 flex justify-between items-end">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">Welcome back !</h1>
+                        <p className="text-gray-500 mt-1">Here's what's happening with your competitions.</p>
+                    </div>
+                    {syncing ? (
+                        <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full animate-pulse">
+                            <RefreshCcw size={14} className="animate-spin" />
+                            Scanning Inbox...
+                        </div>
+                    ) : lastSync && (
+                        <div className="text-xs text-gray-400">
+                            Last synced: {lastSync.toLocaleTimeString()}
+                        </div>
+                    )}
                 </div>
 
                 {/* Upcoming Deadlines (Empty State) */}
