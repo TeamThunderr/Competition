@@ -1,10 +1,16 @@
 import React from 'react';
 import { LayoutDashboard, Globe, Users, FileText, Settings, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { logoutUser } from '../../services/authService';
 
 const StudentSidebar = () => {
     const navigate = useNavigate();
     const location = useLocation();
+
+    const handleLogout = () => {
+        logoutUser();
+        navigate('/');
+    };
 
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/student' },
@@ -45,7 +51,7 @@ const StudentSidebar = () => {
             <div className="p-4 border-t border-gray-200">
                 <button
                     className="w-full flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-colors duration-200"
-                    onClick={() => navigate('/')}
+                    onClick={handleLogout}
                 >
                     <LogOut size={20} />
                     <span>Sign Out</span>
