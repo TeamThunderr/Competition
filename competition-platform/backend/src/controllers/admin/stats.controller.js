@@ -16,6 +16,20 @@ const getDepartmentStats = async (req, res) => {
     }
 };
 
+const getCompetitionStats = async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log(`[StatsController] Fetching stats for ID: ${id}`);
+        const stats = await statsService.getCompetitionStats(id);
+        console.log(`[StatsController] Stats fetched successfully`);
+        res.status(200).json(stats);
+    } catch (err) {
+        console.error('[StatsController] Error:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
-    getDepartmentStats
+    getDepartmentStats,
+    getCompetitionStats
 };
