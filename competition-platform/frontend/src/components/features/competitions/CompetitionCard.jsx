@@ -22,10 +22,11 @@ const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestO
         if (!my_registration) {
             return (
                 <button
-                    onClick={() => onCheckStatus(competition.id)}
+                    onClick={() => onCheckStatus(competition.id)} // Resuing this prop name for now, but behavior will change in parent
                     className="flex-1 bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
-                    I Registered Externally
+                    Mark Register
                 </button>
+
             );
         }
 

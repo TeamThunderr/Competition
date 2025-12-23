@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
+import UploadProofModal from '../../components/common/UploadProofModal';
 import { getCurrentUser } from '../../services/authService';
 import StudentSidebar from './Sidebar';
+
 
 const StudentCompetitions = () => {
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [selectedCompId, setSelectedCompId] = useState(null);
+
 
     const fetchCompetitions = async () => {
         setLoading(true);
@@ -44,51 +49,37 @@ const StudentCompetitions = () => {
     }, []);
 
     // Handlers
-    const handleCheckStatus = async (compId) => {
-        alert("Scanning your Gmail for registration confirmation... (Mock Service)");
-
-        // Mock API Call
-        const user = getCurrentUser();
-        const response = await fetch('http://localhost:5000/api/student/check-status', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': user?.id
-            },
-            body: JSON.stringify({ competition_id: compId })
-        });
-
-        const resData = await response.json();
-
-        if (resData.status === 'NOT_FOUND') {
-            const proofUrl = prompt("Gmail detection failed. Please paste the screenshot URL of your registration proof:");
-            if (proofUrl) {
-                handleUploadProof(compId, proofUrl);
-            }
-        } else {
-            alert("Registration Detected via Gmail!");
-            fetchCompetitions(); // Refresh
-        }
+    const handleRegisterClick = (compId) => {
+        setSelectedCompId(compId);
+        setIsUploadModalOpen(true);
     };
 
     const handleUploadProof = async (compId, proofUrl) => {
         const user = getCurrentUser();
-        const response = await fetch('http://localhost:5000/api/student/upload-proof', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': user?.id
-            },
-            body: JSON.stringify({ competition_id: compId, proof_url: proofUrl })
-        });
+        try {
+            // Updated Endpoint
+            const response = await fetch('http://localhost:5000/api/student/upload-proof', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': user?.id
+                },
+                body: JSON.stringify({ competition_id: compId, proof_url: proofUrl })
+            });
 
-        if (response.ok) {
-            alert("Proof uploaded! Waiting for faculty approval.");
-            fetchCompetitions();
-        } else {
-            alert("Upload failed.");
+            if (response.ok) {
+                // Success
+                fetchCompetitions(); // Refresh list to show pending status
+            } else {
+                const data = await response.json();
+                alert(data.error || "Upload failed.");
+            }
+        } catch (error) {
+            console.error("Upload Error", error);
+            alert("Failed to submit proof.");
         }
     };
+
 
     const handleRequestOD = async (compId) => {
         const reason = prompt("Enter reason for OD request:");
@@ -135,10 +126,10 @@ const StudentCompetitions = () => {
                             <CompetitionCard
                                 key={comp.id}
                                 competition={comp}
-                                onCheckStatus={handleCheckStatus}
-                                onUploadProof={handleUploadProof}
+                                onCheckStatus={handleRegisterClick}
                                 onRequestOD={handleRequestOD}
                             />
+
                         ))}
                     </div>
                 ) : (
@@ -149,7 +140,14 @@ const StudentCompetitions = () => {
                     </div>
                 )}
             </div>
+            <UploadProofModal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                competitionId={selectedCompId}
+                onSubmit={handleUploadProof}
+            />
         </div>
+
     );
 };
 
