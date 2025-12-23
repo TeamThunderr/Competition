@@ -18,7 +18,7 @@ const authMiddleware = async (req, res, next) => {
     // Verify this user actually exists in the DB to avoid foreign key errors
     const { data: user, error } = await supabase
       .from("users")
-      .select("id, role, department_id")
+      .select("id, role, department_id, assigned_sections")
       .eq("id", userId)
       .single();
 

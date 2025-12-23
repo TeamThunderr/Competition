@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { Link } from 'react-router-dom';
 import { Upload } from 'lucide-react';
-import supabase from '../../services/supabaseClient';
+import { getCurrentUser } from '../../services/authService';
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState({
@@ -16,8 +16,8 @@ const AdminDashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                const headers = { 'x-user-id': session?.user?.id };
+                const user = getCurrentUser();
+                const headers = { 'x-user-id': user?.id };
 
                 // Fetch Stats
                 const response = await fetch('http://localhost:5000/api/admin/stats', { headers });
@@ -64,7 +64,7 @@ const AdminDashboard = () => {
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Active Competitions</h3>
                         <div className="text-3xl font-bold text-gray-900 mb-4">{stats.activeCompetitions}</div>
                         <div className="flex gap-2">
-                            
+
                         </div>
                     </div>
 
