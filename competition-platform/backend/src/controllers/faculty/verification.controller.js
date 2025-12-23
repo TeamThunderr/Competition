@@ -26,7 +26,7 @@ const getPendingVerifications = async (req, res) => {
                 source,
                 proof_url,
                 verified,
-                users!inner (
+                users!registrations_user_id_fkey!inner (
                     id,
                     full_name,
                     registration_no,
