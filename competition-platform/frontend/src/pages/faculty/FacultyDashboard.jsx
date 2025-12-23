@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Bell, Clock, Activity, Download } from 'lucide-react';
 import Sidebar from './Sidebar';

@@ -22,4 +22,8 @@ router.post(
     adminController.uploadCompetitions
 );
 
+// 📊 Dashboard Stats
+const statsController = require('../../controllers/admin/stats.controller');
+router.get("/stats", statsController.getDepartmentStats);
+
 module.exports = router;

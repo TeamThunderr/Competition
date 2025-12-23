@@ -15,6 +15,7 @@ router.use(authMiddleware);
 router.use(roleMiddleware('FACULTY'));
 
 router.get('/students', facultyController.getMyStudents);
+router.get('/stats', facultyController.getStats);
 
 // Competition View (Read Only)
 router.get('/competitions', facultyCompetitionController.getAllCompetitions);

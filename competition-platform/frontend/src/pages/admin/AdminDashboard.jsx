@@ -1,17 +1,48 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { Link } from 'react-router-dom';
 import { Upload } from 'lucide-react';
+import supabase from '../../services/supabaseClient';
 
 const AdminDashboard = () => {
-    // Dummy Data
-    const stats = {
+    const [stats, setStats] = useState({
         activeCompetitions: 0,
         totalParticipation: "0",
         lastSync: "00:00"
     };
 
-    const recentActivity = [];
+    const [recentActivity, setRecentActivity] = useState([]);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const headers = { 'x-user-id': session?.user?.id };
+
+                // Fetch Stats
+                const response = await fetch('http://localhost:5000/api/admin/stats', { headers });
+
+                if (response.ok) {
+                    const json = await response.json();
+                    if (json.success && json.data) {
+                        const allDepts = json.data;
+                        // Aggregate verified registrations
+                        const totalVerified = allDepts.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
+
+                        setStats({
+                            activeCompetitions: 12, // Placeholder until competition count endpoint
+                            totalParticipation: totalVerified.toString(),
+                            lastSync: new Date().toLocaleTimeString()
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error("Fetch Stats Error:", err);
+            }
+        };
+
+        fetchStats();
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
