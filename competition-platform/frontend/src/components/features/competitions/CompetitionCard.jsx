@@ -7,26 +7,34 @@ const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestO
 
     const renderAction = () => {
         // If showRegister is false (Faculty/HOD), do not show any actionable buttons (actions are for students)
+        // If showRegister is false (Faculty/HOD), do not show any actionable buttons (actions are for students)
         if (!showRegister) {
-            return (
-                <Link
-                    to={`/competitions/${competition.id}`}
-                    className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors text-center"
-                >
-                    View Details
-                </Link>
-            );
+            return null;
         }
 
         // 1. Not Registered
         if (!my_registration) {
             return (
-                <button
-                    onClick={() => onCheckStatus(competition.id)} // Resuing this prop name for now, but behavior will change in parent
-                    className="flex-1 bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
-                    Mark Register
-                </button>
-
+                <div className="flex-1">
+                    <input
+                        type="file"
+                        id={`upload-${competition.id}`}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                onUploadProof(competition.id, file); // Send file object directly
+                            }
+                        }}
+                    />
+                    <label
+                        htmlFor={`upload-${competition.id}`}
+                        className="flex items-center justify-center w-full h-full bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors cursor-pointer"
+                    >
+                        Mark Registered
+                    </label>
+                </div>
             );
         }
 
@@ -95,14 +103,30 @@ const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestO
             <div className="flex justify-between items-start mb-4">
                 <div>
                     <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-full">
-                        {competition.platform}
+                        {competition.platform || 'Unknown Platform'}
                     </span>
-                    <h3 className="text-lg font-semibold text-gray-900 mt-2">{competition.title}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mt-2">{competition.title || 'Untitled Competition'}</h3>
                 </div>
-                {/* Status Indicator Dot */}
-                {my_registration && (
-                    <div className={`w-3 h-3 rounded-full ${my_registration.verified ? 'bg-green-500' : 'bg-yellow-400'}`} title={my_registration.verified ? "Verified" : "Pending"} />
-                )}
+
+                <div className="flex items-center gap-3">
+                    {/* External Link Logic */}
+                    {competition.external_link && showRegister && (
+                        <a
+                            href={competition.external_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-400 hover:text-blue-600 transition-colors p-1"
+                            title="Visit External Site"
+                        >
+                            <ExternalLink className="w-5 h-5" />
+                        </a>
+                    )}
+
+                    {/* Status Indicator Dot */}
+                    {my_registration && (
+                        <div className={`w-3 h-3 rounded-full ${my_registration.verified ? 'bg-green-500' : 'bg-yellow-400'}`} title={my_registration.verified ? "Verified" : "Pending"} />
+                    )}
+                </div>
             </div>
 
             <p className="text-gray-500 text-sm mb-6 line-clamp-2">
@@ -121,19 +145,14 @@ const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestO
             </div>
 
             <div className="flex gap-3 flex-col sm:flex-row">
-                {renderAction()}
+                <Link
+                    to={`/competitions/${competition.id}`}
+                    className="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors text-center"
+                >
+                    View Info
+                </Link>
 
-                {competition.external_link && showRegister && (
-                    <a
-                        href={competition.external_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 flex items-center justify-center"
-                        title="Visit External Site"
-                    >
-                        <ExternalLink className="w-5 h-5" />
-                    </a>
-                )}
+                {renderAction()}
             </div>
         </div>
     );

@@ -19,6 +19,8 @@ import HodCompetitions from './pages/hod/HodCompetitions';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentSearch from './pages/admin/StudentSearch';
 import UploadCompetitions from './pages/admin/UploadCompetitions';
+
+import ManualVerification from './pages/faculty/ManualVerification';
 import GlobalRepository from './pages/admin/GlobalRepository';
 
 import DeptPerformance from './pages/admin/DeptPerformance';
@@ -39,6 +41,8 @@ function App() {
       {/* Role Based Routes - Can protect these later with Middleware */}
       <Route path="/student" element={<StudentDashboard />} />
       <Route path="/student/competitions" element={<StudentCompetitions />} />
+
+      <Route path="/faculty/verification" element={<ManualVerification />} />
 
       <Route path="/faculty" element={<FacultyDashboard />} />
       <Route path="/faculty/students" element={<StudentList />} />

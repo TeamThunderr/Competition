@@ -3,7 +3,7 @@ import CompetitionCard from '../../components/features/competitions/CompetitionC
 import UploadProofModal from '../../components/common/UploadProofModal';
 import { getCurrentUser } from '../../services/authService';
 import StudentSidebar from './Sidebar';
-
+import { supabase } from '../../services/supabaseClient';
 
 const StudentCompetitions = () => {
     const [competitions, setCompetitions] = useState([]);
@@ -20,8 +20,8 @@ const StudentCompetitions = () => {
             const userId = user?.id;
 
             if (!userId) {
-                console.error("No user session found");
-                setLoading(false); // Ensure loading stops
+                console.error("No user ID found in localStorage");
+                setLoading(false);
                 return;
             }
 
@@ -49,34 +49,75 @@ const StudentCompetitions = () => {
     }, []);
 
     // Handlers
-    const handleRegisterClick = (compId) => {
-        setSelectedCompId(compId);
-        setIsUploadModalOpen(true);
+    const handleCheckStatus = async (compId) => {
+        // Checking status...
+
+        // Mock API Call
+        const user = getCurrentUser();
+        const response = await fetch('http://localhost:5000/api/student/check-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user?.id
+            },
+            body: JSON.stringify({ competition_id: compId })
+        });
+
+        const resData = await response.json();
+
+        if (resData.status === 'NOT_FOUND') {
+            const proofUrl = prompt("Gmail detection failed. Please paste the screenshot URL of your registration proof:");
+            if (proofUrl) {
+                handleUploadProof(compId, proofUrl);
+            }
+        } else {
+            alert("Registration Detected via Gmail!");
+            fetchCompetitions(); // Refresh
+        }
     };
 
-    const handleUploadProof = async (compId, proofUrl) => {
-        const user = getCurrentUser();
+    const handleUploadProof = async (compId, file) => {
         try {
-            // Updated Endpoint
+            const user = getCurrentUser();
+            if (!file) return;
+
+            // 1. Upload to Supabase Storage
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/${compId}_${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage
+                .from('proofs')
+                .upload(fileName, file);
+
+            if (uploadError) {
+                console.error("Storage Upload Error:", uploadError);
+                alert("Failed to upload image. Please try again.");
+                return;
+            }
+
+            // 2. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('proofs')
+                .getPublicUrl(fileName);
+
+            // 3. Send to Backend
             const response = await fetch('http://localhost:5000/api/student/upload-proof', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-user-id': user?.id
                 },
-                body: JSON.stringify({ competition_id: compId, proof_url: proofUrl })
+                body: JSON.stringify({ competition_id: compId, proof_url: publicUrl })
             });
 
             if (response.ok) {
-                // Success
-                fetchCompetitions(); // Refresh list to show pending status
+                alert("Proof uploaded! Waiting for faculty approval.");
+                fetchCompetitions();
             } else {
-                const data = await response.json();
-                alert(data.error || "Upload failed.");
+                alert("Upload failed.");
             }
-        } catch (error) {
-            console.error("Upload Error", error);
-            alert("Failed to submit proof.");
+        } catch (err) {
+            console.error("Upload process error:", err);
+            alert("An error occurred.");
         }
     };
 
