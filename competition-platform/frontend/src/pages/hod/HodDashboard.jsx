@@ -24,11 +24,7 @@ const HodDashboard = () => {
 
     // Overview Table Data (Zeroed)
     const sectionData = [
-        { section: 'CSE A', batch: '2023-27', registered: 0, qualified: 0, pending: 0 },
-        { section: 'CSE B', batch: '2023-27', registered: 0, qualified: 0, pending: 0 },
-        { section: 'CSE C', batch: '2023-27', registered: 0, qualified: 0, pending: 0 },
-        { section: 'CSE D', batch: '2023-27', registered: 0, qualified: 0, pending: 0 },
-        { section: 'CSE E', batch: '2023-27', registered: 0, qualified: 0, pending: 0 },
+        
     ];
 
     // Detailed Student List (Empty)
@@ -74,7 +70,7 @@ const HodDashboard = () => {
                                 >
                                     All Sections (Overview)
                                 </button>
-                                {['CSE A', 'CSE B', 'CSE C', 'CSE D'].map((section) => (
+                                {[].map((section) => (
                                     <button
                                         key={section}
                                         onClick={() => handleSectionSelect(section)}
