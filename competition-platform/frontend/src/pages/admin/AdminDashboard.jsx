@@ -9,7 +9,7 @@ const AdminDashboard = () => {
         activeCompetitions: 0,
         totalParticipation: "0",
         lastSync: "00:00"
-    };
+    });
 
     const [recentActivity, setRecentActivity] = useState([]);
 

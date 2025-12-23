@@ -9,6 +9,31 @@ const GlobalRepository = () => {
 
     const tabs = ['All', 'Active', 'Upcoming', 'Completed'];
 
+    const [competitions, setCompetitions] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    React.useEffect(() => {
+        const fetchCompetitions = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/competitions');
+                if (response.ok) {
+                    const data = await response.json();
+                    setCompetitions(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch competitions", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCompetitions();
+    }, []);
+
+    const getStatus = (deadline) => {
+        return new Date(deadline) > new Date() ? 'Open' : 'Closed';
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 flex">
             <Sidebar />
@@ -27,8 +52,8 @@ const GlobalRepository = () => {
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
                                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab
-                                        ? 'bg-blue-100 text-blue-700'
-                                        : 'text-gray-600 hover:bg-gray-50'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'text-gray-600 hover:bg-gray-50'
                                     }`}
                             >
                                 {tab}
@@ -94,12 +119,42 @@ const GlobalRepository = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {/* Empty Body as requested */}
-                            <tr>
-                                <td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">
-                                    No competitions found.
-                                </td>
-                            </tr>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500">Loading...</td>
+                                </tr>
+                            ) : competitions.length > 0 ? (
+                                competitions.map((comp) => (
+                                    <tr key={comp.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="font-medium text-gray-900">{comp.title || 'Untitled'}</div>
+                                            <div className="text-xs text-gray-500">{comp.organizer}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">{comp.platform}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">{new Date(comp.registration_deadline).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">All</td>
+                                        <td className="px-6 py-4 text-center text-sm text-gray-600">-</td>
+                                        <td className="px-6 py-4 text-center text-sm text-gray-600">-</td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatus(comp.registration_deadline) === 'Open'
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : 'bg-red-100 text-red-700'
+                                                }`}>
+                                                {getStatus(comp.registration_deadline)}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">View</button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">
+                                        No competitions found.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

@@ -94,9 +94,9 @@ const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestO
             <div className="flex justify-between items-start mb-4">
                 <div>
                     <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-full">
-                        {competition.platform}
+                        {competition.platform || 'Unknown Platform'}
                     </span>
-                    <h3 className="text-lg font-semibold text-gray-900 mt-2">{competition.title}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mt-2">{competition.title || 'Untitled Competition'}</h3>
                 </div>
                 {/* Status Indicator Dot */}
                 {my_registration && (

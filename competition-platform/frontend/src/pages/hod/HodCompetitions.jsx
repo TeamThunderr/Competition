@@ -1,15 +1,60 @@
 import React, { useState } from 'react';
 import HodSidebar from './Sidebar';
 import { Search, ChevronDown, Calendar, Globe, Code } from 'lucide-react';
+import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 
 const HodCompetitions = () => {
     const [filter, setFilter] = useState('All');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-    // Empty competitions list as "fake details" are not allowed
-    // The user requested to "add that row of all open" but "without fake details"
-    // So we provide the structure (filters/search) but an empty grid.
-    const competitions = [];
+    const [competitions, setCompetitions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    React.useEffect(() => {
+        const fetchCompetitions = async () => {
+            console.log("HOD Dashboard: Starting fetch...");
+            try {
+                const storedUser = localStorage.getItem('user');
+                console.log("HOD Dashboard: Stored User raw:", storedUser);
+
+                const user = storedUser ? JSON.parse(storedUser) : null;
+                console.log("HOD Dashboard: Parsed User:", user);
+
+                if (!user?.id) {
+                    console.log("HOD Dashboard: No user ID. Aborting.");
+                    setError("No user found. Please login.");
+                    setLoading(false);
+                    return;
+                }
+
+                console.log("HOD Dashboard: Fetching from http://localhost:5000/api/hod/competitions");
+                const response = await fetch('http://localhost:5000/api/hod/competitions', {
+                    headers: {
+                        'x-user-id': user.id
+                    }
+                });
+                console.log("HOD Dashboard: Response status:", response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log("HOD Dashboard: Data received:", data);
+                    setCompetitions(data);
+                } else {
+                    const errText = await response.text();
+                    console.error("Fetch failed:", response.status, errText);
+                    setError(`Failed to load: ${response.status} ${response.statusText}`);
+                }
+            } catch (err) {
+                console.error("Failed to fetch competitions", err);
+                setError("Network error. Please try again.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCompetitions();
+    }, []);
 
     const filters = ['All', 'Devfolio', 'CodeForces', 'Google', 'Unstop', 'ICPC', 'CTFTime'];
 
@@ -68,11 +113,15 @@ const HodCompetitions = () => {
 
                 {/* Content Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {competitions.length > 0 ? (
+                    {loading ? (
+                        <div className="col-span-full py-12 text-center text-gray-500">Loading competitions...</div>
+                    ) : competitions.length > 0 ? (
                         competitions.map(comp => (
-                            <div key={comp.id}>
-                                {/* Card content would go here */}
-                            </div>
+                            <CompetitionCard
+                                key={comp.id}
+                                competition={comp}
+                                showRegister={false} // HODs can't register
+                            />
                         ))
                     ) : (
                         <div className="col-span-full py-16 text-center">

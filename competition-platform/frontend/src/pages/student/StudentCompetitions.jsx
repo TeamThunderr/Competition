@@ -10,13 +10,14 @@ const StudentCompetitions = () => {
     const fetchCompetitions = async () => {
         setLoading(true);
         try {
-            // Need user ID for headers
-            const { data: { session } } = await supabase.auth.getSession();
-            const userId = session?.user?.id;
+            // Retrieve user from localStorage (set during Login)
+            const storedUser = localStorage.getItem('user');
+            const user = storedUser ? JSON.parse(storedUser) : null;
+            const userId = user?.id;
 
             if (!userId) {
-                console.error("No user session found");
-                setLoading(false); // Ensure loading stops
+                console.error("No user ID found in localStorage");
+                setLoading(false);
                 return;
             }
 
