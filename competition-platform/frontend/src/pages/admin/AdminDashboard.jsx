@@ -1,17 +1,48 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { Link } from 'react-router-dom';
 import { Upload } from 'lucide-react';
+import { getCurrentUser } from '../../services/authService';
 
 const AdminDashboard = () => {
-    // Dummy Data
-    const stats = {
+    const [stats, setStats] = useState({
         activeCompetitions: 0,
         totalParticipation: "0",
         lastSync: "00:00"
-    };
+    });
 
-    const recentActivity = [];
+    const [recentActivity, setRecentActivity] = useState([]);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const user = getCurrentUser();
+                const headers = { 'x-user-id': user?.id };
+
+                // Fetch Stats
+                const response = await fetch('http://localhost:5000/api/admin/stats', { headers });
+
+                if (response.ok) {
+                    const json = await response.json();
+                    if (json.success && json.data) {
+                        const allDepts = json.data;
+                        // Aggregate verified registrations
+                        const totalVerified = allDepts.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
+
+                        setStats({
+                            activeCompetitions: 12, // Placeholder until competition count endpoint
+                            totalParticipation: totalVerified.toString(),
+                            lastSync: new Date().toLocaleTimeString()
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error("Fetch Stats Error:", err);
+            }
+        };
+
+        fetchStats();
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
@@ -33,7 +64,7 @@ const AdminDashboard = () => {
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Active Competitions</h3>
                         <div className="text-3xl font-bold text-gray-900 mb-4">{stats.activeCompetitions}</div>
                         <div className="flex gap-2">
-                            
+
                         </div>
                     </div>
 

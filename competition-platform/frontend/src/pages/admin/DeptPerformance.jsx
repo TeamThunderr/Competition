@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
+import { getCurrentUser } from '../../services/authService';
 
 const DeptPerformance = () => {
     const departments = ['CSE', 'AIDS','IT', 'ECE', 'EEE', 'MECH'];
@@ -13,72 +14,106 @@ const DeptPerformance = () => {
                     <p className="text-gray-500 mt-1">Cross-department analytics and leaderboard.</p>
                 </div>
 
-                {/* Chart Section */}
-                <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm mb-8">
-                    <h2 className="text-base font-bold text-gray-900 mb-8">Participation vs Qualification Comparison</h2>
+                {loading ? (
+                    <div>Loading...</div>
+                ) : (
+                    <>
+                        {/* Chart Section */}
+                        <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm mb-8">
+                            <h2 className="text-base font-bold text-gray-900 mb-8">Department Registrations</h2>
 
-                    <div className="space-y-8">
-                        {departments.map((dept) => (
-                            <div key={dept} className="flex items-center gap-6">
-                                {/* Label */}
-                                <div className="w-12 font-bold text-gray-800 text-sm">{dept}</div>
+                            <div className="space-y-8">
+                                {stats.length > 0 ? stats.map((dept) => (
+                                    <div key={dept.department_id} className="flex items-center gap-6">
+                                        {/* Label */}
+                                        <div className="w-24 font-bold text-gray-800 text-sm truncate" title={dept.department_name}>
+                                            {dept.department_name}
+                                        </div>
 
-                                {/* Bar Container */}
-                                <div className="flex-1 h-10 bg-gray-50 rounded-sm relative flex items-center">
-                                    {/* Empty Bars (Width 0%) */}
-                                    <div
-                                        className="h-full bg-blue-500 rounded-l-sm"
-                                        style={{ width: '0%' }}
-                                    ></div>
-                                    <div
-                                        className="h-full bg-emerald-500"
-                                        style={{ width: '0%' }}
-                                    ></div>
-                                </div>
+                                        {/* Bar Container */}
+                                        <div className="flex-1 h-10 bg-gray-50 rounded-sm relative flex items-center">
+                                            <div
+                                                className="h-full bg-blue-500 rounded-l-sm transition-all duration-500"
+                                                style={{ width: `${(dept.total_registrations / maxCount) * 100}%` }}
+                                            ></div>
+                                        </div>
 
-                                {/* Values (Zeroed Out) */}
-                                <div className="w-24 text-right">
-                                    <div className="text-xs font-bold text-gray-800">0 Qlf.</div>
-                                    <div className="text-[10px] text-green-600">+0% YoY</div>
-                                </div>
+                                        {/* Values */}
+                                        <div className="w-24 text-right">
+                                            <div className="text-xs font-bold text-gray-800">{dept.total_registrations} Reg.</div>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="text-center text-gray-400">No stats available</div>
+                                )}
                             </div>
-                        ))}
-                    </div>
-
-                    {/* Legend */}
-                    <div className="flex justify-center gap-6 mt-12">
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
-                            <span className="text-sm text-gray-500">Total Registered</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-emerald-500 rounded-sm"></div>
-                            <span className="text-sm text-gray-500">Qualified (Overlay)</span>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Table Placeholder */}
-                <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm">
-                    <h2 className="text-base font-bold text-gray-900 mb-6">Department Stats Table</h2>
-                    <table className="w-full text-left text-sm text-gray-500">
-                        <thead>
-                            <tr className="text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                                <th className="pb-3 pl-4">Rank</th>
-                                <th className="pb-3">Department</th>
-                                <th className="pb-3">Registered</th>
-                                <th className="pb-3">Qualified</th>
-                                <th className="pb-3">Conversion Rate</th>
-                                <th className="pb-3">Winners</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colSpan="6" className="py-6 text-center">No data available</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                        {/* Table Section */}
+                        <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm">
+                            <h2 className="text-base font-bold text-gray-900 mb-6">Detailed Drill-down (Click row to view students)</h2>
+                            <table className="w-full text-left text-sm text-gray-500">
+                                <thead>
+                                    <tr className="text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                                        <th className="pb-3 pl-4">Department</th>
+                                        <th className="pb-3">Section</th>
+                                        <th className="pb-3">Count</th>
+                                        <th className="pb-3">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {stats.map(dept => (
+                                        dept.sections.map(sec => (
+                                            <React.Fragment key={`${dept.department_id}-${sec.name}`}>
+                                                <tr
+                                                    className="border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer transition-colors"
+                                                    onClick={() => setExpandedSection(expandedSection === `${dept.department_id}-${sec.name}` ? null : `${dept.department_id}-${sec.name}`)}
+                                                >
+                                                    <td className="py-4 pl-4 font-medium text-gray-900">{dept.department_name}</td>
+                                                    <td className="py-4">{sec.name}</td>
+                                                    <td className="py-4 font-bold text-blue-600">{sec.count}</td>
+                                                    <td className="py-4 text-xs text-blue-500 underline">
+                                                        {expandedSection === `${dept.department_id}-${sec.name}` ? 'Hide' : 'View Students'}
+                                                    </td>
+                                                </tr>
+                                                {/* Expanded Detail Row */}
+                                                {expandedSection === `${dept.department_id}-${sec.name}` && (
+                                                    <tr>
+                                                        <td colSpan="4" className="bg-gray-50 p-4 rounded-lg">
+                                                            <div className="pl-4 border-l-2 border-blue-500">
+                                                                <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase">Registered Students in {sec.name}</h4>
+                                                                {sec.students && sec.students.length > 0 ? (
+                                                                    <ul className="space-y-2">
+                                                                        {sec.students.map((stud, idx) => (
+                                                                            <li key={idx} className="flex items-center gap-2 text-sm text-gray-600">
+                                                                                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                                                                                    {stud.full_name ? stud.full_name.charAt(0) : 'U'}
+                                                                                </span>
+                                                                                <span className="font-medium">{stud.full_name || 'Unknown Name'}</span>
+                                                                                <span className="text-gray-400 text-xs">({stud.email})</span>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                ) : (
+                                                                    <p className="text-gray-400 italic font-light">No student details available.</p>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        ))
+                                    ))}
+                                    {stats.length === 0 && (
+                                        <tr>
+                                            <td colSpan="4" className="py-6 text-center">No data available</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

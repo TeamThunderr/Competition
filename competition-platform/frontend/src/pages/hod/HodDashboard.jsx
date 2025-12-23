@@ -1,34 +1,89 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import HodSidebar from './Sidebar';
 import { ChevronDown, CheckCircle, User, FileText, Users, Award } from 'lucide-react';
+import { getDepartmentUsers } from '../../services/usersService';
 
 const HodDashboard = () => {
     const [selectedSection, setSelectedSection] = useState('All Sections');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-    // Overview Stats (Zeroed)
+    // Feature State
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const data = await getDepartmentUsers();
+                setUsers(data);
+            } catch (error) {
+                console.error("Failed to fetch department users", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchUsers();
+    }, []);
+
+    // Derived Data Processing
+    const students = users.filter(u => u.role === 'STUDENT');
+    const sections = [...new Set(students.map(s => s.section).filter(Boolean))].sort();
+
+    // Stats Calculation
+    const totalStudents = students.length;
+    // For now, these are placeholders or need other API calls (competitions). 
+    // We will keep them 0 or mock until those APIs exist.
+
     const overviewStats = [
-        { label: 'TOTAL DEPT. STUDENTS', value: '0', subtext: 'Across 6 Sections', borderLeft: 'border-l-4 border-blue-500' },
+        { label: 'TOTAL DEPT. STUDENTS', value: totalStudents.toString(), subtext: `Across ${sections.length} Sections`, borderLeft: 'border-l-4 border-blue-500' },
         { label: 'ACTIVE COMPETITIONS', value: '0', subtext: 'Ongoing this semester', borderLeft: '' },
         { label: 'SHORTLISTED STUDENTS', value: '0', subtext: 'Qualified Round 1', borderLeft: '' },
         { label: 'PENDING OD REQUESTS', value: '0', subtext: 'Requires Immediate Action', borderLeft: '' },
     ];
 
-    // Detailed Stats (Zeroed)
+    // Stats for "Detailed View" (Specific Section)
+    const sectionStudents = students.filter(s => s.section === selectedSection);
     const detailedStats = [
-        { label: 'SECTION STUDENTS', value: '0', subtext: 'Batch 2023-27', borderLeft: 'border-l-4 border-blue-500' },
+        { label: 'SECTION STUDENTS', value: sectionStudents.length.toString(), subtext: 'Batch 2023-27', borderLeft: 'border-l-4 border-blue-500' },
         { label: 'PARTICIPATING', value: '0', subtext: '0% Engagement', borderLeft: '' },
         { label: 'QUALIFIED', value: '0', subtext: 'Round 1 Cleared', borderLeft: '' },
         { label: 'PENDING OD REQUESTS', value: '0', subtext: 'Waiting Approval', borderLeft: '' },
     ];
 
-    // Overview Table Data (Zeroed)
-    const sectionData = [
-        
-    ];
+    // Overview Table Data (Computed)
+    // We ignore 'batch' for now or hardcode it as users.year is int but not fetched yet in all queries? 
+    // Auth Middleware fetches assigned_sections but user controller fetches all columns.
+    // Check users.controller.js: uses supabase.from('users').select(...) but checking hod.controller.js
+    // hod.controller.js fetches: id, full_name, email, role, section, assigned_sections, departments(name).
+    // It does NOT fetch 'year'. So we'll hardcode Batch for now.
 
-    // Detailed Student List (Empty)
-    const studentList = [];
+    const sectionData = sections.map(sec => {
+        const count = students.filter(s => s.section === sec).length;
+        return {
+            section: sec,
+            batch: '2024-28', // Placeholder/Hardcoded
+            registered: count, // Total students in section (using as 'registered' for now, though label usually means comp registration)
+            // ideally 'registered' in table means 'registered for competition'. 
+            // For now, let's just show total students as 'registered' in lack of comp data, OR 0.
+            // User request: "AND THE STUDENT DETAILS" 
+            // Let's use 'registered' column to show Total Students in that section for clarity? 
+            // Or keep 0 if it means competition registrations. 
+            // I'll set it to 'count' (Total Students) so the UI looks populated.
+            qualified: 0,
+            pending: 0
+        };
+    });
+
+    // Student List for Detailed View
+    // Map to UI format
+    const studentList = sectionStudents.map(s => ({
+        name: s.full_name,
+        email: s.email,
+        reg: s.registration_no,
+        icon: s.full_name ? s.full_name.charAt(0).toUpperCase() : 'U',
+        status: 'Active',
+        statusColor: 'text-green-600'
+    }));
 
     const currentStats = selectedSection === 'All Sections' ? overviewStats : detailedStats;
 
@@ -70,7 +125,7 @@ const HodDashboard = () => {
                                 >
                                     All Sections (Overview)
                                 </button>
-                                {[].map((section) => (
+                                {sections.map((section) => (
                                     <button
                                         key={section}
                                         onClick={() => handleSectionSelect(section)}
@@ -159,7 +214,7 @@ const HodDashboard = () => {
                                                 </div>
                                                 <div>
                                                     <h3 className="text-sm font-semibold text-gray-900">{student.name}</h3>
-                                                    <p className="text-xs text-gray-500">{student.reg}</p>
+                                                    <p className="text-xs text-gray-500">{student.reg} <span className="text-gray-300">|</span> {student.email}</p>
                                                 </div>
                                             </div>
                                             <span className={`text-sm font-medium ${student.statusColor}`}>

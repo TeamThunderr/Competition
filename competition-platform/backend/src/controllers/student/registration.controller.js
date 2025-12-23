@@ -8,6 +8,7 @@ const gmailService = require('../../services/external/gmail.service');
 // 1. Check Gmail for 'Auto-Detection'
 const checkRegistrationStatus = async (req, res) => {
     try {
+        console.log('[Registration] Request received:', req.body, 'User:', req.userId);
         const { competition_id } = req.body;
         const student_id = req.userId;
 

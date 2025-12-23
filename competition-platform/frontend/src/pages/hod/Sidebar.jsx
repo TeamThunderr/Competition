@@ -1,10 +1,16 @@
 import React from 'react';
 import { LayoutDashboard, CheckCircle, BarChart2, Bell, Briefcase, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { logoutUser } from '../../services/authService';
 
 const HodSidebar = () => {
     const navigate = useNavigate();
     const location = useLocation();
+
+    const handleLogout = () => {
+        logoutUser();
+        navigate('/');
+    };
 
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dept. Dashboard', path: '/hod' },
@@ -45,7 +51,7 @@ const HodSidebar = () => {
             <div className="p-4 border-t border-gray-200">
                 <button
                     className="w-full flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-colors duration-200"
-                    onClick={() => navigate('/')} // Assuming sign out goes to home or login
+                    onClick={handleLogout} // Assuming sign out goes to home or login
                 >
                     <LogOut size={20} />
                     <span>Sign Out</span>

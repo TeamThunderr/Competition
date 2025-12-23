@@ -1,17 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
-import { Upload, Search, FileSpreadsheet, X } from 'lucide-react';
+import { Upload, Search, FileSpreadsheet, X, Loader } from 'lucide-react';
+import { getMyStudents } from '../../services/usersService';
 
 const StudentList = () => {
     const [isUploadMode, setIsUploadMode] = useState(false);
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
 
-    // Placeholder data structure without specific details
-    const students = [
-        { rollNo: '---', name: '---', section: '-', email: '---', status: '---' },
-        { rollNo: '---', name: '---', section: '-', email: '---', status: '---' },
-        { rollNo: '---', name: '---', section: '-', email: '---', status: '---' },
-        { rollNo: '---', name: '---', section: '-', email: '---', status: '---' },
-    ];
+    useEffect(() => {
+        const fetchStudents = async () => {
+            try {
+                setLoading(true);
+                const data = await getMyStudents();
+                // Map backend user format to UI format
+                // UI: rollNo, name, section, email, status (active)
+                const mappedStudents = data.map(s => ({
+                    rollNo: s.registration_no,
+                    name: s.full_name,
+                    section: s.section,
+                    email: s.email,
+                }));
+                setStudents(mappedStudents);
+            } catch (error) {
+                console.error("Failed to fetch students", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStudents();
+    }, []);
+
+    const filteredStudents = students.filter(student =>
+        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.rollNo.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
@@ -73,11 +98,13 @@ const StudentList = () => {
                             <input
                                 type="text"
                                 placeholder="Search by name or roll no..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                             />
                         </div>
                         <div className="text-sm text-gray-500 font-medium">
-                            Total: {students.length} Students
+                            Total: {filteredStudents.length} Students
                         </div>
                     </div>
 
@@ -90,32 +117,35 @@ const StudentList = () => {
                                     <th className="px-6 py-4">Name</th>
                                     <th className="px-6 py-4">Section</th>
                                     <th className="px-6 py-4">Email</th>
-                                    <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {students.map((student, index) => (
-                                    <tr key={index} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 text-sm text-gray-600 font-medium">{student.rollNo}</td>
-                                        <td className="px-6 py-4">
-                                            <span className="font-semibold text-gray-900">{student.name}</span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">{student.section}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">{student.email}</td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${student.status === 'Active'
-                                                    ? 'bg-green-50 text-green-700'
-                                                    : 'bg-red-50 text-red-700'
-                                                }`}>
-                                                {student.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            {/* Placeholder for actions */}
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <Loader className="animate-spin mb-2" size={24} />
+                                                <p>Loading students...</p>
+                                            </div>
                                         </td>
                                     </tr>
-                                ))}
+                                ) : filteredStudents.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
+                                            No students found.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredStudents.map((student, index) => (
+                                        <tr key={index} className="hover:bg-gray-50/50 transition-colors">
+                                            <td className="px-6 py-4 text-sm text-gray-600 font-medium">{student.rollNo}</td>
+                                            <td className="px-6 py-4">
+                                                <span className="font-semibold text-gray-900">{student.name}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">{student.section}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">{student.email}</td>
+                                        </tr>
+                                    )))}
                             </tbody>
                         </table>
                     </div>
