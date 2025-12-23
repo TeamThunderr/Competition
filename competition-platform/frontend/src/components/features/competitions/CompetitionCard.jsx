@@ -15,11 +15,26 @@ const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestO
         // 1. Not Registered
         if (!my_registration) {
             return (
-                <button
-                    onClick={() => onCheckStatus(competition.id)}
-                    className="flex-1 bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
-                    I Registered Externally
-                </button>
+                <div className="flex-1">
+                    <input
+                        type="file"
+                        id={`upload-${competition.id}`}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                onUploadProof(competition.id, file); // Send file object directly
+                            }
+                        }}
+                    />
+                    <label
+                        htmlFor={`upload-${competition.id}`}
+                        className="flex items-center justify-center w-full h-full bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors cursor-pointer"
+                    >
+                        Mark Registered
+                    </label>
+                </div>
             );
         }
 

@@ -34,12 +34,39 @@ const HodDashboard = () => {
     // For now, these are placeholders or need other API calls (competitions). 
     // We will keep them 0 or mock until those APIs exist.
 
-    const overviewStats = [
-        { label: 'TOTAL DEPT. STUDENTS', value: totalStudents.toString(), subtext: `Across ${sections.length} Sections`, borderLeft: 'border-l-4 border-blue-500' },
-        { label: 'ACTIVE COMPETITIONS', value: '0', subtext: 'Ongoing this semester', borderLeft: '' },
-        { label: 'SHORTLISTED STUDENTS', value: '0', subtext: 'Qualified Round 1', borderLeft: '' },
-        { label: 'PENDING OD REQUESTS', value: '0', subtext: 'Requires Immediate Action', borderLeft: '' },
-    ];
+    const [overviewStats, setOverviewStats] = useState([
+        { label: 'TOTAL DEPT. STUDENTS', value: '...', subtext: 'Loading...', borderLeft: 'border-l-4 border-blue-500' },
+        { label: 'ACTIVE COMPETITIONS', value: '...', subtext: 'Loading...', borderLeft: '' },
+        { label: 'SHORTLISTED STUDENTS', value: '...', subtext: 'Loading...', borderLeft: '' },
+        { label: 'PENDING OD REQUESTS', value: '...', subtext: 'Loading...', borderLeft: '' },
+    ]);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const storedUser = localStorage.getItem('user');
+                const user = storedUser ? JSON.parse(storedUser) : null;
+                if (!user) return;
+
+                const response = await fetch('http://localhost:5000/api/hod/stats', {
+                    headers: { 'x-user-id': user.id }
+                });
+
+                if (response.ok) {
+                    const resData = await response.json();
+                    // API returns array directly now based on my controller update
+                    // or wrapper if using responseHelper (likely { success: true, data: [...] })
+                    // Controller sends: sendResponse(res, 200, stats, ...) -> { success: true, data: stats, ... }
+                    if (resData.data && Array.isArray(resData.data)) {
+                        setOverviewStats(resData.data);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch dashboard stats", err);
+            }
+        };
+        fetchStats();
+    }, []);
 
     // Stats for "Detailed View" (Specific Section)
     const sectionStudents = students.filter(s => s.section === selectedSection);

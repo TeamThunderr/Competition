@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, Bell, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Bell, LogOut, CheckCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -10,7 +10,8 @@ const Sidebar = () => {
         { icon: LayoutDashboard, label: 'Mentor Dashboard', path: '/faculty' },
         { icon: Users, label: 'Student List', path: '/faculty/students' },
         { icon: Bell, label: 'Alerts', path: '/faculty/alerts' },
-        { icon: LayoutDashboard, label: 'Active Competitions', path: '/faculty/competitions' },
+        { icon: CheckCircle, label: 'Verification', path: '/faculty/verification' },
+
     ];
 
     return (

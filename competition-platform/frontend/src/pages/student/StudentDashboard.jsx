@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock } from 'lucide-react';
+import { Clock, RefreshCcw } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 import StudentSidebar from './Sidebar';
+import { scanInbox } from '../../services/gmailService';
+import { supabase } from '../../services/supabaseClient';
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
@@ -41,13 +43,44 @@ const StudentDashboard = () => {
         }
     };
 
+    const [syncing, setSyncing] = useState(false);
+    const [lastSync, setLastSync] = useState(null);
+
     useEffect(() => {
         fetchCompetitions();
+        // Automatic background scan
+        handleGmailScan();
     }, []);
+
+    const handleGmailScan = async () => {
+        try {
+            setSyncing(true);
+            const { data: { session } } = await supabase.auth.getSession();
+            const providerToken = session?.provider_token;
+
+            if (providerToken) {
+                console.log("Triggering auto-scan...");
+                const result = await scanInbox(providerToken);
+                console.log("Scan Result:", result);
+                if (result.detectedCount > 0) {
+                    // Ideally we should show a notification or update the UI with new detections
+                    // For now, just re-fetch competitions if they were auto-added
+                    // fetchCompetitions(); 
+                }
+                setLastSync(new Date());
+            } else {
+                console.log("No provider token found. Skipping Gmail scan.");
+            }
+        } catch (err) {
+            console.error("Auto-scan failed:", err);
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     // Handlers
     const handleCheckStatus = async (compId) => {
-        alert("Scanning your Gmail for registration confirmation... (Mock Service)");
+        // Checking status...
 
         // Mock API Call
         const storedUser = localStorage.getItem('user');
@@ -75,23 +108,50 @@ const StudentDashboard = () => {
         }
     };
 
-    const handleUploadProof = async (compId, proofUrl) => {
-        const storedUser = localStorage.getItem('user');
-        const user = storedUser ? JSON.parse(storedUser) : null;
-        const response = await fetch('http://localhost:5000/api/student/upload-proof', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': user?.id
-            },
-            body: JSON.stringify({ competition_id: compId, proof_url: proofUrl })
-        });
+    const handleUploadProof = async (compId, file) => {
+        try {
+            const storedUser = localStorage.getItem('user');
+            const user = storedUser ? JSON.parse(storedUser) : null;
 
-        if (response.ok) {
-            alert("Proof uploaded! Waiting for faculty approval.");
-            fetchCompetitions();
-        } else {
-            alert("Upload failed.");
+            if (!file) return;
+
+            // 1. Upload to Supabase Storage
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/${compId}_${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage
+                .from('proofs')
+                .upload(fileName, file);
+
+            if (uploadError) {
+                console.error("Storage Upload Error:", uploadError);
+                alert("Failed to upload image. Please try again.");
+                return;
+            }
+
+            // 2. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('proofs')
+                .getPublicUrl(fileName);
+
+            // 3. Send to Backend
+            const response = await fetch('http://localhost:5000/api/student/upload-proof', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': user?.id
+                },
+                body: JSON.stringify({ competition_id: compId, proof_url: publicUrl })
+            });
+
+            if (response.ok) {
+                alert("Proof uploaded! Waiting for faculty approval.");
+                fetchCompetitions();
+            } else {
+                alert("Upload failed.");
+            }
+        } catch (err) {
+            console.error("Upload process error:", err);
+            alert("An error occurred.");
         }
     };
 
@@ -124,9 +184,21 @@ const StudentDashboard = () => {
 
             <div className="flex-1 ml-64 p-8">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Welcome back !</h1>
-                    <p className="text-gray-500 mt-1">Here's what's happening with your competitions.</p>
+                <div className="mb-8 flex justify-between items-end">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">Welcome back !</h1>
+                        <p className="text-gray-500 mt-1">Here's what's happening with your competitions.</p>
+                    </div>
+                    {syncing ? (
+                        <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full animate-pulse">
+                            <RefreshCcw size={14} className="animate-spin" />
+                            Scanning Inbox...
+                        </div>
+                    ) : lastSync && (
+                        <div className="text-xs text-gray-400">
+                            Last synced: {lastSync.toLocaleTimeString()}
+                        </div>
+                    )}
                 </div>
 
                 <section className="mb-10">

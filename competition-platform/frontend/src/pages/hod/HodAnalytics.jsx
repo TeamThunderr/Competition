@@ -42,7 +42,7 @@ const HodAnalytics = () => {
                 </div>
 
                 {/* Charts Area */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div className="grid grid-cols-1 gap-8 mb-8">
                     {/* Growth Trend Placeholder */}
                     <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm h-80">
                         <h3 className="text-base font-bold text-gray-900 mb-6">Participation Growth Trend</h3>
@@ -58,29 +58,7 @@ const HodAnalytics = () => {
                         </div>
                     </div>
 
-                    {/* Section Qualification */}
-                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm h-fit">
-                        <h3 className="text-base font-bold text-gray-900 mb-6">Qualification Rate by Section</h3>
-                        <div className="space-y-6">
-                            {['CSE A', 'CSE B', 'CSE C', 'CSE D'].map(section => (
-                                <div key={section}>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-sm font-semibold text-gray-700">{section}</span>
-                                        <span className="text-sm font-bold text-gray-900">0%</span>
-                                    </div>
-                                    <div className="w-full bg-gray-100 rounded-full h-2">
-                                        <div className="bg-blue-500 h-2 rounded-full" style={{ width: '0%' }}></div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
 
-                        <div className="mt-8 p-4 bg-purple-50 rounded-lg border border-purple-100">
-                            <p className="text-xs text-purple-800 leading-relaxed">
-                                <span className="font-bold">Insight:</span> NOT ENOUGH DATA. No significant deviations in qualification rates observed across sections yet.
-                            </p>
-                        </div>
-                    </div>
                 </div>
 
                 {/* ROI Analysis Table */}
