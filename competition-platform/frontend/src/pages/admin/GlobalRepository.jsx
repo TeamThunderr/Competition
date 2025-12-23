@@ -9,6 +9,63 @@ const GlobalRepository = () => {
 
     const tabs = ['All', 'Active', 'Upcoming', 'Completed'];
 
+    const [competitions, setCompetitions] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    React.useEffect(() => {
+        const fetchCompetitions = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/competitions');
+                if (response.ok) {
+                    const data = await response.json();
+                    setCompetitions(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch competitions", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCompetitions();
+    }, []);
+
+    const getStatus = (deadline) => {
+        return new Date(deadline) > new Date() ? 'Open' : 'Closed';
+    };
+
+    const [statsModalOpen, setStatsModalOpen] = useState(false);
+    const [selectedCompetitionStats, setSelectedCompetitionStats] = useState(null);
+    const [selectedCompTitle, setSelectedCompTitle] = useState('');
+    const [statsError, setStatsError] = useState(null);
+
+    const handleViewStats = async (competition) => {
+        setSelectedCompTitle(competition.title);
+        setSelectedCompetitionStats(null); // Reset
+        setStatsError(null); // Reset error
+        setStatsModalOpen(true);
+
+        console.log("Fetching stats for:", competition.id);
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/admin/competition/${competition.id}/stats`);
+            console.log("Response status:", response.status);
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Stats received:", data);
+                setSelectedCompetitionStats(data);
+            } else {
+                const errText = await response.text();
+                console.error("Stats fetch failed:", errText);
+                setStatsError(`Failed to load stats. Status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error("Failed to fetch stats", error);
+            setStatsError("Network error or server unreachable.");
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 flex">
             <Sidebar />
@@ -80,32 +137,143 @@ const GlobalRepository = () => {
 
                 {/* Table */}
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto pb-4">
-                        <table className="min-w-full text-center">
-                            <thead>
-                                <tr className="bg-gray-50 border-b border-gray-100">
-                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">Competition Name</th>
-                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">Platform</th>
-                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">Deadline</th>
-                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">Participating Depts</th>
-                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">Registrations</th>
-                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">Qualified</th>
-                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">Status</th>
-                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">Actions</th>
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="bg-gray-50 border-b border-gray-100">
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Competition Name</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Platform</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Participating Depts</th>
+                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Registrations</th>
+                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Qualified</th>
+                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500">Loading...</td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {/* Empty Body as requested */}
+                            ) : competitions.length > 0 ? (
+                                competitions.map((comp) => (
+                                    <tr key={comp.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="font-medium text-gray-900">{comp.title || 'Untitled'}</div>
+                                            <div className="text-xs text-gray-500">{comp.organizer}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">{comp.platform}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">{new Date(comp.registration_deadline).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">All</td>
+                                        <td className="px-6 py-4 text-center text-sm text-gray-600">-</td>
+                                        <td className="px-6 py-4 text-center text-sm text-gray-600">-</td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatus(comp.registration_deadline) === 'Open'
+                                                ? 'bg-green-100 text-green-700'
+                                                : 'bg-red-100 text-red-700'
+                                                }`}>
+                                                {getStatus(comp.registration_deadline)}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <button
+                                                onClick={() => handleViewStats(comp)}
+                                                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                            >
+                                                View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
                                 <tr>
                                     <td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">
                                         No competitions found.
                                     </td>
                                 </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
+
+            {/* Stats Modal */}
+            {statsModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-gray-900">{selectedCompTitle} - Statistics</h2>
+                            <button onClick={() => setStatsModalOpen(false)} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto">
+                            {statsError ? (
+                                <div className="text-center text-red-600 py-8">
+                                    <p className="font-bold">Error</p>
+                                    <p>{statsError}</p>
+                                </div>
+                            ) : !selectedCompetitionStats ? (
+                                <div className="text-center py-8">Loading stats...</div>
+                            ) : (
+                                <div>
+                                    {/* Summary Cards */}
+                                    <div className="grid grid-cols-3 gap-4 mb-6">
+                                        <div className="bg-blue-50 p-4 rounded-lg text-center">
+                                            <div className="text-2xl font-bold text-blue-700">{selectedCompetitionStats.overall.total}</div>
+                                            <div className="text-xs text-blue-600 uppercase font-bold">Total Registrations</div>
+                                        </div>
+                                        <div className="bg-purple-50 p-4 rounded-lg text-center">
+                                            <div className="text-2xl font-bold text-purple-700">{selectedCompetitionStats.overall.shortlisted}</div>
+                                            <div className="text-xs text-purple-600 uppercase font-bold">Shortlisted</div>
+                                        </div>
+                                        <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                                            <div className="text-2xl font-bold text-yellow-700">{selectedCompetitionStats.overall.winners}</div>
+                                            <div className="text-xs text-yellow-600 uppercase font-bold">Winners</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Department Breakdown Table */}
+                                    <h3 className="font-bold text-gray-900 mb-3">Department Breakdown</h3>
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-2 font-medium text-gray-500">Department</th>
+                                                <th className="px-4 py-2 font-medium text-gray-500 text-center">Registered</th>
+                                                <th className="px-4 py-2 font-medium text-gray-500 text-center">Shortlisted</th>
+                                                <th className="px-4 py-2 font-medium text-gray-500 text-center">Winners</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {selectedCompetitionStats.departments.map((dept, index) => (
+                                                <tr key={index}>
+                                                    <td className="px-4 py-3 text-gray-900">{dept.name}</td>
+                                                    <td className="px-4 py-3 text-center text-gray-600">{dept.registrations}</td>
+                                                    <td className="px-4 py-3 text-center text-gray-600">{dept.shortlisted}</td>
+                                                    <td className="px-4 py-3 text-center text-gray-600">{dept.winners}</td>
+                                                </tr>
+                                            ))}
+                                            {selectedCompetitionStats.departments.length === 0 && (
+                                                <tr>
+                                                    <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No data available.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 text-right">
+                            <button
+                                onClick={() => setStatsModalOpen(false)}
+                                className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

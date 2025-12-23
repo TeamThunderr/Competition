@@ -13,9 +13,8 @@ const StudentSidebar = () => {
     };
 
     const menuItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/student' },
         { icon: Globe, label: 'Competitions', path: '/student/competitions' },
-
+        { icon: LayoutDashboard, label: 'Dashboard', path: '/student' },
         { icon: FileText, label: 'OD Letters', path: '/student/od-letters' },
         { icon: Settings, label: 'Settings', path: '/student/settings' },
     ];

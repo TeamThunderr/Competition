@@ -26,6 +26,7 @@ router.post(
 // 📊 Dashboard Stats
 const statsController = require('../../controllers/admin/stats.controller');
 router.get("/stats", statsController.getDepartmentStats);
+router.get("/competition/:id/stats", statsController.getCompetitionStats);
 
 // 👥 Student & Faculty Data
 router.get("/students", usersController.getStudents);

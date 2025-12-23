@@ -107,6 +107,121 @@ const getDepartmentStats = async () => {
     return result;
 };
 
+const getCompetitionStats = async (competitionId) => {
+    console.log(`[StatsService] Fetching stats for competition: ${competitionId}`);
+
+    // 1. Fetch Registrations
+    const { data: registrations, error: regError } = await supabase
+        .from('registrations')
+        .select('*')
+        .eq('competition_id', competitionId);
+
+    if (regError) {
+        console.error('[StatsService] Error fetching registrations:', regError);
+        throw regError;
+    }
+    console.log(`[StatsService] Found ${registrations.length} registrations`);
+
+    // 2. Fetch Status (Shortlisted/Winners)
+    const { data: statuses, error: statusError } = await supabase
+        .from('competition_status')
+        .select('*')
+        .eq('competition_id', competitionId);
+
+    if (statusError) {
+        console.error('[StatsService] Error fetching statuses:', statusError);
+        throw statusError;
+    }
+    console.log(`[StatsService] Found ${statuses.length} status entries`);
+
+    // 3. User IDs involved
+    const regUserIds = registrations.map(r => r.user_id);
+    const statusUserIds = statuses.map(s => s.user_id);
+    const uniqueUserIds = [...new Set([...regUserIds, ...statusUserIds])];
+
+    console.log(`[StatsService] Unique User IDs: ${uniqueUserIds.length}`);
+
+    if (uniqueUserIds.length === 0) {
+        return { overall: { total: 0, shortlisted: 0, winners: 0 }, departments: [] };
+    }
+
+    // 4. Fetch Users & Departments
+    const { data: users, error: userError } = await supabase
+        .from('users')
+        .select('id, department_id')
+        .in('id', uniqueUserIds);
+
+    if (userError) {
+        console.error('[StatsService] Error fetching users:', userError);
+        throw userError;
+    }
+    console.log(`[StatsService] Fetched ${users.length} users details`);
+
+    const { data: departments, error: deptError } = await supabase.from('departments').select('id, name');
+    if (deptError) console.error('[StatsService] Error fetching departments:', deptError);
+
+    const deptMap = {};
+    if (departments) departments.forEach(d => deptMap[d.id] = d.name);
+
+    // 5. Aggregate
+    const stats = {};
+    const overall = { total: 0, shortlisted: 0, winners: 0 };
+
+    // Helper to get dept entry
+    const getDeptStat = (deptId) => {
+        if (!stats[deptId]) {
+            stats[deptId] = {
+                name: deptMap[deptId] || `Unknown (${deptId})`,
+                registrations: 0,
+                shortlisted: 0,
+                winners: 0
+            };
+        }
+        return stats[deptId];
+    };
+
+    const userMap = {};
+    users.forEach(u => userMap[u.id] = u);
+
+    // Count Registrations
+    registrations.forEach(reg => {
+        const user = userMap[reg.user_id];
+        if (user) {
+            const deptId = user.department_id || 'unknown';
+            const s = getDeptStat(deptId);
+            s.registrations++;
+            overall.total++;
+        }
+    });
+
+    // Count Status (Shortlisted/Winners)
+    statuses.forEach(st => {
+        const user = userMap[st.user_id];
+        if (user) {
+            const deptId = user.department_id || 'unknown';
+            const s = getDeptStat(deptId);
+
+            if (st.is_shortlisted) {
+                s.shortlisted++;
+                overall.shortlisted++;
+            }
+            if (st.is_winner) {
+                s.winners++;
+                overall.winners++;
+            }
+        }
+    });
+
+    const result = {
+        overall,
+        departments: Object.values(stats)
+    };
+
+    console.log('[StatsService] Stats aggregation complete');
+    return result;
+};
+
 module.exports = {
-    getDepartmentStats
+    getDepartmentStats,
+    getCompetitionStats
 };
