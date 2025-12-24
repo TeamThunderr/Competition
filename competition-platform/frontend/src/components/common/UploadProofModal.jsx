@@ -46,14 +46,14 @@ const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId }) => {
 
             // 1. Upload to Supabase Storage
             const { error: uploadError } = await supabase.storage
-                .from('registration-proofs')
+                .from('proofs')
                 .upload(filePath, file);
 
             if (uploadError) throw uploadError;
 
             // 2. Get Public URL
             const { data: { publicUrl } } = supabase.storage
-                .from('registration-proofs')
+                .from('proofs')
                 .getPublicUrl(filePath);
 
             // 3. Submit URL to backend
