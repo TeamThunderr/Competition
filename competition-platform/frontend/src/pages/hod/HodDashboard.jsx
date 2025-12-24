@@ -27,7 +27,7 @@ const HodDashboard = () => {
 
     // Derived Data Processing
     const students = users.filter(u => u.role === 'STUDENT');
-    const sections = [...new Set(students.map(s => s.section).filter(Boolean))].sort();
+    const sections = [...new Set(students.map(s => s.section).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
     // Stats Calculation
     const totalStudents = students.length;
@@ -69,7 +69,9 @@ const HodDashboard = () => {
     }, []);
 
     // Stats for "Detailed View" (Specific Section)
-    const sectionStudents = students.filter(s => s.section === selectedSection);
+    const sectionStudents = students
+        .filter(s => s.section === selectedSection)
+        .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', undefined, { numeric: true, sensitivity: 'base' }));
     const detailedStats = [
         { label: 'SECTION STUDENTS', value: sectionStudents.length.toString(), subtext: 'Batch 2023-27', borderLeft: 'border-l-4 border-blue-500' },
         { label: 'PARTICIPATING', value: '0', subtext: '0% Engagement', borderLeft: '' },

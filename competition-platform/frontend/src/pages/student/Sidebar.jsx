@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Globe, Users, FileText, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Globe, Users, FileText, Settings, LogOut, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { logoutUser } from '../../services/authService';
 
@@ -15,6 +15,7 @@ const StudentSidebar = () => {
     const menuItems = [
         { icon: Globe, label: 'Competitions', path: '/student/competitions' },
         { icon: LayoutDashboard, label: 'Dashboard', path: '/student' },
+        { icon: User, label: 'My Profile', path: '/student/profile' },
         { icon: FileText, label: 'OD Letters', path: '/student/od-letters' },
         { icon: Settings, label: 'Settings', path: '/student/settings' },
     ];
