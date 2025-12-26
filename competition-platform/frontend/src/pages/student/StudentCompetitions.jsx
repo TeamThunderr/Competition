@@ -29,7 +29,39 @@ const StudentCompetitions = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                setCompetitions(data);
+
+                // Custom Sorting Logic
+                const now = new Date();
+                // We use setHours(0,0,0,0) if we want start of day comparison, but "now" is fine for precise deadline expiry.
+                // Requirement: Open before Closed.
+                // Open: >= now
+                // Closed: < now
+
+                const sortedData = data.sort((a, b) => {
+                    const dateA = new Date(a.registration_deadline);
+                    const dateB = new Date(b.registration_deadline);
+
+                    const aIsClosed = dateA < now;
+                    const bIsClosed = dateB < now;
+
+                    // 1. Primary Sort: Open Comp starts first (aIsClosed=false)
+                    // If a is closed (true) and b is open (false) -> a > b (1)
+                    // If a is open (false) and b is closed (true) -> a < b (-1)
+                    if (aIsClosed !== bIsClosed) {
+                        return aIsClosed ? 1 : -1;
+                    }
+
+                    // 2. Secondary Sort
+                    if (!aIsClosed) {
+                        // Both Open: Nearest deadline first (Ascending)
+                        return dateA - dateB;
+                    } else {
+                        // Both Closed: Most recently closed first (Descending)
+                        return dateB - dateA;
+                    }
+                });
+
+                setCompetitions(sortedData);
             } else {
                 console.error('Failed to fetch competitions');
             }

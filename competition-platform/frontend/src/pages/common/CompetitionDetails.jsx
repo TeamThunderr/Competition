@@ -218,7 +218,7 @@ const CompetitionDetails = () => {
             ) : (
                 // STUDENT VIEW (Standard One with About & Timeline)
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    // ... (Student/Default View kept same)
+
                     {/* Left Column: Description & Timeline */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Description */}
