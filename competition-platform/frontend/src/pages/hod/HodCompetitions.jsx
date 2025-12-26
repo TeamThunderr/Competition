@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import HodSidebar from './Sidebar';
 import { Search, ChevronDown, Calendar, Globe, Code } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
+import { api } from '../../services/api';
 
 const HodCompetitions = () => {
     const [filter, setFilter] = useState('All');
@@ -15,29 +16,9 @@ const HodCompetitions = () => {
     React.useEffect(() => {
         const fetchCompetitions = async () => {
             try {
-                const storedUser = localStorage.getItem('user');
-                const user = storedUser ? JSON.parse(storedUser) : null;
-
-                if (!user?.id) {
-                    setError("No user found. Please login.");
-                    setLoading(false);
-                    return;
-                }
-
-                const response = await fetch('http://localhost:5000/api/hod/competitions', {
-                    headers: {
-                        'x-user-id': user.id
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    setCompetitions(data);
-                } else {
-                    const errText = await response.text();
-                    console.error("Fetch failed:", response.status, errText);
-                    setError(`Failed to load: ${response.status} ${response.statusText}`);
-                }
+                // api.js handles auth automatically
+                const data = await api.get('/api/hod/competitions');
+                setCompetitions(data);
             } catch (err) {
                 console.error("Failed to fetch competitions", err);
                 setError("Network error. Please try again.");

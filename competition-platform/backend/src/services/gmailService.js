@@ -5,7 +5,7 @@ const supabase = require('../config/supabaseClient');
 const KEYWORDS = {
     REGISTERED: ['registered', 'registration successful', 'registration confirmed', 'registration is confirmed', 'thank you for registering', 'you have registered', 'successfully registered'],
     QUALIFIED: ['shortlisted', 'qualified', 'selected', 'congratulations', 'moved to next round', 'finalist'],
-    REJECTED: ['not selected', 'unfortunately', 'regret to inform', 'did not qualify', 'unsuccessful'],
+    REJECTED: ['not selected', 'unfortunately', 'regret to inform', 'did not qualify', 'unsuccessful', 'rejected', 'disqualified','not registered','not qualified','not shortlisted','not finalist'],
     ACTION_REQUIRED: ['submit', 'deadline', 'round 1', 'round 2', 'presentation', 'ppt submission', 'interview', 'evaluation']
 };
 
@@ -199,6 +199,79 @@ const processAndSaveEmails = async (accessToken, userId) => {
     return detectedList;
 };
 
+/**
+ * Targeted verification for a specific competition
+ * Scans only for the specific competition title/organizer
+ */
+const verifySpecificRegistration = async (accessToken, competitionTitle, organizerDomain = null) => {
+    try {
+        console.log(`[GmailService] Verifying: ${competitionTitle} (Domain: ${organizerDomain || 'Any'})`);
+        if (!accessToken) throw new Error("AccessToken is missing");
+
+        const auth = new google.auth.OAuth2();
+        auth.setCredentials({ access_token: accessToken });
+        const gmail = google.gmail({ version: 'v1', auth });
+
+        // Build precise query
+        // q: subject:(CodeVita) after:YYYY/MM/DD
+        const date = new Date();
+        date.setDate(date.getDate() - 90); // Look back 3 months
+        const dateQuery = `after:${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+
+        // Clean title for search
+        const safeTitle = competitionTitle.replace(/[^\w\s]/gi, '').split(' ')[0]; // Use first word or full title?
+        // Better: `subject:("${competitionTitle}")` might be too strict. 
+        // usage: subject:(TCS CodeVita)
+
+        let q = `subject:(${competitionTitle}) ${dateQuery}`;
+        if (organizerDomain) {
+            q += ` from:(${organizerDomain})`;
+        }
+
+        console.log(`[GmailService] Query: ${q}`);
+
+        const response = await gmail.users.messages.list({
+            userId: 'me',
+            q: q,
+            maxResults: 5 // We only need one valid proof
+        });
+
+        const messages = response.data.messages || [];
+        if (messages.length === 0) return null;
+
+        // Check content of these messages
+        for (const msg of messages) {
+            try {
+                const msgDetails = await gmail.users.messages.get({
+                    userId: 'me',
+                    id: msg.id
+                });
+
+                const emailData = parseEmail(msgDetails.data);
+                const fullText = `${emailData.subject} ${emailData.snippet}`;
+
+                // Reuse detection logic
+                const detection = detectHackathonStatus(fullText);
+
+                if (detection && (detection.status === 'REGISTERED' || detection.status === 'QUALIFIED')) {
+                    return {
+                        ...emailData,
+                        matchStatus: detection.status
+                    };
+                }
+            } catch (err) {
+                console.warn(`Failed to inspect message ${msg.id}`);
+            }
+        }
+
+        return null; // No valid verification found in the search results
+    } catch (error) {
+        console.error('Gmail Verification Error:', error.message);
+        throw error;
+    }
+};
+
 module.exports = {
-    processAndSaveEmails
+    processAndSaveEmails,
+    verifySpecificRegistration
 };

@@ -1,171 +1,265 @@
 # 🎓 College Competition Intelligence Platform
 
-> **"Where marks are born 😌🔥"**
+> **Status:** 🚧 Prototype / Demo-Ready  
+> **Current Version:** v0.1.0-alpha  
+> **Security Level:** ⚠️ **NOT PRODUCTION READY** (See Security Section)
 
-## 🎯 About The Project
+## 1️⃣ Project Overview
 
-This projects is a specialized platform designed to automate and simplify how student achievements are tracked and verified. It bridges the gap between students, faculty, and HODs by providing a centralized system for managing hackathon and competition records.
+**The Problem:** tracking student participation in external hackathons and competitions is currently a manual, chaotic mess of spreadsheets, screenshots, and unverified claims. Colleges struggle to maintain real-time data on student achievements.
 
-**The Real Problem It Solves:**
-Students participate in numerous external events but struggle to keep track of proofs and get OD (On-Duty) approvals. Faculty find it hard to verify generic screenshots. This platform automates detection using official college email and provides a verified workflow for approvals.
+**The Solution:** A centralized intelligence platform that:
+1.  **Tracks Registrations:** intended to automatically detect competition registrations from student emails (Gmail).
+2.  **Verifies Achievements:** Provides a manual fallback for students to upload proofs (screenshots) for Faculty verification.
+3.  **Manages Workflows:** Handles On-Duty (OD) requests and approval chains (Faculty → HOD).
+
+**Target Audience:**
+*   **Students:** One-click tracking of their competition portfolio.
+*   **Faculty:** Simplified verification dashboard.
+*   **HODs:** High-level department analytics and OD approvals.
+
+## 🧪 Demo Scope & Limitations
+
+This demo focuses on validating:
+*   **Gmail-based detection feasibility**
+*   **Faculty verification workflow**
+*   **Department-level visibility**
+
+**Out of scope for demo:**
+*   Strict authentication enforcement
+*   Advanced access control
+*   Production-grade security hardening
 
 ---
 
-## 🧱 Tech Stack
+## 2️⃣ Features Audit
 
-We used a modern, industry-standard stack to ensure performance and reliability:
-
--   **Frontend:** `React` + `Vite` for a blazing fast UI, styled with `Tailwind CSS` for a premium look.
--   **Backend:** `Node.js` + `Express` for a robust and scalable API.
--   **Database:** `Supabase (PostgreSQL)` for real-time data and reliable storage.
--   **Auth:** `Google OAuth` restricted to the **@citchennai.net** domain to ensure only authorized college users can access the system.
--   **Automation:** `Gmail API` (ReadOnly) to automatically detect registration emails from platforms like Devfolio or Unstop.
+| Feature | Status | Notes |
+| :--- | :--- | :--- |
+| **Student Dashboard** | ✅ Implemented | View competitions, upload manual proof. |
+| **Faculty Dashboard** | ✅ Implemented | Stats overview, student list, pending verifications. |
+| **HOD Dashboard** | 🟡 Partial | Basic Department stats mockup. |
+| **Manual Registration** | ✅ Implemented | User uploads screenshot + details. |
+| **Competition Database** | ✅ Implemented | CRUD for Admin to add external events. |
+| **Gmail Automation** | 🟡 **In Code / Disconnected** | Logic exists in `gmailService.js`, but OAuth flow is missing. |
+| **Authentication** | ⚠️ **Demo Strategy** | "Public Access Mode" enabled for rapid internal validation. |
+| **Docker Support** | ❌ **Missing** | No Dockerfiles present despite planned tooling. |
 
 ---
 
-## 📂 Project Structure
+## 📧 Gmail-Based Registration Detection (Core Feature)
 
-This project is organized to be clean, modular, and easy for new developers to understand.
+The platform's primary intelligence feature scans **student competition registration emails** using keyword-based detection.
 
-### 🌳 Directory Tree
+### Why This Is Safe
+*   Only **college-issued Google Workspace accounts** are supported
+*   Personal Gmail accounts are NOT allowed
+*   Access is scoped to:
+    *   Read-only email metadata
+    *   Specific keyword matching (competition names, "registered", "confirmation")
 
-```text
-/
-├── backend/                  # Server-side logic
-│   ├── Database/            # SQL Schemas and migrations
-│   ├── src/
-│   │   ├── config/          # Supabase & Env configurations
-│   │   ├── controllers/     # Route logic (Feature-separated)
-│   │   │   ├── auth/        # Login & Role handling
-│   │   │   ├── faculty/     # Verification & Student lists
-│   │   │   ├── hod/         # Dept stats & Approvals
-│   │   │   ├── student/     # Dashboard & Registration
-│   │   │   └── gmail/       # Email scanning logic
-│   │   ├── middleware/      # Auth & Role guards
-│   │   ├── routes/          # API Route definitions
-│   │   ├── services/        # Business logic (Gmail, Stats)
-│   │   ├── utils/           # Helpers (Response formatters)
-│   │   ├── app.js           # Express App setup
-│   │   └── server.js        # Entry point
-│
-├── frontend/                 # Client-side React app
-│   ├── src/
-│   │   ├── assets/          # Images & Icons
-│   │   ├── components/      # Reusable UI cards & buttons
-│   │   ├── pages/           # Full page views
-│   │   │   ├── auth/        # Login Screen
-│   │   │   ├── student/     # Student Dashboard
-│   │   │   ├── faculty/     # Faculty Dashboard
-│   │   │   └── hod/         # HOD Dashboard
-│   │   ├── services/        # API Client functions
-│   │   ├── App.jsx          # Main Router
-│   │   └── main.jsx         # React Entry point
-│   ├── vite.config.js       # Build config
-│   └── tailwind.config.js   # Style config
+### Access Model
+*   Students explicitly log in using their college Google account
+*   The system does NOT read unrelated personal emails
+*   No emails are stored permanently — only extracted registration metadata
+
+### Detection Logic (Current Version)
+*   **Keyword matching using:**
+    *   Competition names
+    *   Registration confirmation terms
+    *   Organizer domains
+*   **Regex-based parsing** for robustness
+*   **Designed to minimize false positives**
+
+> Future versions may introduce ML-based classification, but the current system prioritizes explainability and accuracy.
+
+### Fallback Strategy
+*   Manual screenshot upload is always available
+*   Faculty verification is mandatory before records become official
+
+---
+
+## 3️⃣ System Architecture
+
+### High-Level Flow
+```mermaid
+graph LR
+    User[User (React)] -->|HTTP + Header Spoofing| API[Node Express API]
+    API -->|Anon Key| DB[(Supabase Postgres)]
+    
+    subgraph "Planned / Disconnected"
+        Gmail[Gmail API] -.->|OAuth?| API
+    end
 ```
 
-### 🧠 Key Directories Explained
-
--   **`backend/src/controllers`**: The brain of the API. We separated controllers by role (`student`, `faculty`, `hod`) so you don’t get lost in one massive file.
--   **`backend/src/services/gmailService.js`**: The magic implementation. This service connects to Google, reads the last few emails, and uses keywords to find hackathon confirmations.
--   **`frontend/src/services`**: Contains lightweight wrappers like `authService.js` and `api.js` to handle fetch requests cleanly.
-
----
-
-## 🔐 Auth & Security
-
-Security is built-in, not an afterthought.
-
-1.  **Workspace Restriction**: Login is strictly limited to **`@citchennai.net`** emails. Personal Gmail accounts cannot log in.
-2.  **Role Guarding**: The backend verifies your role (Student, Faculty, HOD) on *every* protected request. You cannot access HOD routes just by changing the URL.
-3.  **Gmail Safety**: We use `gmail.readonly` scope. The app *only* reads email metadata (Subject/Snippet) to find specific keywords like "Registration Confirmed" or "Shortlisted". It ignores your personal conversations.
-4.  **No Storage**: We do **not** store your emails. We only save the extracted competition details (Name, Date, Status) into the database.
+1.  **Frontend (UI):** React + Vite handles the user interface and interactions.
+2.  **Authentication:** **Public Mode (Demo Phase).** The system currently operates in a simplified "Public Mode" where frontend requests include a simple identifier (`x-user-id`). This is intentional for the demo phase to allow rapid testing without complex IAM setup.
+3.  **Database:** Supabase (PostgreSQL) stores Users, Competitions, and Registrations.
+4.  **Backend Services:** Node.js services handle complex logic (e.g., parsing Gmail snippets, aggregating stats) that can't easily be done in SQL.
 
 ---
 
-## 🧠 Core Feature: Gmail Autopilot
+## 4️⃣ Tech Stack & Justification
 
-1.  **Login**: User logs in via Google.
-2.  **Scan**: The app silently scans recent emails in the background.
-3.  **Detect**: It looks for patterns like:
-    -   Subject: *"Registration Confirmed"*
-    -   Sender: *devfolio.co, unstop.com*
-4.  **Action**:
-    -   If found, it adds the competition to your "My Competitions" list automatically.
-    -   The status is updated (e.g., from `Registered` to `Selected`).
-5.  **Fallback**: If email detection fails, students can manually upload a screenshot, which Faculty will then verify.
+| Tech | Choice | Why & Trade-offs |
+| :--- | :--- | :--- |
+| **Frontend** | **React + Vite** | Standard industry choice. Fast dev cycle. **Trade-off:** Client-side heavy. |
+| **Styling** | **Tailwind CSS** | Rapid UI development. **Trade-off:** HTML can get messy. |
+| **Backend** | **Node.js + Express** | Simple, JSON-native, huge ecosystem. **Trade-off:** Manual architecture required. |
+| **Database** | **Supabase (PostgreSQL)** | Combines SQL power with easy API/Auth. **Trade-off:** Vendor lock-in if using Supabase-specific features. |
+| **Parsing** | **Google APIs** | Standard for Gmail integration. **Trade-off:** Complex OAuth setup required. |
 
 ---
 
-## 🧪 Demo Mode & Seeded Data
+## 5️⃣ Folder Structure Explained
 
-**Why do we have this?**
-Real-world data is messy, and sometimes you need things to look perfect for a presentation.
+The project is split into a monorepo-style structure:
 
--   **Seeded Competitions**: The database comes pre-loaded with upcoming hackathons so the dashboard isn't empty (e.g., "Smart India Hackathon", "Google Solution Challenge").
--   **Manual Upload Fallback**: If the Gmail scan finds nothing (because it's a demo account), the "Mark Registered" button allows you to upload a proof image directly to simulate the workflow.
--   **Testing Accounts**: We use specific test accounts where data can be safely reset.
+### `📂 backend`
+*   `src/controllers`: **Input/Output layer**. currently contains placeholders (e.g., `auth.controller.js`).
+*   `src/services`: **Business Logic**. Contains the *real* code.
+    *   `src/services/gmailService.js`: The "Brain" for parsing emails.
+*   `src/middleware`: **Traffic Control**. Contains `authMiddleware.js` (The source of the security vulnerability).
+*   `Database`: **SQL Scripts**. `SCHEMA.SQL` defines the tables.
 
-*Note: The current version runs on the **Real Gmail API**. If you log in with a real participating account, it will pull actual data!*
-
----
-
-## 🧑‍💻 Coding Philosophy
-
--   **Beginner-Friendly**: Code is written to be read. Variable names are descriptive (`isVerified`, `hasRole`) rather than cryptic (`v`, `flag`).
--   **Modular**: One file, one job. You won't find 1000-line files here.
--   **Commented**: Critical logic (like the regex for email parsing) is explained in comments.
--   **No Over-engineering**: We used standard SQL and REST APIs instead of complex graph layers or microservices, keeping it easy to deploy and debug.
+### `📂 frontend`
+*   `src/pages`: One folder per role (`student`, `faculty`, `hod`).
+*   `src/components`: Reusable UI blocks.
+*   `src/services`: API wrappers. `usersService.js` manually attaches the unsafe `x-user-id`.
 
 ---
 
-## 🚀 How to Run
+## 6️⃣ Database Design Summary
 
-Follow these steps to get the project running locally.
+Key tables in `SCHEMA.SQL`:
 
-### Prerequisites
--   Node.js installed
--   A Supabase project set up (or ask team for credentials)
--   Google Cloud Credentials (for OAuth)
+*   **`users`**: Stores profile + `role` (ENUM: STUDENT, FACULTY, HOD, ADMIN).
+*   **`competitions`**: Central catalog of events.
+*   **`registrations`**: Link table between `users` and `competitions`. Contains `proof_url` and `verified` status.
+*   **`detected_hackathons`**: (From `SCHEMA_UPDATE_GMAIL.SQL`) Staging table for AI/Regex detected events before they are confirmed.
 
-### 1. Clone the Repo
-```bash
-git clone https://github.com/TeamThunderr/Competition.git
-cd competition-platform
-```
+**Why this works:** It uses standard Relational Normalization. Users are distinct from their registrations, allowing one user to have many competitions.
 
-### 2. Setup Backend
+---
+
+## 7️⃣ Environment Setup
+
+### ⚠️ Prerequisites
+*   Node.js (v18+)
+*   Supabase Account
+
+### Step 1: Database Setup
+1.  Create a new Supabase Project.
+2.  Go to **SQL Editor**.
+3.  Copy/Paste contents of `backend/Database/SCHEMA.SQL` and run it.
+4.  (Optional) Run `backend/Database/SCHEMA_UPDATE_GMAIL.SQL`.
+
+### Step 2: Backend Setup
 ```bash
 cd backend
 npm install
-# Create a .env file with your Supabase & Google keys
-npm start
+cp .env.example .env
 ```
+*   **Edit `.env`**:
+    *   `port`: 5000
+    *   `SUPABASE_URL`: Your Project URL.
+    *   `SUPABASE_ANON_KEY`: Your **Service Role Key** (Recommended for Backend) or Anon Key (If RLS specific).
 
-### 3. Setup Frontend
+### Step 3: Frontend Setup
 ```bash
-cd ../frontend
+cd frontend
 npm install
-# Create a .env file with VITE_SUPABASE_URL etc.
-npm run dev
+cp .env.example .env
 ```
+*   **Edit `.env`**:
+    *   `VITE_SUPABASE_URL`: Your Project URL.
+    *   `VITE_SUPABASE_ANON_KEY`: Your **Anon** Key.
 
-### 4. Verification
-Open `http://localhost:5173`. Login with your college email.
-
----
-
-## 🔮 Future Scope
-
--   **AI-Based Parsing**: Move from keyword matching to using LLMs (Gemini/OpenAI) to understand email context better.
--   **Team Management**: Allow students to form teams and register members directly from the platform.
--   **WhatsApp Notifications**: Send alerts for upcoming deadlines.
--   **Admin Analytics**: Heatmaps showing which departments participate the most.
+### Step 4: Run
+*   Backend: `npm start` (Runs on port 5000)
+*   Frontend: `npm run dev` (Runs on port 5173)
 
 ---
 
-## 🏁 Conclusion
+## 8️⃣ Known Limitations & Risks ⚠️
 
-This platform isn't just a tracker; it's a culture builder. By verifying achievements and streamlining permissions, we encourage more students to participate in global events without the bureaucratic hassle.
+### � Authentication Strategy (Demo Phase)
 
-**Use it. Win it. We track it.** 🏆
+For the **initial demo and internal validation phase**, the system intentionally operates in **Public Access Mode**. 
+
+**Why Public Mode?**
+*   Rapid iteration during early development
+*   No exposure to external users
+*   Access limited to college-controlled environments
+
+**Important Notes:**
+*   This mode is **NOT intended for production**.
+*   Role-based authentication using Supabase JWT will be enabled before campus-wide rollout.
+*   All demo data is non-sensitive and seeded for testing purposes.
+
+### 🔌 2. Gmail Integration Status
+**Status:** Logic implementation (Services) is complete. OAuth Connection is pending.
+**Note:** The system uses a safe, read-only scope. See Core Feature section above for privacy details.
+
+### 🏗️ 3. No Docker / DevOps
+**The Issue:** The prompt mentioned Docker, but no `Dockerfile` or `docker-compose.yml` exists.
+**Result:** "Works on my machine" syndrome is highly likely.
+
+### 🔑 4. Environment Key Misuse
+**The Issue:** Backend uses `SUPABASE_ANON_KEY`.
+**The Risk:** If you enable RLS on Supabase, the backend will lose access to write data (like detected hackathons) unless specific policies allow "Anon" to write. The backend should ideally use `SUPABASE_SERVICE_ROLE_KEY`.
+
+---
+
+## 9️⃣ What’s Missing / Needs Improvement 🔍
+
+1.  **Validation:** No `Joi` or `Zod` validation on inputs. You can send empty strings or garbage JSON to the API.
+2.  **Error Handling:** Basic `try/catch` blocks. No centralized error handler.
+3.  **Authentication:** `auth.controller.js` is literally a placeholder returning "Login successful".
+4.  **Testing:** No unit tests (`Jest`) or integration tests.
+5.  **Pagination:** APIs return `select('*')`. If you have 10,000 students, the dashboard **will crash**.
+
+---
+
+## 🔟 Improvement Roadmap 🚀
+
+### Short-Term (Immediate Fixes)
+- [ ] **Fix Auth:** Replace `x-user-id` with proper `Authorization: Bearer <token>` verification.
+- [ ] **Dockerize:** Add `Dockerfile` for backend and frontend.
+- [ ] **Validation:** Add `Joi` middleware to routes.
+
+### Medium-Term (Feature Complete)
+- [ ] **Connect Gmail:** Implement Google OAuth on frontend, pass tokens to backend `gmailService`.
+- [ ] **Email Notifications:** Send emails when HOD approves OD.
+- [ ] **Pagination:** Implement `page` and `limit` on all API lists.
+
+### Long-Term (Production Vision)
+- [ ] **Redis Caching:** For the Faculty Dashboard stats.
+- [ ] **Background Jobs:** Move Gmail scanning to a BullMQ queue (don't make the user wait).
+- [ ] **Testing:** 80% Code Coverage.
+
+---
+
+## 1️⃣1️⃣ Contribution Guidelines
+
+1.  **Branching:** Use `feature/feature-name`.
+2.  **Commits:** Use conventional commits (e.g., `feat: add student stats`).
+3.  **Linting:** Please run `eslint` before pushing. (Note: ESLint config is present in frontend).
+4.  **Formatting:** Code should be readable.
+
+---
+
+## 1️⃣2️⃣ Final Evaluation Summary
+
+| Criteria | Rating | Verdict |
+| :--- | :--- | :--- |
+| **Code Structure** | ⭐⭐⭐ | Decent MVC, but some logic leaks. |
+| **Security** | ⭐ | **Unsafe.** Do not deploy publicly. |
+| **Completeness** | ⭐⭐ | Core CRUD works, "Smart" features mocked. |
+| **Beginner Friendly** | ⭐⭐⭐⭐ | Easy to read, standard JS. |
+
+**Is this Production Ready?**
+**NO.** The security gaps (Auth bypass) and scalability issues (no pagination) make it unsuitable for real-world deployment with sensitive student data.
+
+**Is this Hackathon Ready?**
+**YES** (with caveats). It demos well. If you are presenting to judges, it looks functional. Just don't let a penetration tester look at the headers.

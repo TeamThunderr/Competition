@@ -69,7 +69,61 @@ const getDepartmentStats = async (req, res) => {
             { label: 'PENDING OD REQUESTS', value: odCount.toString(), subtext: 'Requires Immediate Action', borderLeft: '' },
         ];
 
-        sendResponse(res, 200, stats, 'Fetched department stats');
+        // ... (previous stats calculation kept) ...
+
+        // 6. Detailed Section Analytics (Replacing Mock Data)
+        // We need: Section Name | Total Students | Registered count | Qualified count | Pending OD count
+
+        // Fetch all students in dept with their registration/status/OD info
+        // This is a bit heavy, so we might want to optimize later, but for < 1000 students it's fine.
+        const { data: analyticsUsers, error: analyticsError } = await supabase
+            .from('users')
+            .select(`
+                id, section, role,
+                registrations ( id, verified ),
+                competition_status ( is_shortlisted, is_winner ),
+                od_requests ( status )
+            `)
+            .eq('department_id', hodDeptId)
+            .eq('role', 'STUDENT');
+
+        if (analyticsError) throw analyticsError;
+
+        // Process Analytics
+        const sectionMap = {};
+
+        analyticsUsers.forEach(u => {
+            const sec = u.section || 'Unassigned';
+            if (!sectionMap[sec]) {
+                sectionMap[sec] = {
+                    section: sec,
+                    batch: '2024-28', // TODO: Derive from year/reg_no if available
+                    totalStudents: 0,
+                    registered: 0,
+                    qualified: 0,
+                    pending: 0
+                };
+            }
+
+            const s = sectionMap[sec];
+            s.totalStudents++;
+
+            // Registered: Has at least one registration
+            if (u.registrations && u.registrations.length > 0) s.registered++;
+
+            // Qualified: Has at least one shortlisted status
+            if (u.competition_status && u.competition_status.some(cs => cs.is_shortlisted || cs.is_winner)) s.qualified++;
+
+            // Pending OD: Has pending requests
+            if (u.od_requests && u.od_requests.some(od => od.status === 'PENDING')) s.pending++;
+        });
+
+        const sectionAnalytics = Object.values(sectionMap).sort((a, b) => a.section.localeCompare(b.section));
+
+        sendResponse(res, 200, {
+            cards: stats,
+            sections: sectionAnalytics
+        }, 'Fetched department stats and analytics');
     } catch (err) {
         console.error('[HodController] Error:', err);
         // Send the actual error message to help debug (though in prod we hide it)

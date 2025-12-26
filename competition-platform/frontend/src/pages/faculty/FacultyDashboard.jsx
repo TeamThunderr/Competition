@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
-import { getFacultyDashboardStats, getFacultyCompetitions } from '../../services/usersService';
+import { getFacultyDashboardStats } from '../../services/usersService';
+import { api } from '../../services/api';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 
 const FacultyDashboard = () => {
@@ -18,25 +19,15 @@ const FacultyDashboard = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                // Determine if failure is in stats or competitions
-                try {
-                    const statsData = await getFacultyDashboardStats();
-                    setStats(statsData);
-                } catch (statsError) {
-                    console.error("Failed to load stats", statsError);
-                    setError(prev => (prev ? prev + " | Stats: " + statsError.message : "Stats: " + statsError.message));
-                }
+                const [statsData, competitionsData] = await Promise.all([
+                    getFacultyDashboardStats(),
+                    api.get('/api/competitions')
+                ]);
 
-                try {
-                    const competitionsData = await getFacultyCompetitions();
-                    setCompetitions(competitionsData);
-                } catch (compError) {
-                    console.error("Failed to load competitions", compError);
-                    setError(prev => (prev ? prev + " | Comps: " + compError.message : "Comps: " + compError.message));
-                }
-            } catch (err) {
-                console.error("Failed to load dashboard data (General)", err);
-                setError("General: " + err.message);
+                setStats(statsData);
+                setCompetitions(competitionsData || []);
+            } catch (error) {
+                console.error("Failed to load dashboard data", error);
             } finally {
                 setLoading(false);
             }

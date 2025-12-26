@@ -238,6 +238,69 @@ const GlobalRepository = () => {
                     </table>
                 </div>
             </div>
+                    {/* Table */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-gray-50 border-b border-gray-100">
+                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Competition Name</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Platform</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Participating Depts</th>
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Registrations</th>
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Qualified</th>
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan="8" className="px-6 py-12 text-center text-gray-500">Loading...</td>
+                                    </tr>
+                                ) : competitions.length > 0 ? (
+                                    competitions.map((comp) => (
+                                        <tr key={comp.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="font-medium text-gray-900">{comp.title || 'Untitled'}</div>
+                                                <div className="text-xs text-gray-500">{comp.organizer}</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">{comp.platform}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">{new Date(comp.registration_deadline).toLocaleDateString()}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">All</td>
+                                            <td className="px-6 py-4 text-center text-sm text-gray-600">-</td>
+                                            <td className="px-6 py-4 text-center text-sm text-gray-600">-</td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatus(comp.registration_deadline) === 'Open'
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : 'bg-red-100 text-red-700'
+                                                    }`}>
+                                                    {getStatus(comp.registration_deadline)}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <button
+                                                    onClick={() => handleViewStats(comp)}
+                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                >
+                                                    View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">
+                                            No competitions found.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+
 
                 {/* Stats Modal */}
                 {
