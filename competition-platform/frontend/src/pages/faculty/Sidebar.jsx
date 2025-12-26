@@ -2,6 +2,7 @@ import React from 'react';
 import { LayoutDashboard, Users, Bell, LogOut, CheckCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { logoutUser } from '../../services/authService';
+import logo from '../../assets/logo.png';
 
 const Sidebar = () => {
     const navigate = useNavigate();
@@ -24,11 +25,9 @@ const Sidebar = () => {
     return (
         <div className="w-64 h-screen bg-white border-r border-gray-100 flex flex-col fixed left-0 top-0 z-10">
             {/* Logo Section */}
-            <div className="p-6 flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-                    C
-                </div>
-                <span className="font-bold text-gray-800 text-lg">COMPETITION DASHBOARD</span>
+            {/* Logo Section */}
+            <div className="p-6 flex items-center justify-center">
+                <img src={logo} alt="Logo" className="w-48 h-auto object-contain mix-blend-multiply" />
             </div>
 
             {/* Menu Items */}
