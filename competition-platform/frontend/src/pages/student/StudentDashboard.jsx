@@ -80,31 +80,54 @@ const StudentDashboard = () => {
 
     // Handlers
     const handleCheckStatus = async (compId) => {
-        // Checking status...
+        setLoading(true); // check global loading or local state
+        const { data: { session } } = await supabase.auth.getSession();
+        const providerToken = session?.provider_token;
 
-        // Mock API Call
+        console.log("Verifying with Token:", providerToken ? "Present" : "Missing");
+
+        // Mock API Call -> Real Call
         const storedUser = localStorage.getItem('user');
         const user = storedUser ? JSON.parse(storedUser) : null;
 
-        const response = await fetch('http://localhost:5000/api/student/check-status', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': user?.id
-            },
-            body: JSON.stringify({ competition_id: compId })
-        });
+        try {
+            const response = await fetch('http://localhost:5000/api/student/check-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': user?.id
+                },
+                body: JSON.stringify({
+                    competition_id: compId,
+                    provider_token: providerToken
+                })
+            });
 
-        const resData = await response.json();
-
-        if (resData.status === 'NOT_FOUND') {
-            const proofUrl = prompt("Gmail detection failed. Please paste the screenshot URL of your registration proof:");
-            if (proofUrl) {
-                handleUploadProof(compId, proofUrl);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("Server Error Response:", response.status, errorText);
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
             }
-        } else {
-            alert("Registration Detected via Gmail!");
-            fetchCompetitions(); // Refresh
+
+            const resData = await response.json();
+            console.log("Check Status Response:", resData);
+
+            if (resData.verified) {
+                alert("Success! Verified registration via Gmail.");
+                fetchCompetitions();
+            } else if (resData.status === 'NOT_FOUND') {
+                console.log("Debug Info:", JSON.stringify(resData.debug, null, 2)); // Log debug info as string
+                alert("Gmail verification failed. No matching email found from the organizer. Check console for details.");
+                // Optional: Ask for manual upload here or let them click 'Mark Register'
+            } else {
+                alert("Verification status: " + resData.status);
+                fetchCompetitions();
+            }
+        } catch (err) {
+            console.error("Verification error:", err);
+            alert(`Verification failed: ${err.message}`);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -224,7 +247,12 @@ const StudentDashboard = () => {
                                 const diff = deadline - now;
                                 return diff > 0 && diff <= twoDaysInMs;
                             }).map((comp) => (
-                                <CompetitionCard key={comp.id} competition={comp} />
+                                <CompetitionCard
+                                    key={comp.id}
+                                    competition={comp}
+                                    onRegister={() => navigate('/student/competitions')}
+                                    onVerifyGmail={handleCheckStatus}
+                                />
                             ))}
                         </div>
                     ) : (
@@ -246,9 +274,9 @@ const StudentDashboard = () => {
                                     <CompetitionCard
                                         key={comp.id}
                                         competition={comp}
-                                        onCheckStatus={handleCheckStatus}
-                                        onUploadProof={handleUploadProof}
+                                        onRegister={() => navigate('/student/competitions')}
                                         onRequestOD={handleRequestOD}
+                                        onVerifyGmail={handleCheckStatus}
                                     />
                                 ))}
                             </div>

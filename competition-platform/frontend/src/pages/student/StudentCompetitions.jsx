@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
+import UploadProofModal from '../../components/common/UploadProofModal';
 import { getCurrentUser } from '../../services/authService';
 import StudentSidebar from './Sidebar';
 import { supabase } from '../../services/supabaseClient';
@@ -7,6 +8,9 @@ import { supabase } from '../../services/supabaseClient';
 const StudentCompetitions = () => {
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [selectedCompId, setSelectedCompId] = useState(null);
+
 
     const fetchCompetitions = async () => {
         setLoading(true);
@@ -46,63 +50,66 @@ const StudentCompetitions = () => {
 
     // Handlers
     const handleCheckStatus = async (compId) => {
-        // Checking status...
+        setLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        const providerToken = session?.provider_token;
 
-        // Mock API Call
         const user = getCurrentUser();
-        const response = await fetch('http://localhost:5000/api/student/check-status', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': user?.id
-            },
-            body: JSON.stringify({ competition_id: compId })
-        });
 
-        const resData = await response.json();
+        try {
+            const response = await fetch('http://localhost:5000/api/student/check-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': user?.id
+                },
+                body: JSON.stringify({
+                    competition_id: compId,
+                    provider_token: providerToken
+                })
+            });
 
-        if (resData.status === 'NOT_FOUND') {
-            const proofUrl = prompt("Gmail detection failed. Please paste the screenshot URL of your registration proof:");
-            if (proofUrl) {
-                handleUploadProof(compId, proofUrl);
+            const resData = await response.json();
+
+            if (resData.verified) {
+                alert("Success! Verified registration via Gmail.");
+                fetchCompetitions();
+            } else if (resData.status === 'NOT_FOUND') {
+                alert("Gmail verification failed. No matching email found.");
+            } else {
+                alert("Status: " + resData.status);
+                fetchCompetitions();
             }
-        } else {
-            alert("Registration Detected via Gmail!");
-            fetchCompetitions(); // Refresh
+        } catch (err) {
+            console.error("Verification error:", err);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleUploadProof = async (compId, file) => {
+
+
+    // Restore Modal Opener
+    const handleRegisterClick = (compId) => {
+        setSelectedCompId(compId);
+        setIsUploadModalOpen(true);
+    };
+
+    // Modified to accept URL from Modal
+    const handleUploadProof = async (compId, proofUrl) => {
         try {
             const user = getCurrentUser();
-            if (!file) return;
 
-            // 1. Upload to Supabase Storage
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}/${compId}_${Date.now()}.${fileExt}`;
-            const { error: uploadError } = await supabase.storage
-                .from('proofs')
-                .upload(fileName, file);
+            // Note: UploadProofModal handles the Storage upload. 
+            // We just send the URL to the backend here.
 
-            if (uploadError) {
-                console.error("Storage Upload Error:", uploadError);
-                alert("Failed to upload image. Please try again.");
-                return;
-            }
-
-            // 2. Get Public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('proofs')
-                .getPublicUrl(fileName);
-
-            // 3. Send to Backend
             const response = await fetch('http://localhost:5000/api/student/upload-proof', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-user-id': user?.id
                 },
-                body: JSON.stringify({ competition_id: compId, proof_url: publicUrl })
+                body: JSON.stringify({ competition_id: compId, proof_url: proofUrl })
             });
 
             if (response.ok) {
@@ -116,6 +123,7 @@ const StudentCompetitions = () => {
             alert("An error occurred.");
         }
     };
+
 
     const handleRequestOD = async (compId) => {
         const reason = prompt("Enter reason for OD request:");
@@ -162,10 +170,11 @@ const StudentCompetitions = () => {
                             <CompetitionCard
                                 key={comp.id}
                                 competition={comp}
-                                onCheckStatus={handleCheckStatus}
-                                onUploadProof={handleUploadProof}
+                                onRegister={handleRegisterClick}
                                 onRequestOD={handleRequestOD}
+                                onVerifyGmail={handleCheckStatus}
                             />
+
                         ))}
                     </div>
                 ) : (
@@ -176,7 +185,14 @@ const StudentCompetitions = () => {
                     </div>
                 )}
             </div>
+            <UploadProofModal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                competitionId={selectedCompId}
+                onSubmit={handleUploadProof}
+            />
         </div>
+
     );
 };
 

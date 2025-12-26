@@ -107,3 +107,42 @@ export const getDepartmentUsers = async () => {
         throw error;
     }
 };
+
+// Verification APIs
+export const getPendingVerifications = async () => {
+    try {
+        const user = getCurrentUser();
+        if (!user || user.role !== 'FACULTY') throw new Error('Unauthorized');
+
+        const response = await fetch(`${API_URL}/faculty/pending-verifications`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }
+        });
+
+        if (!response.ok) throw new Error(`Error: ${response.statusText}`);
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching pending verifications:", error);
+        throw error;
+    }
+};
+
+export const verifyRegistration = async (registrationId, status) => {
+    try {
+        const user = getCurrentUser();
+        if (!user || user.role !== 'FACULTY') throw new Error('Unauthorized');
+
+        const response = await fetch(`${API_URL}/faculty/verify-registration`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
+            body: JSON.stringify({ registration_id: registrationId, status })
+        });
+
+        if (!response.ok) throw new Error(`Error: ${response.statusText}`);
+        return await response.json();
+    } catch (error) {
+        console.error("Error verifying registration:", error);
+        throw error;
+    }
+};
+

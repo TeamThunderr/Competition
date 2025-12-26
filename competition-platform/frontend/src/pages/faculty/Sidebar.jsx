@@ -1,18 +1,25 @@
 import React from 'react';
 import { LayoutDashboard, Users, Bell, LogOut, CheckCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { logoutUser } from '../../services/authService';
 
 const Sidebar = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
+    const handleLogout = async () => {
+        await logoutUser();
+        navigate('/');
+    };
+
     const menuItems = [
         { icon: LayoutDashboard, label: 'Mentor Dashboard', path: '/faculty' },
         { icon: Users, label: 'Student List', path: '/faculty/students' },
         { icon: Bell, label: 'Alerts', path: '/faculty/alerts' },
-        { icon: CheckCircle, label: 'Verification', path: '/faculty/verification' },
-
+        { icon: CheckCircle, label: 'Verify Proofs', path: '/faculty/verify' },
+        { icon: LayoutDashboard, label: 'Active Competitions', path: '/faculty/competitions' },
     ];
+
 
     return (
         <div className="w-64 h-screen bg-white border-r border-gray-100 flex flex-col fixed left-0 top-0 z-10">
@@ -47,7 +54,7 @@ const Sidebar = () => {
             {/* Footer */}
             <div className="p-4 border-t border-gray-100">
                 <button
-                    onClick={() => navigate('/')}
+                    onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
                 >
                     <LogOut size={20} />

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
 
-const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestOD, showRegister = true }) => {
+const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, showRegister = true }) => {
     const { my_registration, my_status, my_od } = competition;
 
     const renderAction = () => {
@@ -15,25 +15,19 @@ const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestO
         // 1. Not Registered
         if (!my_registration) {
             return (
-                <div className="flex-1">
-                    <input
-                        type="file"
-                        id={`upload-${competition.id}`}
-                        className="hidden"
-                        accept="image/*"
-                        onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                                onUploadProof(competition.id, file); // Send file object directly
-                            }
-                        }}
-                    />
-                    <label
-                        htmlFor={`upload-${competition.id}`}
-                        className="flex items-center justify-center w-full h-full bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors cursor-pointer"
+                <div className="flex gap-2 flex-1">
+                    <button
+                        onClick={() => onRegister(competition.id)}
+                        className="flex-1 bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
+                        Mark Register
+                    </button>
+                    <button
+                        onClick={() => onVerifyGmail(competition.id)}
+                        className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:from-red-600 hover:to-red-700 shadow-sm transition-all"
+                        title="Check Gmail for confirmation email"
                     >
-                        Mark Registered
-                    </label>
+                        Verify via Gmail
+                    </button>
                 </div>
             );
         }
