@@ -32,3 +32,14 @@ export const verifyRegistration = async (registrationId, action) => {
     return await api.post('/api/faculty/verify-registration', { registration_id: registrationId, action });
 };
 
+// Competition Details APIs
+export const getCompetitionStudents = async (competitionId) => {
+    const response = await api.get(`/api/faculty/competition/${competitionId}/students`);
+    return response.data || response;
+};
+
+export const getHODCompetitionStats = async (competitionId) => {
+    const response = await api.get(`/api/hod/competition/${competitionId}/stats`);
+    return response.data || response;
+};
+
