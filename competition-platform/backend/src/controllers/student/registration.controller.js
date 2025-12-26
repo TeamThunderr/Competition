@@ -41,31 +41,58 @@ const checkRegistrationStatus = async (req, res) => {
 
         let match = null;
         if (detectedList && detectedList.length > 0) {
-            const normalize = (str) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const compTitleNorm = normalize(competition.title);
+            // Helper: Tokenize and Clean
+            const tokenize = (str) => {
+                if (!str || typeof str !== 'string') return [];
+                return str.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+            };
 
-            console.log(`[Matching] Target: ${compTitleNorm} (${competition.title})`);
+            // Helper: Fuzzy Match with Year Handling
+            const isFuzzyMatch = (compTitle, detectedName) => {
+                const tokensA = tokenize(compTitle);
+                const tokensB = tokenize(detectedName);
+
+                const checkSubset = (subset, superset) => {
+                    if (subset.length === 0) return false;
+                    let matches = 0;
+                    for (const t1 of subset) {
+                        const found = superset.some(t2 => {
+                            if (t1 === t2) return true;
+                            // Year Check: '25' matches '2025'
+                            if (!isNaN(t1) && !isNaN(t2)) {
+                                if ((t1.length === 2 && t2.length === 4 && t2.endsWith(t1)) ||
+                                    (t1.length === 4 && t2.length === 2 && t1.endsWith(t2))) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        });
+                        if (found) matches++;
+                    }
+                    // If subset is short (1-2 words), require 100% match. If longer, 75%.
+                    const threshold = subset.length <= 2 ? 1.0 : 0.75;
+                    return (matches / subset.length) >= threshold;
+                };
+
+                return checkSubset(tokensA, tokensB) || checkSubset(tokensB, tokensA);
+            };
+
+            console.log(`[Matching] Target: ${competition.title}`);
 
             match = detectedList.find(d => {
-                // strict check for verified status if we want to enforce it, but for now let's find ANY match
-                // IF we only want REGISTERED, we should check d.status === 'REGISTERED' here or after match
                 if (d.status !== 'REGISTERED' && d.status !== 'QUALIFIED') return false;
 
-                const detectedNameNorm = normalize(d.hackathon_name);
-                const isMatch = compTitleNorm.includes(detectedNameNorm) || detectedNameNorm.includes(compTitleNorm);
-
-                // Debug log for first few items or if match found
-                // console.log(`[Matching] Checking: ${detectedNameNorm} vs ${compTitleNorm} -> ${isMatch}`);
-
+                const isMatch = isFuzzyMatch(competition.title, d.hackathon_name);
+                console.log(`[Matching] Checking: "${d.hackathon_name}" vs "${competition.title}" -> ${isMatch}`);
                 return isMatch;
             });
 
-            // Fallback: Check snippet
+            // Fallback: Check snippet if name match failed
             if (!match) {
                 match = detectedList.find(d => {
                     if (d.status !== 'REGISTERED' && d.status !== 'QUALIFIED') return false;
-                    const snippetNorm = normalize(d.snippet || '');
-                    return snippetNorm.includes(compTitleNorm);
+                    // Also try fuzzy match on snippet
+                    return isFuzzyMatch(competition.title, d.snippet || '');
                 });
             }
         }
