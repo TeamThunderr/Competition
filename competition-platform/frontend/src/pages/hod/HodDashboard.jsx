@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import HodSidebar from './Sidebar';
 import { ChevronDown, CheckCircle, User, FileText, Users, Award } from 'lucide-react';
 import { getDepartmentUsers } from '../../services/usersService';
+import { api } from '../../services/api';
 
 const HodDashboard = () => {
     const [selectedSection, setSelectedSection] = useState('All Sections');
@@ -10,6 +11,7 @@ const HodDashboard = () => {
     // Feature State
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [sectionData, setSectionData] = useState([]); // Real Data now
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -25,15 +27,6 @@ const HodDashboard = () => {
         fetchUsers();
     }, []);
 
-    // Derived Data Processing
-    const students = users.filter(u => u.role === 'STUDENT');
-    const sections = [...new Set(students.map(s => s.section).filter(Boolean))].sort();
-
-    // Stats Calculation
-    const totalStudents = students.length;
-    // For now, these are placeholders or need other API calls (competitions). 
-    // We will keep them 0 or mock until those APIs exist.
-
     const [overviewStats, setOverviewStats] = useState([
         { label: 'TOTAL DEPT. STUDENTS', value: '...', subtext: 'Loading...', borderLeft: 'border-l-4 border-blue-500' },
         { label: 'ACTIVE COMPETITIONS', value: '...', subtext: 'Loading...', borderLeft: '' },
@@ -44,21 +37,28 @@ const HodDashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const storedUser = localStorage.getItem('user');
-                const user = storedUser ? JSON.parse(storedUser) : null;
-                if (!user) return;
+                // const storedUser = localStorage.getItem('user'); // Handled by API
+                // const user = storedUser ? JSON.parse(storedUser) : null;
+                // if (!user) return;
 
-                const response = await fetch('http://localhost:5000/api/hod/stats', {
-                    headers: { 'x-user-id': user.id }
-                });
+                const resData = await api.get('/api/hod/stats');
 
-                if (response.ok) {
-                    const resData = await response.json();
-                    // API returns array directly now based on my controller update
-                    // or wrapper if using responseHelper (likely { success: true, data: [...] })
-                    // Controller sends: sendResponse(res, 200, stats, ...) -> { success: true, data: stats, ... }
-                    if (resData.data && Array.isArray(resData.data)) {
+                // Old compatibility: if it returns array directly (backward compat)
+                // New API client returns response.json() directly. 
+                // So if resData.data exists, use it.
+                if (resData) {
+                    if (Array.isArray(resData.data)) {
                         setOverviewStats(resData.data);
+                    }
+                    // New Structure: { cards: [], sections: [] }
+                    else if (resData.data && resData.data.cards) {
+                        setOverviewStats(resData.data.cards);
+                        if (resData.data.sections) {
+                            setSectionData(resData.data.sections);
+                        }
+                    } else if (resData.cards) { // Case where API wrapper unwraps it
+                        setOverviewStats(resData.cards);
+                        if (resData.sections) setSectionData(resData.sections);
                     }
                 }
             } catch (err) {
@@ -68,38 +68,35 @@ const HodDashboard = () => {
         fetchStats();
     }, []);
 
+    // Derived Data Processing for Dropdowns & Detailed Views
+    const students = users.filter(u => u.role === 'STUDENT');
+
+    // Sort sections alphabetically
+    const sections = sectionData.length > 0
+        ? sectionData.map(s => s.section).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+        : [...new Set(students.map(s => s.section).filter(Boolean))].sort();
+
     // Stats for "Detailed View" (Specific Section)
-    const sectionStudents = students.filter(s => s.section === selectedSection);
+    const sectionStudents = students
+        .filter(s => s.section === selectedSection)
+        .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', undefined, { numeric: true, sensitivity: 'base' }));
+
+    // Find analytics for selected section
+    const currentSectionAnalytics = sectionData.find(s => s.section === selectedSection) || {
+        totalStudents: sectionStudents.length,
+        registered: 0,
+        qualified: 0,
+        pending: 0
+    };
+
     const detailedStats = [
-        { label: 'SECTION STUDENTS', value: sectionStudents.length.toString(), subtext: 'Batch 2023-27', borderLeft: 'border-l-4 border-blue-500' },
-        { label: 'PARTICIPATING', value: '0', subtext: '0% Engagement', borderLeft: '' },
-        { label: 'QUALIFIED', value: '0', subtext: 'Round 1 Cleared', borderLeft: '' },
-        { label: 'PENDING OD REQUESTS', value: '0', subtext: 'Waiting Approval', borderLeft: '' },
+        { label: 'SECTION STUDENTS', value: currentSectionAnalytics.totalStudents.toString(), subtext: 'Batch 2023-27', borderLeft: 'border-l-4 border-blue-500' },
+        { label: 'PARTICIPATING', value: currentSectionAnalytics.registered.toString(), subtext: 'Registered Events', borderLeft: '' },
+        { label: 'QUALIFIED', value: currentSectionAnalytics.qualified.toString(), subtext: 'Round 1 Cleared', borderLeft: '' },
+        { label: 'PENDING OD REQUESTS', value: currentSectionAnalytics.pending.toString(), subtext: 'Waiting Approval', borderLeft: '' },
     ];
 
-    // Overview Table Data (Computed)
-    // We ignore 'batch' for now or hardcode it as users.year is int but not fetched yet in all queries? 
-    // Auth Middleware fetches assigned_sections but user controller fetches all columns.
-    // Check users.controller.js: uses supabase.from('users').select(...) but checking hod.controller.js
-    // hod.controller.js fetches: id, full_name, email, role, section, assigned_sections, departments(name).
-    // It does NOT fetch 'year'. So we'll hardcode Batch for now.
-
-    const sectionData = sections.map(sec => {
-        const count = students.filter(s => s.section === sec).length;
-        return {
-            section: sec,
-            batch: '2024-28', // Placeholder/Hardcoded
-            registered: count, // Total students in section (using as 'registered' for now, though label usually means comp registration)
-            // ideally 'registered' in table means 'registered for competition'. 
-            // For now, let's just show total students as 'registered' in lack of comp data, OR 0.
-            // User request: "AND THE STUDENT DETAILS" 
-            // Let's use 'registered' column to show Total Students in that section for clarity? 
-            // Or keep 0 if it means competition registrations. 
-            // I'll set it to 'count' (Total Students) so the UI looks populated.
-            qualified: 0,
-            pending: 0
-        };
-    });
+    const currentStats = selectedSection === 'All Sections' ? overviewStats : detailedStats;
 
     // Student List for Detailed View
     // Map to UI format
@@ -111,8 +108,6 @@ const HodDashboard = () => {
         status: 'Active',
         statusColor: 'text-green-600'
     }));
-
-    const currentStats = selectedSection === 'All Sections' ? overviewStats : detailedStats;
 
     const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
 
@@ -199,67 +194,71 @@ const HodDashboard = () => {
                             )}
                         </div>
 
-                        {selectedSection === 'All Sections' ? (
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="text-left">
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/4">Section</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/4">Batch</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/4 text-center">Registered</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/4 text-center">Qualified</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/4 text-center">OD Pending</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {sectionData.map((row, index) => (
-                                            <tr
-                                                key={index}
-                                                className="group hover:bg-gray-50 transition-colors cursor-pointer"
-                                                onClick={() => handleSectionSelect(row.section)}
-                                            >
-                                                <td className="py-4 text-sm font-semibold text-gray-900">{row.section}</td>
-                                                <td className="py-4 text-sm text-gray-500">{row.batch}</td>
-                                                <td className="py-4 text-sm text-blue-600 font-medium text-center">{row.registered}</td>
-                                                <td className="py-4 text-sm text-green-600 font-medium text-center">{row.qualified}</td>
-                                                <td className={`py-4 text-sm font-medium text-center ${row.pending > 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                                                    {row.pending}
-                                                </td>
+                        {
+                            selectedSection === 'All Sections' ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="text-left">
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6">Section</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6">Batch</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total No of Students</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total No of Students Registered</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total No of Students Qualified</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">OD Pending</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {studentList.length > 0 ? (
-                                    studentList.map((student, index) => (
-                                        <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600">
-                                                    {student.icon}
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {sectionData.map((row, index) => (
+                                                <tr
+                                                    key={index}
+                                                    className="group hover:bg-gray-50 transition-colors cursor-pointer"
+                                                    onClick={() => handleSectionSelect(row.section)}
+                                                >
+                                                    <td className="py-4 text-sm font-semibold text-gray-900">{row.section}</td>
+                                                    <td className="py-4 text-sm text-gray-500">{row.batch}</td>
+                                                    <td className="py-4 text-sm font-medium text-gray-900 text-center">{row.totalStudents}</td>
+                                                    <td className="py-4 text-sm text-blue-600 font-medium text-center">{row.registered}</td>
+                                                    <td className="py-4 text-sm text-green-600 font-medium text-center">{row.qualified}</td>
+                                                    <td className={`py-4 text-sm font-medium text-center ${row.pending > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                                                        {row.pending}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {studentList.length > 0 ? (
+                                        studentList.map((student, index) => (
+                                            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                <div className="flex items-center space-x-4">
+                                                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600">
+                                                        {student.icon}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-gray-900">{student.name}</h3>
+                                                        <p className="text-xs text-gray-500">{student.reg} <span className="text-gray-300">|</span> {student.email}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h3 className="text-sm font-semibold text-gray-900">{student.name}</h3>
-                                                    <p className="text-xs text-gray-500">{student.reg} <span className="text-gray-300">|</span> {student.email}</p>
-                                                </div>
+                                                <span className={`text-sm font-medium ${student.statusColor}`}>
+                                                    {student.status}
+                                                </span>
                                             </div>
-                                            <span className={`text-sm font-medium ${student.statusColor}`}>
-                                                {student.status}
-                                            </span>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-500">
+                                            No students found in this section.
                                         </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-8 text-gray-500">
-                                        No students found in this section.
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                                    )}
+                                </div>
+                            )
+                        }
+                    </div >
 
                     {/* OD Actions Card */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit">
+                    < div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit" >
                         <div className="flex justify-between items-start mb-4">
                             <h2 className="text-lg font-bold text-gray-900">OD Actions</h2>
                             <span className="relative flex h-3 w-3">
@@ -278,10 +277,10 @@ const HodDashboard = () => {
                             <CheckCircle size={18} />
                             <span>Review OD Requests</span>
                         </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+                    </div >
+                </div >
+            </div >
+        </div >
     );
 };
 

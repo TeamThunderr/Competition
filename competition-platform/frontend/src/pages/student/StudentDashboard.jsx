@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, RefreshCcw } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 import StudentSidebar from './Sidebar';
-import { scanInbox } from '../../services/gmailService';
 import { supabase } from '../../services/supabaseClient';
+import { api } from '../../services/api';
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
@@ -14,111 +14,43 @@ const StudentDashboard = () => {
     const fetchCompetitions = async () => {
         setLoading(true);
         try {
-            // Need user ID for headers
-            const storedUser = localStorage.getItem('user');
-            const user = storedUser ? JSON.parse(storedUser) : null;
-            const userId = user?.id;
-
-            if (!userId) {
-                console.error("No user session found");
-                return;
-            }
-
-            const response = await fetch('http://localhost:5000/api/student/competitions', {
-                headers: {
-                    'x-user-id': userId // Pass ID for backend middleware
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setCompetitions(data);
-            } else {
-                console.error('Failed to fetch competitions');
-            }
+            const data = await api.get('/api/student/competitions');
+            setCompetitions(data || []);
         } catch (err) {
-            console.error('Error:', err);
+            console.error('Error fetching competitions:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    const [syncing, setSyncing] = useState(false);
-    const [lastSync, setLastSync] = useState(null);
-
     useEffect(() => {
         fetchCompetitions();
-        // Automatic background scan
-        handleGmailScan();
     }, []);
-
-    const handleGmailScan = async () => {
-        try {
-            setSyncing(true);
-            const { data: { session } } = await supabase.auth.getSession();
-            const providerToken = session?.provider_token;
-
-            if (providerToken) {
-                console.log("Triggering auto-scan...");
-                const result = await scanInbox(providerToken);
-                console.log("Scan Result:", result);
-                if (result.detectedCount > 0) {
-                    // Ideally we should show a notification or update the UI with new detections
-                    // For now, just re-fetch competitions if they were auto-added
-                    // fetchCompetitions(); 
-                }
-                setLastSync(new Date());
-            } else {
-                console.log("No provider token found. Skipping Gmail scan.");
-            }
-        } catch (err) {
-            console.error("Auto-scan failed:", err);
-        } finally {
-            setSyncing(false);
-        }
-    };
 
     // Handlers
     const handleCheckStatus = async (compId) => {
-        setLoading(true); // check global loading or local state
+        setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         const providerToken = session?.provider_token;
 
-        console.log("Verifying with Token:", providerToken ? "Present" : "Missing");
-
-        // Mock API Call -> Real Call
-        const storedUser = localStorage.getItem('user');
-        const user = storedUser ? JSON.parse(storedUser) : null;
+        if (!providerToken) {
+            alert("Gmail Access Token missing. Please Sign Out and Sign In again with Google.");
+            setLoading(false);
+            return;
+        }
 
         try {
-            const response = await fetch('http://localhost:5000/api/student/check-status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user?.id
-                },
-                body: JSON.stringify({
-                    competition_id: compId,
-                    provider_token: providerToken
-                })
+            const resData = await api.post('/api/student/check-status', {
+                competition_id: compId,
+                provider_token: providerToken
             });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error("Server Error Response:", response.status, errorText);
-                throw new Error(`Server error: ${response.status} - ${errorText}`);
-            }
-
-            const resData = await response.json();
-            console.log("Check Status Response:", resData);
 
             if (resData.verified) {
                 alert("Success! Verified registration via Gmail.");
                 fetchCompetitions();
             } else if (resData.status === 'NOT_FOUND') {
-                console.log("Debug Info:", JSON.stringify(resData.debug, null, 2)); // Log debug info as string
-                alert("Gmail verification failed. No matching email found from the organizer. Check console for details.");
-                // Optional: Ask for manual upload here or let them click 'Mark Register'
+                console.log("Debug Info:", JSON.stringify(resData.debug, null, 2));
+                alert("Gmail verification failed. No matching email found from the organizer.");
             } else {
                 alert("Verification status: " + resData.status);
                 fetchCompetitions();
@@ -135,7 +67,6 @@ const StudentDashboard = () => {
         try {
             const storedUser = localStorage.getItem('user');
             const user = storedUser ? JSON.parse(storedUser) : null;
-
             if (!file) return;
 
             // 1. Upload to Supabase Storage
@@ -157,21 +88,14 @@ const StudentDashboard = () => {
                 .getPublicUrl(fileName);
 
             // 3. Send to Backend
-            const response = await fetch('http://localhost:5000/api/student/upload-proof', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user?.id
-                },
-                body: JSON.stringify({ competition_id: compId, proof_url: publicUrl })
+            await api.post('/api/student/upload-proof', {
+                competition_id: compId,
+                proof_url: publicUrl
             });
 
-            if (response.ok) {
-                alert("Proof uploaded! Waiting for faculty approval.");
-                fetchCompetitions();
-            } else {
-                alert("Upload failed.");
-            }
+            alert("Proof uploaded! Waiting for faculty approval.");
+            fetchCompetitions();
+
         } catch (err) {
             console.error("Upload process error:", err);
             alert("An error occurred.");
@@ -182,22 +106,12 @@ const StudentDashboard = () => {
         const reason = prompt("Enter reason for OD request:");
         if (!reason) return;
 
-        const storedUser = localStorage.getItem('user');
-        const user = storedUser ? JSON.parse(storedUser) : null;
-        const response = await fetch('http://localhost:5000/api/student/request-od', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': user?.id
-            },
-            body: JSON.stringify({ competition_id: compId, reason })
-        });
-
-        if (response.ok) {
+        try {
+            await api.post('/api/student/request-od', { competition_id: compId, reason });
             alert("OD Request Sent to HOD.");
             fetchCompetitions();
-        } else {
-            alert("Request failed.");
+        } catch (err) {
+            alert(`Request failed: ${err.message}`);
         }
     };
 
@@ -212,16 +126,6 @@ const StudentDashboard = () => {
                         <h1 className="text-2xl font-bold text-gray-900">Welcome back !</h1>
                         <p className="text-gray-500 mt-1">Here's what's happening with your competitions.</p>
                     </div>
-                    {syncing ? (
-                        <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full animate-pulse">
-                            <RefreshCcw size={14} className="animate-spin" />
-                            Scanning Inbox...
-                        </div>
-                    ) : lastSync && (
-                        <div className="text-xs text-gray-400">
-                            Last synced: {lastSync.toLocaleTimeString()}
-                        </div>
-                    )}
                 </div>
 
                 <section className="mb-10">
@@ -232,6 +136,7 @@ const StudentDashboard = () => {
 
                     {competitions.filter(comp => {
                         if (!comp.registration_deadline) return false;
+                        if (!comp.my_registration) return false;
                         const deadline = new Date(comp.registration_deadline);
                         const now = new Date();
                         const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
@@ -241,6 +146,7 @@ const StudentDashboard = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {competitions.filter(comp => {
                                 if (!comp.registration_deadline) return false;
+                                if (!comp.my_registration) return false;
                                 const deadline = new Date(comp.registration_deadline);
                                 const now = new Date();
                                 const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
@@ -258,7 +164,7 @@ const StudentDashboard = () => {
                     ) : (
                         <div className="bg-white p-8 rounded-xl border border-gray-100 text-center shadow-sm">
                             <Clock className="mx-auto text-gray-300 mb-2" size={32} />
-                            <p className="text-gray-500">No competitions ending within 2 days.</p>
+                            <p className="text-gray-500">No registered competitions ending within 2 days.</p>
                         </div>
                     )}
                 </section>

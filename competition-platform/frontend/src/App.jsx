@@ -4,6 +4,9 @@ import Home from './pages/Home';
 import Login from './pages/auth/Login';
 import StudentCompetitions from './pages/student/StudentCompetitions';
 import StudentDashboard from './pages/student/StudentDashboard';
+import ODLetter from './pages/student/ODLetter';
+import Settings from './pages/student/Settings';
+import Profile from './pages/student/Profile';
 
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import StudentList from './pages/faculty/StudentList';
@@ -41,6 +44,9 @@ function App() {
       {/* Role Based Routes - Can protect these later with Middleware */}
       <Route path="/student" element={<StudentDashboard />} />
       <Route path="/student/competitions" element={<StudentCompetitions />} />
+      <Route path="/student/profile" element={<Profile />} />
+      <Route path="/student/od-letters" element={<ODLetter />} />
+      <Route path="/student/settings" element={<Settings />} />
 
       <Route path="/faculty/verification" element={<ManualVerification />} />
 

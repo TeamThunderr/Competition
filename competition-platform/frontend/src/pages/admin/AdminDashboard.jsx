@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { Link } from 'react-router-dom';
 import { Upload } from 'lucide-react';
-import { getCurrentUser } from '../../services/authService';
+import { api } from '../../services/api';
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState({
@@ -16,26 +16,56 @@ const AdminDashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const user = getCurrentUser();
-                const headers = { 'x-user-id': user?.id };
+                // 1. Fetch Department Stats using central client
+                const json = await api.get('/api/admin/stats');
+                let totalVerified = 0;
 
-                // Fetch Stats
-                const response = await fetch('http://localhost:5000/api/admin/stats', { headers });
-
-                if (response.ok) {
-                    const json = await response.json();
-                    if (json.success && json.data) {
-                        const allDepts = json.data;
-                        // Aggregate verified registrations
-                        const totalVerified = allDepts.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
-
-                        setStats({
-                            activeCompetitions: 12, // Placeholder until competition count endpoint
-                            totalParticipation: totalVerified.toString(),
-                            lastSync: new Date().toLocaleTimeString()
-                        });
-                    }
+                if (json.success && json.data) {
+                    const allDepts = json.data;
+                    totalVerified = allDepts.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
+                } else if (Array.isArray(json)) {
+                    totalVerified = json.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
                 }
+
+                // 2. Fetch Competitions for Active Count
+                // api.js handles error throwing for non-ok responses
+                const comps = await api.get('/api/competitions');
+                let activeCount = 0;
+                let activities = [];
+
+                if (comps) {
+                    console.log(`[AdminDashboard] Fetched ${comps.length} competitions total.`);
+
+                    const now = new Date();
+
+                    // Filter active competitions (Registration Open)
+                    const activeComps = comps.filter(c => {
+                        if (!c.registration_deadline) return false;
+                        const deadline = new Date(c.registration_deadline);
+                        return !isNaN(deadline.getTime()) && deadline > now;
+                    });
+
+                    activeCount = activeComps.length;
+                    console.log(`[AdminDashboard] Active competitions count: ${activeCount}`);
+
+                    // Generate activity feed from new competitions (mocking activity from extraction)
+                    activities = comps.slice(0, 3).map(c => ({
+                        message: `New competition added: ${c.title}`,
+                        user: "System",
+                        time: c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'
+                    }));
+                }
+
+                setStats({
+                    activeCompetitions: activeCount,
+                    totalParticipation: totalVerified.toString(),
+                    lastSync: new Date().toLocaleTimeString()
+                });
+
+                if (activities.length > 0) {
+                    setRecentActivity(activities);
+                }
+
             } catch (err) {
                 console.error("Fetch Stats Error:", err);
             }

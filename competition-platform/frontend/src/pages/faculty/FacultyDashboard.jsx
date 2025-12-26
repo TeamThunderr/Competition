@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { getFacultyDashboardStats } from '../../services/usersService';
+import { api } from '../../services/api';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 
 const FacultyDashboard = () => {
@@ -13,21 +14,18 @@ const FacultyDashboard = () => {
     });
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [statsData, competitionsResponse] = await Promise.all([
+                const [statsData, competitionsData] = await Promise.all([
                     getFacultyDashboardStats(),
-                    fetch('http://localhost:5000/api/competitions')
+                    api.get('/api/competitions')
                 ]);
 
                 setStats(statsData);
-
-                if (competitionsResponse.ok) {
-                    const competitionsData = await competitionsResponse.json();
-                    setCompetitions(competitionsData);
-                }
+                setCompetitions(competitionsData || []);
             } catch (error) {
                 console.error("Failed to load dashboard data", error);
             } finally {
@@ -57,11 +55,18 @@ const FacultyDashboard = () => {
                     <div className="flex items-center gap-2 text-gray-600 mt-2 text-sm">
                         <span>Class {stats.section_label}</span>
                         <span>|</span>
-                        <span>Batch 2024-2028</span>
+                        <span>Batch </span>
                         <span>|</span>
-                        <span className="text-blue-600 font-medium">Read-Only Mode</span>
+                        <span className="text-blue-600 font-medium"></span>
                     </div>
                 </div>
+
+                {error && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                        <strong className="font-bold">Error: </strong>
+                        <span className="block sm:inline">{error}</span>
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="flex justify-center items-center h-64">

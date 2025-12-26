@@ -9,8 +9,9 @@ const getAllCompetitions = async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('competitions')
-            .select('*')
-            .order('created_at', { ascending: false });
+            .select('*, registrations(count)')
+            .order('registration_deadline', { ascending: true });
+
 
         if (error) {
             return res.status(500).json({ error: error.message });

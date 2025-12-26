@@ -1,9 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
-import { getCurrentUser } from '../../services/authService';
+import { api } from '../../services/api';
 
 const DeptPerformance = () => {
-    const departments = ['CSE', 'AIDS','IT', 'ECE', 'EEE', 'MECH'];
+    const [stats, setStats] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [expandedSection, setExpandedSection] = useState(null);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                // api.js handles auth headers automatically
+                const result = await api.get('/api/admin/stats');
+
+                // Backend returns { success: true, data: [...] } based on stats.controller
+                if (result.success && Array.isArray(result.data)) {
+                    setStats(result.data);
+                } else if (Array.isArray(result)) {
+                    setStats(result);
+                } else if (result.data) {
+                    setStats(result.data); // Generic wrapper check
+                }
+            } catch (err) {
+                console.error("Error loading department performance:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
+    }, []);
+
+    const maxCount = Math.max(...stats.map(s => s.total_registrations), 1);
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
