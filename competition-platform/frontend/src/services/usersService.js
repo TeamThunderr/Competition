@@ -19,26 +19,27 @@ export const getRecentRegistrations = async () => {
 
 // HOD APIs
 export const getDepartmentUsers = async () => {
-    try {
-        const user = getCurrentUser();
-        if (!user) throw new Error("No user logged in");
-
-        const response = await fetch(`${API_URL}/hod/users`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': user.id
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        return result.data || result;
-    } catch (error) {
-        console.error("UsersService Error (getDepartmentUsers):", error);
-        throw error;
-    }
+    const response = await api.get('/api/hod/users');
+    return response.data || response;
 };
+
+// Verification APIs
+export const getPendingVerifications = async () => {
+    return await api.get('/api/faculty/pending-verifications');
+};
+
+export const verifyRegistration = async (registrationId, action) => {
+    return await api.post('/api/faculty/verify-registration', { registration_id: registrationId, action });
+};
+
+// Competition Details APIs
+export const getCompetitionStudents = async (competitionId) => {
+    const response = await api.get(`/api/faculty/competition/${competitionId}/students`);
+    return response.data || response;
+};
+
+export const getHODCompetitionStats = async (competitionId) => {
+    const response = await api.get(`/api/hod/competition/${competitionId}/stats`);
+    return response.data || response;
+};
+
