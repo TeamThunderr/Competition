@@ -113,6 +113,7 @@ const StudentList = () => {
                         <table className="w-full">
                             <thead className="bg-gray-50/50">
                                 <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4">S.No</th>
                                     <th className="px-6 py-4">Roll Number</th>
                                     <th className="px-6 py-4">Name</th>
                                     <th className="px-6 py-4">Section</th>
@@ -122,7 +123,7 @@ const StudentList = () => {
                             <tbody className="divide-y divide-gray-50">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
+                                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
                                             <div className="flex flex-col items-center justify-center">
                                                 <Loader className="animate-spin mb-2" size={24} />
                                                 <p>Loading students...</p>
@@ -131,21 +132,24 @@ const StudentList = () => {
                                     </tr>
                                 ) : filteredStudents.length === 0 ? (
                                     <tr>
-                                        <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
+                                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
                                             No students found.
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredStudents.map((student, index) => (
-                                        <tr key={index} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="px-6 py-4 text-sm text-gray-600 font-medium">{student.rollNo}</td>
-                                            <td className="px-6 py-4">
-                                                <span className="font-semibold text-gray-900">{student.name}</span>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">{student.section}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">{student.email}</td>
-                                        </tr>
-                                    )))}
+                                    filteredStudents
+                                        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+                                        .map((student, index) => (
+                                            <tr key={index} className="hover:bg-gray-50/50 transition-colors">
+                                                <td className="px-6 py-4 text-sm text-gray-500 font-medium">{index + 1}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-600 font-medium">{student.rollNo}</td>
+                                                <td className="px-6 py-4">
+                                                    <span className="font-semibold text-gray-900">{student.name}</span>
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-500">{student.section}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-500">{student.email}</td>
+                                            </tr>
+                                        )))}
                             </tbody>
                         </table>
                     </div>

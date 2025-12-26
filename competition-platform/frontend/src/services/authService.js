@@ -2,6 +2,7 @@
 // Purpose: Handle Authentication (Backend only)
 
 const API_URL = 'http://localhost:5000/api/auth';
+import { supabase } from './supabaseClient';
 
 export const loginUser = async (email) => {
     const response = await fetch(`${API_URL}/login`, {
@@ -27,6 +28,9 @@ export const getCurrentUser = () => {
     return user ? JSON.parse(user) : null;
 };
 
-export const logoutUser = () => {
+export const logoutUser = async () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('role');
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("Supabase SignOut Error:", error);
 };

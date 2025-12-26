@@ -3,7 +3,7 @@ const supabase = require('../config/supabaseClient');
 
 // Keywords per status
 const KEYWORDS = {
-    REGISTERED: ['registered', 'registration successful', 'registration confirmed', 'thank you for registering', 'you have registered', 'successfully registered'],
+    REGISTERED: ['registered', 'registration successful', 'registration confirmed', 'registration is confirmed', 'thank you for registering', 'you have registered', 'successfully registered'],
     QUALIFIED: ['shortlisted', 'qualified', 'selected', 'congratulations', 'moved to next round', 'finalist'],
     REJECTED: ['not selected', 'unfortunately', 'regret to inform', 'did not qualify', 'unsuccessful'],
     ACTION_REQUIRED: ['submit', 'deadline', 'round 1', 'round 2', 'presentation', 'ppt submission', 'interview', 'evaluation']
@@ -31,7 +31,7 @@ const fetchRecentEmails = async (accessToken, days = 90) => {
         const response = await gmail.users.messages.list({
             userId: 'me',
             q: dateQuery,
-            maxResults: 50 // Limit to avoid hitting limits too fast
+            maxResults: 300 // Increased limit to catch older emails
         });
 
         const messages = response.data.messages || [];
@@ -126,10 +126,31 @@ const extractHackathonName = (subject, sender) => {
     }
 
     // Strategy 2: If no separator, use the whole subject if reasonable length
-    if (subject.length < 50) return subject;
+    let finalName = subject;
+    // ... logic to pick part ... 
+    // (Existing logic was simple splitting, let's keep it but clean the result)
+    if (subject.includes(' - ')) finalName = subject.split(' - ')[0]; // often "Event Name - Platform"
+    else if (subject.includes(' | ')) finalName = subject.split(' | ')[0];
 
-    // Strategy 3: Fallback to Sender Domain/Name (e.g. "Devfolio")
-    return sender.split('<')[0].replace(/"/g, '').trim();
+    // Clean common prefixes
+    const prefixes = ['Welcome to ', 'Registration Confirmed: ', 'You are registered for '];
+    for (const p of prefixes) {
+        if (finalName.toLowerCase().startsWith(p.toLowerCase())) {
+            finalName = finalName.substring(p.length);
+        }
+    }
+
+    // Clean: Remove emojis and non-standard chars from start
+    finalName = finalName.replace(/^[\u{1F600}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]\s*/gu, '');
+
+    // If name is just "Congratulations" or similar, try next part if available or using subject
+    if (['congratulations', 'reminder', 'update'].includes(finalName.toLowerCase())) {
+        // If we had parts, take the next one
+        // But here we might need to be smarter. For now, let's just return the subject if the name is too generic
+        return subject;
+    }
+
+    return finalName.trim();
 };
 
 /**

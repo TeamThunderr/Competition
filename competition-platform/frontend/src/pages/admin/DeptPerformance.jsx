@@ -3,7 +3,78 @@ import Sidebar from './Sidebar';
 import { getCurrentUser } from '../../services/authService';
 
 const DeptPerformance = () => {
-    const departments = ['CSE', 'AIDS','IT', 'ECE', 'EEE', 'MECH'];
+    const [stats, setStats] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [expandedSection, setExpandedSection] = useState(null);
+
+    useEffect(() => {
+        // Mock Data Simulation
+        const mockData = [
+            {
+                department_id: '1',
+                department_name: 'CSE',
+                total_registrations: 450,
+                sections: [
+                    { name: 'A', count: 65, students: [{ full_name: 'Student 1', email: 's1@example.com' }, { full_name: 'Student 2', email: 's2@example.com' }] },
+                    { name: 'B', count: 60, students: [] },
+                    { name: 'C', count: 55, students: [] }
+                ]
+            },
+            {
+                department_id: '2',
+                department_name: 'AIDS',
+                total_registrations: 320,
+                sections: [
+                    { name: 'A', count: 62, students: [] },
+                    { name: 'B', count: 58, students: [] }
+                ]
+            },
+            {
+                department_id: '3',
+                department_name: 'IT',
+                total_registrations: 280,
+                sections: [
+                    { name: 'A', count: 60, students: [] },
+                    { name: 'B', count: 55, students: [] }
+                ]
+            },
+            {
+                department_id: '4',
+                department_name: 'ECE',
+                total_registrations: 200,
+                sections: [
+                    { name: 'A', count: 50, students: [] },
+                    { name: 'B', count: 45, students: [] }
+                ]
+            },
+            {
+                department_id: '5',
+                department_name: 'EEE',
+                total_registrations: 150,
+                sections: [
+                    { name: 'A', count: 40, students: [] },
+                    { name: 'B', count: 35, students: [] }
+                ]
+            },
+            {
+                department_id: '6',
+                department_name: 'MECH',
+                total_registrations: 100,
+                sections: [
+                    { name: 'A', count: 30, students: [] },
+                    { name: 'B', count: 25, students: [] }
+                ]
+            }
+        ];
+
+        // Simulate network delay
+        setTimeout(() => {
+            setStats(mockData);
+            setLoading(false);
+        }, 800);
+    }, []);
+
+    const maxCount = Math.max(...stats.map(s => s.total_registrations), 1);
 
     return (
         <div className="min-h-screen bg-gray-50 flex">

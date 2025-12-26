@@ -27,7 +27,7 @@ const HodDashboard = () => {
 
     // Derived Data Processing
     const students = users.filter(u => u.role === 'STUDENT');
-    const sections = [...new Set(students.map(s => s.section).filter(Boolean))].sort();
+    const sections = [...new Set(students.map(s => s.section).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
     // Stats Calculation
     const totalStudents = students.length;
@@ -69,7 +69,9 @@ const HodDashboard = () => {
     }, []);
 
     // Stats for "Detailed View" (Specific Section)
-    const sectionStudents = students.filter(s => s.section === selectedSection);
+    const sectionStudents = students
+        .filter(s => s.section === selectedSection)
+        .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', undefined, { numeric: true, sensitivity: 'base' }));
     const detailedStats = [
         { label: 'SECTION STUDENTS', value: sectionStudents.length.toString(), subtext: 'Batch 2023-27', borderLeft: 'border-l-4 border-blue-500' },
         { label: 'PARTICIPATING', value: '0', subtext: '0% Engagement', borderLeft: '' },
@@ -89,13 +91,8 @@ const HodDashboard = () => {
         return {
             section: sec,
             batch: '2024-28', // Placeholder/Hardcoded
-            registered: count, // Total students in section (using as 'registered' for now, though label usually means comp registration)
-            // ideally 'registered' in table means 'registered for competition'. 
-            // For now, let's just show total students as 'registered' in lack of comp data, OR 0.
-            // User request: "AND THE STUDENT DETAILS" 
-            // Let's use 'registered' column to show Total Students in that section for clarity? 
-            // Or keep 0 if it means competition registrations. 
-            // I'll set it to 'count' (Total Students) so the UI looks populated.
+            totalStudents: count,
+            registered: 0,
             qualified: 0,
             pending: 0
         };
@@ -199,67 +196,71 @@ const HodDashboard = () => {
                             )}
                         </div>
 
-                        {selectedSection === 'All Sections' ? (
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="text-left">
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/4">Section</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/4">Batch</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/4 text-center">Registered</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/4 text-center">Qualified</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/4 text-center">OD Pending</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {sectionData.map((row, index) => (
-                                            <tr
-                                                key={index}
-                                                className="group hover:bg-gray-50 transition-colors cursor-pointer"
-                                                onClick={() => handleSectionSelect(row.section)}
-                                            >
-                                                <td className="py-4 text-sm font-semibold text-gray-900">{row.section}</td>
-                                                <td className="py-4 text-sm text-gray-500">{row.batch}</td>
-                                                <td className="py-4 text-sm text-blue-600 font-medium text-center">{row.registered}</td>
-                                                <td className="py-4 text-sm text-green-600 font-medium text-center">{row.qualified}</td>
-                                                <td className={`py-4 text-sm font-medium text-center ${row.pending > 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                                                    {row.pending}
-                                                </td>
+                        {
+                            selectedSection === 'All Sections' ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="text-left">
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6">Section</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6">Batch</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total No of Students</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total No of Students Registered</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total No of Students Qualified</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">OD Pending</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {studentList.length > 0 ? (
-                                    studentList.map((student, index) => (
-                                        <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600">
-                                                    {student.icon}
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {sectionData.map((row, index) => (
+                                                <tr
+                                                    key={index}
+                                                    className="group hover:bg-gray-50 transition-colors cursor-pointer"
+                                                    onClick={() => handleSectionSelect(row.section)}
+                                                >
+                                                    <td className="py-4 text-sm font-semibold text-gray-900">{row.section}</td>
+                                                    <td className="py-4 text-sm text-gray-500">{row.batch}</td>
+                                                    <td className="py-4 text-sm font-medium text-gray-900 text-center">{row.totalStudents}</td>
+                                                    <td className="py-4 text-sm text-blue-600 font-medium text-center">{row.registered}</td>
+                                                    <td className="py-4 text-sm text-green-600 font-medium text-center">{row.qualified}</td>
+                                                    <td className={`py-4 text-sm font-medium text-center ${row.pending > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                                                        {row.pending}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {studentList.length > 0 ? (
+                                        studentList.map((student, index) => (
+                                            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                <div className="flex items-center space-x-4">
+                                                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600">
+                                                        {student.icon}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-gray-900">{student.name}</h3>
+                                                        <p className="text-xs text-gray-500">{student.reg} <span className="text-gray-300">|</span> {student.email}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h3 className="text-sm font-semibold text-gray-900">{student.name}</h3>
-                                                    <p className="text-xs text-gray-500">{student.reg} <span className="text-gray-300">|</span> {student.email}</p>
-                                                </div>
+                                                <span className={`text-sm font-medium ${student.statusColor}`}>
+                                                    {student.status}
+                                                </span>
                                             </div>
-                                            <span className={`text-sm font-medium ${student.statusColor}`}>
-                                                {student.status}
-                                            </span>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-500">
+                                            No students found in this section.
                                         </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-8 text-gray-500">
-                                        No students found in this section.
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                                    )}
+                                </div>
+                            )
+                        }
+                    </div >
 
                     {/* OD Actions Card */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit">
+                    < div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit" >
                         <div className="flex justify-between items-start mb-4">
                             <h2 className="text-lg font-bold text-gray-900">OD Actions</h2>
                             <span className="relative flex h-3 w-3">
@@ -278,10 +279,10 @@ const HodDashboard = () => {
                             <CheckCircle size={18} />
                             <span>Review OD Requests</span>
                         </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+                    </div >
+                </div >
+            </div >
+        </div >
     );
 };
 
