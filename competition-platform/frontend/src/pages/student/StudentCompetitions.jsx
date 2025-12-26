@@ -50,29 +50,40 @@ const StudentCompetitions = () => {
 
     // Handlers
     const handleCheckStatus = async (compId) => {
-        // Checking status...
+        setLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        const providerToken = session?.provider_token;
 
-        // Mock API Call
         const user = getCurrentUser();
-        const response = await fetch('http://localhost:5000/api/student/check-status', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': user?.id
-            },
-            body: JSON.stringify({ competition_id: compId })
-        });
 
-        const resData = await response.json();
+        try {
+            const response = await fetch('http://localhost:5000/api/student/check-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': user?.id
+                },
+                body: JSON.stringify({
+                    competition_id: compId,
+                    provider_token: providerToken
+                })
+            });
 
-        if (resData.status === 'NOT_FOUND') {
-            const proofUrl = prompt("Gmail detection failed. Please paste the screenshot URL of your registration proof:");
-            if (proofUrl) {
-                handleUploadProof(compId, proofUrl);
+            const resData = await response.json();
+
+            if (resData.verified) {
+                alert("Success! Verified registration via Gmail.");
+                fetchCompetitions();
+            } else if (resData.status === 'NOT_FOUND') {
+                alert("Gmail verification failed. No matching email found.");
+            } else {
+                alert("Status: " + resData.status);
+                fetchCompetitions();
             }
-        } else {
-            alert("Registration Detected via Gmail!");
-            fetchCompetitions(); // Refresh
+        } catch (err) {
+            console.error("Verification error:", err);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -81,7 +92,7 @@ const StudentCompetitions = () => {
     // Restore Modal Opener
     const handleRegisterClick = (compId) => {
         setSelectedCompId(compId);
-        setIsUploadModalOpen(true);   
+        setIsUploadModalOpen(true);
     };
 
     // Modified to accept URL from Modal
@@ -161,6 +172,7 @@ const StudentCompetitions = () => {
                                 competition={comp}
                                 onRegister={handleRegisterClick}
                                 onRequestOD={handleRequestOD}
+                                onVerifyGmail={handleCheckStatus}
                             />
 
                         ))}

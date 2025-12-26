@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
 
-const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = true }) => {
+const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, showRegister = true }) => {
     const { my_registration, my_status, my_od } = competition;
 
     const renderAction = () => {
@@ -15,11 +15,20 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
         // 1. Not Registered
         if (!my_registration) {
             return (
-                <button
-                    onClick={() => onRegister(competition.id)}
-                    className="flex-1 bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
-                    Mark Register
-                </button>
+                <div className="flex gap-2 flex-1">
+                    <button
+                        onClick={() => onRegister(competition.id)}
+                        className="flex-1 bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
+                        Mark Register
+                    </button>
+                    <button
+                        onClick={() => onVerifyGmail(competition.id)}
+                        className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:from-red-600 hover:to-red-700 shadow-sm transition-all"
+                        title="Check Gmail for confirmation email"
+                    >
+                        Verify via Gmail
+                    </button>
+                </div>
             );
         }
 
