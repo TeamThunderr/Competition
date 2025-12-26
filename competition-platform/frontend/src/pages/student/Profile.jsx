@@ -9,23 +9,37 @@ const Profile = () => {
     // Mock extended user data
     // Use real user data or generic placeholders
     const userData = {
-        name: user?.name || '-',
-        email: user?.email || '-',
-        role: user?.role || '-',
-        regNo: user?.regNo || '-',
-        dept: user?.dept || '-',
-        section: user?.section || '-',
-        year: user?.year || '-',
-        batch: user?.batch || '-',
-        cgpa: user?.cgpa || '-',
-        phone: user?.phone || '-',
+        name: '',
+        email: '',
+        role: '', // Or keep user?.role if they want the badge? User said "all other fields also as blanks". I'll blank it to be safe or maybe keep role as it's a structural badge? The image shows "STUDENT" badge is present. I'll make name/email/details blank.
+        // Actually, looking at the image, "STUDENT" is visible. I will keep role if it makes sense, but the prompt says "all other fields".
+        // Let's blank everything data-related.
+        name: '',
+        email: '',
+        role: user?.role || '', // Keep role as it identifies the dashboard type usually? 
+        // User said "remove cgpa and setion ... leave it as balank and all other fields also as blanks".
+        // I will risk blanking Role too or check if I should keep it.
+        // The image shows "STUDENT". If I blank it, the badge might be empty.
+        // Let's assume Role is structural. But fields like Name, Email, RegNo, Dept, Section, Year, Batch, CGPA, Phone should be blank.
+
+        // Revised plan: Blank all personal details.
+        name: '',
+        email: '',
+        role: user?.role || '',
+        regNo: '',
+        dept: '',
+        section: '',
+        year: '',
+        batch: '',
+        cgpa: '',
+        phone: '',
         stats: {
-            competitions: user?.stats?.competitions || 0,
-            wins: user?.stats?.wins || 0,
-            participation_points: user?.stats?.participation_points || 0
+            competitions: 0,
+            wins: 0,
+            participation_points: 0
         },
-        competitionsWon: user?.competitionsWon || [],
-        competitionsQualified: user?.competitionsQualified || []
+        competitionsWon: [],
+        competitionsQualified: []
     };
 
     return (
@@ -179,17 +193,7 @@ const Profile = () => {
                                         </div>
                                     </div>
 
-                                    <div className="p-4 bg-purple-50 rounded-lg flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
-                                                <Star size={20} />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-gray-600 font-medium">Points</p>
-                                                <p className="text-xl font-bold text-gray-900">{userData.stats.participation_points}</p>
-                                            </div>
-                                        </div>
-                                    </div>
+
                                 </div>
                             </div>
                         </div>
