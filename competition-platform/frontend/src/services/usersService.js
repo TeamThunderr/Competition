@@ -25,7 +25,8 @@ export const getDepartmentUsers = async () => {
 
 // Verification APIs
 export const getPendingVerifications = async () => {
-    return await api.get('/api/faculty/pending-verifications');
+    const response = await api.get('/api/faculty/pending-verifications');
+    return response.data || response;
 };
 
 export const verifyRegistration = async (registrationId, action) => {
