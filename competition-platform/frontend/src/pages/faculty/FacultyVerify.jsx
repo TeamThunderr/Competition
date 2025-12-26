@@ -113,7 +113,7 @@ const FacultyVerify = () => {
                                 {/* Actions */}
                                 <div className="p-6 bg-gray-50 border-t md:border-t-0 md:border-l border-gray-100 flex flex-row md:flex-col justify-center gap-3 w-full md:w-48">
                                     <button
-                                        onClick={() => handleAction(item.id, 'APPROVED')}
+                                        onClick={() => handleAction(item.id, 'approve')}
                                         disabled={actionLoading === item.id}
                                         className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                                     >
@@ -121,7 +121,7 @@ const FacultyVerify = () => {
                                         Approve
                                     </button>
                                     <button
-                                        onClick={() => handleAction(item.id, 'REJECTED')}
+                                        onClick={() => handleAction(item.id, 'reject')}
                                         disabled={actionLoading === item.id}
                                         className="flex-1 bg-white border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
                                     >

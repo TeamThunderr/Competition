@@ -9,20 +9,8 @@ const Profile = () => {
     // Mock extended user data
     // Use real user data or generic placeholders
     const userData = {
-        name: '',
-        email: '',
-        role: '', // Or keep user?.role if they want the badge? User said "all other fields also as blanks". I'll blank it to be safe or maybe keep role as it's a structural badge? The image shows "STUDENT" badge is present. I'll make name/email/details blank.
-        // Actually, looking at the image, "STUDENT" is visible. I will keep role if it makes sense, but the prompt says "all other fields".
-        // Let's blank everything data-related.
-        name: '',
-        email: '',
-        role: user?.role || '', // Keep role as it identifies the dashboard type usually? 
-        // User said "remove cgpa and setion ... leave it as balank and all other fields also as blanks".
-        // I will risk blanking Role too or check if I should keep it.
-        // The image shows "STUDENT". If I blank it, the badge might be empty.
-        // Let's assume Role is structural. But fields like Name, Email, RegNo, Dept, Section, Year, Batch, CGPA, Phone should be blank.
-
-        // Revised plan: Blank all personal details.
+        // Mock extended user data
+        // Blanking all personal details as per privacy mode
         name: '',
         email: '',
         role: user?.role || '',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import { CheckCircle, XCircle, Eye } from 'lucide-react';
+import { getPendingVerifications, verifyRegistration } from '../../services/usersService';
 
 const ManualVerification = () => {
     // Mock Data for Pending Requests
@@ -9,19 +10,9 @@ const ManualVerification = () => {
 
     const fetchRequests = async () => {
         try {
-            const storedUser = localStorage.getItem('user');
-            const user = storedUser ? JSON.parse(storedUser) : null;
-            if (!user) return;
-
-            const response = await fetch('http://localhost:5000/api/faculty/pending-verifications', {
-                headers: {
-                    'x-user-id': user.id
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setRequests(data.data || []); // Access .data as wrapper likely sends { success: true, data: [...] }
+            const response = await getPendingVerifications();
+            if (response && response.data) {
+                setRequests(response.data);
             }
         } catch (error) {
             console.error("Failed to fetch verifications", error);
@@ -38,24 +29,10 @@ const ManualVerification = () => {
 
     const handleAction = async (id, action) => {
         try {
-            const storedUser = localStorage.getItem('user');
-            const user = storedUser ? JSON.parse(storedUser) : null;
-
-            const response = await fetch('http://localhost:5000/api/faculty/verify-registration', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user.id
-                },
-                body: JSON.stringify({ registration_id: id, action }) // action: 'approve' or 'reject'
-            });
-
-            if (response.ok) {
-                setRequests(prev => prev.filter(req => req.id !== id));
-                alert(`Request ${action === 'approve' ? 'Approved' : 'Rejected'}`);
-            } else {
-                alert("Action failed. Please try again.");
-            }
+            await verifyRegistration(id, action);
+            // Assuming simplified success if no error thrown
+            setRequests(prev => prev.filter(req => req.id !== id));
+            alert(`Request ${action === 'approve' ? 'Approved' : 'Rejected'}`);
         } catch (error) {
             console.error("Verification Action Error:", error);
             alert("Error processing request.");

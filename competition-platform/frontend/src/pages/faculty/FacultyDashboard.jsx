@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { getFacultyDashboardStats } from '../../services/usersService';
+import { api } from '../../services/api';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 
 const FacultyDashboard = () => {
@@ -17,17 +18,13 @@ const FacultyDashboard = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [statsData, competitionsResponse] = await Promise.all([
+                const [statsData, competitionsData] = await Promise.all([
                     getFacultyDashboardStats(),
-                    fetch('http://localhost:5000/api/competitions')
+                    api.get('/api/competitions')
                 ]);
 
                 setStats(statsData);
-
-                if (competitionsResponse.ok) {
-                    const competitionsData = await competitionsResponse.json();
-                    setCompetitions(competitionsData);
-                }
+                setCompetitions(competitionsData || []);
             } catch (error) {
                 console.error("Failed to load dashboard data", error);
             } finally {

@@ -4,6 +4,7 @@ import UploadProofModal from '../../components/common/UploadProofModal';
 import { getCurrentUser } from '../../services/authService';
 import StudentSidebar from './Sidebar';
 import { supabase } from '../../services/supabaseClient';
+import { studentService } from '../../services/studentService';
 
 const StudentCompetitions = () => {
     const [competitions, setCompetitions] = useState([]);
@@ -15,30 +16,16 @@ const StudentCompetitions = () => {
     const fetchCompetitions = async () => {
         setLoading(true);
         try {
-            // Need user ID for headers
-            const user = getCurrentUser();
-            const userId = user?.id;
-
-            if (!userId) {
-                console.error("No user ID found in localStorage");
-                setLoading(false);
-                return;
+            const data = await studentService.getAllCompetitions();
+            console.log("DEBUG: All Competitions:", data);
+            console.log("DEBUG: Unregistered Count:", data?.filter(c => !c.my_registration).length);
+            if (data && data.length > 0) {
+                console.log("DEBUG: Sample Item:", data[0]);
+                console.log("DEBUG: my_registration value:", data[0].my_registration);
             }
-
-            const response = await fetch('http://localhost:5000/api/student/competitions', {
-                headers: {
-                    'x-user-id': userId // Pass ID for backend middleware
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setCompetitions(data);
-            } else {
-                console.error('Failed to fetch competitions');
-            }
+            setCompetitions(data || []);
         } catch (err) {
-            console.error('Error:', err);
+            console.error('Error fetching competitions:', err);
         } finally {
             setLoading(false);
         }
@@ -54,22 +41,14 @@ const StudentCompetitions = () => {
         const { data: { session } } = await supabase.auth.getSession();
         const providerToken = session?.provider_token;
 
-        const user = getCurrentUser();
+        if (!providerToken) {
+            alert("Gmail Access Token missing. Please Sign Out and Sign In again with Google.");
+            setLoading(false);
+            return;
+        }
 
         try {
-            const response = await fetch('http://localhost:5000/api/student/check-status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user?.id
-                },
-                body: JSON.stringify({
-                    competition_id: compId,
-                    provider_token: providerToken
-                })
-            });
-
-            const resData = await response.json();
+            const resData = await studentService.checkStatus(compId, providerToken);
 
             if (resData.verified) {
                 alert("Success! Verified registration via Gmail.");
@@ -87,8 +66,6 @@ const StudentCompetitions = () => {
         }
     };
 
-
-
     // Restore Modal Opener
     const handleRegisterClick = (compId) => {
         setSelectedCompId(compId);
@@ -98,52 +75,27 @@ const StudentCompetitions = () => {
     // Modified to accept URL from Modal
     const handleUploadProof = async (compId, proofUrl) => {
         try {
-            const user = getCurrentUser();
-
             // Note: UploadProofModal handles the Storage upload. 
             // We just send the URL to the backend here.
-
-            const response = await fetch('http://localhost:5000/api/student/upload-proof', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user?.id
-                },
-                body: JSON.stringify({ competition_id: compId, proof_url: proofUrl })
-            });
-
-            if (response.ok) {
-                alert("Proof uploaded! Waiting for faculty approval.");
-                fetchCompetitions();
-            } else {
-                alert("Upload failed.");
-            }
+            await studentService.uploadProof(compId, proofUrl);
+            alert("Proof uploaded! Waiting for faculty approval.");
+            fetchCompetitions();
         } catch (err) {
             console.error("Upload process error:", err);
             alert("An error occurred.");
         }
     };
 
-
     const handleRequestOD = async (compId) => {
         const reason = prompt("Enter reason for OD request:");
         if (!reason) return;
 
-        const user = getCurrentUser();
-        const response = await fetch('http://localhost:5000/api/student/request-od', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': user?.id
-            },
-            body: JSON.stringify({ competition_id: compId, reason })
-        });
-
-        if (response.ok) {
+        try {
+            await studentService.requestOD(compId, reason);
             alert("OD Request Sent to HOD.");
             fetchCompetitions();
-        } else {
-            alert("Request failed.");
+        } catch (err) {
+            alert(`Request failed: ${err.message}`);
         }
     };
 
@@ -164,9 +116,9 @@ const StudentCompetitions = () => {
                     <div className="flex justify-center py-12">
                         <div className="text-gray-400">Loading events...</div>
                     </div>
-                ) : competitions.length > 0 ? (
+                ) : competitions.filter(c => !c.my_registration).length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {competitions.map(comp => (
+                        {competitions.filter(c => !c.my_registration).map(comp => (
                             <CompetitionCard
                                 key={comp.id}
                                 competition={comp}
@@ -179,9 +131,9 @@ const StudentCompetitions = () => {
                     </div>
                 ) : (
                     <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
-                        <div className="text-4xl mb-4">🔍</div>
-                        <h3 className="text-lg font-medium text-gray-900">No competitions found</h3>
-                        <p className="text-gray-500 mt-2">Check back later for new events.</p>
+                        <div className="text-4xl mb-4">✨</div>
+                        <h3 className="text-lg font-medium text-gray-900">All caught up!</h3>
+                        <p className="text-gray-500 mt-2">You have registered for all available competitions.</p>
                     </div>
                 )}
             </div>

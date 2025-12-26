@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import HodSidebar from './Sidebar';
 import { Search, ChevronDown, Calendar, Globe, Code } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
+import { api } from '../../services/api';
 
 const HodCompetitions = () => {
     const [filter, setFilter] = useState('All');
@@ -13,38 +14,10 @@ const HodCompetitions = () => {
 
     React.useEffect(() => {
         const fetchCompetitions = async () => {
-            console.log("HOD Dashboard: Starting fetch...");
             try {
-                const storedUser = localStorage.getItem('user');
-                console.log("HOD Dashboard: Stored User raw:", storedUser);
-
-                const user = storedUser ? JSON.parse(storedUser) : null;
-                console.log("HOD Dashboard: Parsed User:", user);
-
-                if (!user?.id) {
-                    console.log("HOD Dashboard: No user ID. Aborting.");
-                    setError("No user found. Please login.");
-                    setLoading(false);
-                    return;
-                }
-
-                console.log("HOD Dashboard: Fetching from http://localhost:5000/api/hod/competitions");
-                const response = await fetch('http://localhost:5000/api/hod/competitions', {
-                    headers: {
-                        'x-user-id': user.id
-                    }
-                });
-                console.log("HOD Dashboard: Response status:", response.status);
-
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log("HOD Dashboard: Data received:", data);
-                    setCompetitions(data);
-                } else {
-                    const errText = await response.text();
-                    console.error("Fetch failed:", response.status, errText);
-                    setError(`Failed to load: ${response.status} ${response.statusText}`);
-                }
+                // api.js handles auth automatically
+                const data = await api.get('/api/hod/competitions');
+                setCompetitions(data);
             } catch (err) {
                 console.error("Failed to fetch competitions", err);
                 setError("Network error. Please try again.");

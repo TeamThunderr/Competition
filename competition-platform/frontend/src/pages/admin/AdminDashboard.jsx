@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { Link } from 'react-router-dom';
 import { Upload } from 'lucide-react';
-import { getCurrentUser } from '../../services/authService';
+import { api } from '../../services/api';
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState({
@@ -16,28 +16,24 @@ const AdminDashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const user = getCurrentUser();
-                const headers = { 'x-user-id': user?.id };
-
-                // 1. Fetch Department Stats
-                const statsResponse = await fetch('http://localhost:5000/api/admin/stats', { headers });
+                // 1. Fetch Department Stats using central client
+                const json = await api.get('/api/admin/stats');
                 let totalVerified = 0;
 
-                if (statsResponse.ok) {
-                    const json = await statsResponse.json();
-                    if (json.success && json.data) {
-                        const allDepts = json.data;
-                        totalVerified = allDepts.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
-                    }
+                if (json.success && json.data) {
+                    const allDepts = json.data;
+                    totalVerified = allDepts.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
+                } else if (Array.isArray(json)) {
+                    totalVerified = json.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
                 }
 
                 // 2. Fetch Competitions for Active Count
-                const compsResponse = await fetch('http://localhost:5000/api/competitions');
+                // api.js handles error throwing for non-ok responses
+                const comps = await api.get('/api/competitions');
                 let activeCount = 0;
                 let activities = [];
 
-                if (compsResponse.ok) {
-                    const comps = await compsResponse.json();
+                if (comps) {
                     console.log(`[AdminDashboard] Fetched ${comps.length} competitions total.`);
 
                     const now = new Date();
@@ -46,7 +42,6 @@ const AdminDashboard = () => {
                     const activeComps = comps.filter(c => {
                         if (!c.registration_deadline) return false;
                         const deadline = new Date(c.registration_deadline);
-                        // Check if valid date and in the future
                         return !isNaN(deadline.getTime()) && deadline > now;
                     });
 

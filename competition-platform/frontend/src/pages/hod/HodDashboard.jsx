@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import HodSidebar from './Sidebar';
 import { ChevronDown, CheckCircle, User, FileText, Users, Award } from 'lucide-react';
 import { getDepartmentUsers } from '../../services/usersService';
+import { api } from '../../services/api';
 
 const HodDashboard = () => {
     const [selectedSection, setSelectedSection] = useState('All Sections');
@@ -10,6 +11,7 @@ const HodDashboard = () => {
     // Feature State
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [sectionData, setSectionData] = useState([]); // Real Data now
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -25,15 +27,6 @@ const HodDashboard = () => {
         fetchUsers();
     }, []);
 
-    // Derived Data Processing
-    const students = users.filter(u => u.role === 'STUDENT');
-    const sections = [...new Set(students.map(s => s.section).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-
-    // Stats Calculation
-    const totalStudents = students.length;
-    // For now, these are placeholders or need other API calls (competitions). 
-    // We will keep them 0 or mock until those APIs exist.
-
     const [overviewStats, setOverviewStats] = useState([
         { label: 'TOTAL DEPT. STUDENTS', value: '...', subtext: 'Loading...', borderLeft: 'border-l-4 border-blue-500' },
         { label: 'ACTIVE COMPETITIONS', value: '...', subtext: 'Loading...', borderLeft: '' },
@@ -44,21 +37,28 @@ const HodDashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const storedUser = localStorage.getItem('user');
-                const user = storedUser ? JSON.parse(storedUser) : null;
-                if (!user) return;
+                // const storedUser = localStorage.getItem('user'); // Handled by API
+                // const user = storedUser ? JSON.parse(storedUser) : null;
+                // if (!user) return;
 
-                const response = await fetch('http://localhost:5000/api/hod/stats', {
-                    headers: { 'x-user-id': user.id }
-                });
+                const resData = await api.get('/api/hod/stats');
 
-                if (response.ok) {
-                    const resData = await response.json();
-                    // API returns array directly now based on my controller update
-                    // or wrapper if using responseHelper (likely { success: true, data: [...] })
-                    // Controller sends: sendResponse(res, 200, stats, ...) -> { success: true, data: stats, ... }
-                    if (resData.data && Array.isArray(resData.data)) {
+                // Old compatibility: if it returns array directly (backward compat)
+                // New API client returns response.json() directly. 
+                // So if resData.data exists, use it.
+                if (resData) {
+                    if (Array.isArray(resData.data)) {
                         setOverviewStats(resData.data);
+                    }
+                    // New Structure: { cards: [], sections: [] }
+                    else if (resData.data && resData.data.cards) {
+                        setOverviewStats(resData.data.cards);
+                        if (resData.data.sections) {
+                            setSectionData(resData.data.sections);
+                        }
+                    } else if (resData.cards) { // Case where API wrapper unwraps it
+                        setOverviewStats(resData.cards);
+                        if (resData.sections) setSectionData(resData.sections);
                     }
                 }
             } catch (err) {
@@ -68,35 +68,35 @@ const HodDashboard = () => {
         fetchStats();
     }, []);
 
+    // Derived Data Processing for Dropdowns & Detailed Views
+    const students = users.filter(u => u.role === 'STUDENT');
+
+    // Sort sections alphabetically
+    const sections = sectionData.length > 0
+        ? sectionData.map(s => s.section).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+        : [...new Set(students.map(s => s.section).filter(Boolean))].sort();
+
     // Stats for "Detailed View" (Specific Section)
     const sectionStudents = students
         .filter(s => s.section === selectedSection)
         .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', undefined, { numeric: true, sensitivity: 'base' }));
+
+    // Find analytics for selected section
+    const currentSectionAnalytics = sectionData.find(s => s.section === selectedSection) || {
+        totalStudents: sectionStudents.length,
+        registered: 0,
+        qualified: 0,
+        pending: 0
+    };
+
     const detailedStats = [
-        { label: 'SECTION STUDENTS', value: sectionStudents.length.toString(), subtext: 'Batch 2023-27', borderLeft: 'border-l-4 border-blue-500' },
-        { label: 'PARTICIPATING', value: '0', subtext: '0% Engagement', borderLeft: '' },
-        { label: 'QUALIFIED', value: '0', subtext: 'Round 1 Cleared', borderLeft: '' },
-        { label: 'PENDING OD REQUESTS', value: '0', subtext: 'Waiting Approval', borderLeft: '' },
+        { label: 'SECTION STUDENTS', value: currentSectionAnalytics.totalStudents.toString(), subtext: 'Batch 2023-27', borderLeft: 'border-l-4 border-blue-500' },
+        { label: 'PARTICIPATING', value: currentSectionAnalytics.registered.toString(), subtext: 'Registered Events', borderLeft: '' },
+        { label: 'QUALIFIED', value: currentSectionAnalytics.qualified.toString(), subtext: 'Round 1 Cleared', borderLeft: '' },
+        { label: 'PENDING OD REQUESTS', value: currentSectionAnalytics.pending.toString(), subtext: 'Waiting Approval', borderLeft: '' },
     ];
 
-    // Overview Table Data (Computed)
-    // We ignore 'batch' for now or hardcode it as users.year is int but not fetched yet in all queries? 
-    // Auth Middleware fetches assigned_sections but user controller fetches all columns.
-    // Check users.controller.js: uses supabase.from('users').select(...) but checking hod.controller.js
-    // hod.controller.js fetches: id, full_name, email, role, section, assigned_sections, departments(name).
-    // It does NOT fetch 'year'. So we'll hardcode Batch for now.
-
-    const sectionData = sections.map(sec => {
-        const count = students.filter(s => s.section === sec).length;
-        return {
-            section: sec,
-            batch: '2024-28', // Placeholder/Hardcoded
-            totalStudents: count,
-            registered: 0,
-            qualified: 0,
-            pending: 0
-        };
-    });
+    const currentStats = selectedSection === 'All Sections' ? overviewStats : detailedStats;
 
     // Student List for Detailed View
     // Map to UI format
@@ -108,8 +108,6 @@ const HodDashboard = () => {
         status: 'Active',
         statusColor: 'text-green-600'
     }));
-
-    const currentStats = selectedSection === 'All Sections' ? overviewStats : detailedStats;
 
     const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
 
