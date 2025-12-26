@@ -11,18 +11,23 @@ const getDepartmentStats = async (req, res) => {
         const hodDeptId = req.user.department_id;
         console.log(`[HodController] Fetching stats for Dept: ${hodDeptId}`);
 
-        // 1. Total Students
-        const { count: studentCount, error: userError } = await supabase
+        // 1. Fetch ALL Student IDs in this Dept (Central source of truth)
+        const { data: deptStudentsRaw, error: userError } = await supabase
             .from('users')
-            .select('id', { count: 'exact', head: true })
+            .select('id, section')
             .eq('role', 'STUDENT')
             .eq('department_id', hodDeptId);
 
         if (userError) throw userError;
 
-        // 2. Active Competitions (Approximation: Competitions with > 0 registrations from this dept)
-        // Or just total competitions available? Let's check 'competitions' table count for now (simplest)
-        // Better: Competitions active NOW (deadline > now)
+        const deptStudents = deptStudentsRaw || [];
+        const studentCount = deptStudents.length;
+        const studentIds = deptStudents.map(u => u.id);
+
+        // Calculate Unique Sections
+        const uniqueSections = [...new Set(deptStudents.map(u => u.section).filter(Boolean))].length;
+
+        // 2. Active Competitions (Standard check)
         const now = new Date().toISOString();
         const { count: activeCompCount, error: compError } = await supabase
             .from('competitions')
@@ -31,66 +36,44 @@ const getDepartmentStats = async (req, res) => {
 
         if (compError) throw compError;
 
-        // 3. Shortlisted Students (Round 1 Cleared)
-        // We need users -> competition_status(is_shortlisted=true)
-        // But supabase join count is tricky. 
-        // We'll fetch IDs of students in this dept first? 
-        // Optimized: select count, join users!inner(department_id=...)
-        const { count: shortlistedCount, error: shortError } = await supabase
-            .from('competition_status')
-            .select('id', { count: 'exact', head: true })
-            .eq('is_shortlisted', true)
-            .eq('users.department_id', hodDeptId);
-        // Note: This relies on Supabase being able to filter on joined relation without explicit select syntax 
-        // if we setup FK correctly. If not, we might need:
-        // .select('id, users!inner(department_id)') and .eq('users.department_id', ...)
+        // 3. Shortlisted Students (Filter by Student IDs)
+        let shortlistedCount = 0;
+        if (studentIds.length > 0) {
+            const { count, error: shortError } = await supabase
+                .from('competition_status')
+                .select('id', { count: 'exact', head: true })
+                .eq('is_shortlisted', true)
+                .in('user_id', studentIds);
 
-        // Let's try the safer detailed query if unsure about implicit join filter support in count
-        const { data: shortlistedData, error: shortErrorSafe } = await supabase
-            .from('competition_status')
-            .select(`
-                id,
-                users!inner ( department_id )
-            `)
-            .eq('is_shortlisted', true)
-            .eq('users.department_id', hodDeptId);
+            if (shortError) throw shortError;
+            shortlistedCount = count || 0;
+        }
 
-        if (shortErrorSafe) throw shortErrorSafe;
+        // 4. Pending OD Requests (Filter by Student IDs)
+        let odCount = 0;
+        if (studentIds.length > 0) {
+            const { count, error: odError } = await supabase
+                .from('od_requests')
+                .select('id', { count: 'exact', head: true })
+                .eq('status', 'PENDING')
+                .in('user_id', studentIds);
 
-
-        // 4. Pending OD Requests
-        const { data: odData, error: odError } = await supabase
-            .from('od_requests')
-            .select(`
-                id,
-                users!inner ( department_id )
-             `)
-            .eq('status', 'PENDING')
-            .eq('users.department_id', hodDeptId);
-
-        if (odError) throw odError;
-
-        // 5. Get Unique Sections
-        const { data: sectionData, error: sectionError } = await supabase
-            .from('users')
-            .select('section')
-            .eq('department_id', hodDeptId)
-            .eq('role', 'STUDENT');
-
-        const uniqueSections = [...new Set(sectionData?.map(u => u.section).filter(Boolean))].length;
-
+            if (odError) throw odError;
+            odCount = count || 0;
+        }
 
         const stats = [
-            { label: 'TOTAL DEPT. STUDENTS', value: (studentCount || 0).toString(), subtext: `Across ${uniqueSections} Sections`, borderLeft: 'border-l-4 border-blue-500' },
+            { label: 'TOTAL DEPT. STUDENTS', value: studentCount.toString(), subtext: `Across ${uniqueSections} Sections`, borderLeft: 'border-l-4 border-blue-500' },
             { label: 'ACTIVE COMPETITIONS', value: (activeCompCount || 0).toString(), subtext: 'Ongoing this semester', borderLeft: '' },
-            { label: 'SHORTLISTED STUDENTS', value: (shortlistedData?.length || 0).toString(), subtext: 'Qualified Round 1', borderLeft: '' },
-            { label: 'PENDING OD REQUESTS', value: (odData?.length || 0).toString(), subtext: 'Requires Immediate Action', borderLeft: '' },
+            { label: 'SHORTLISTED STUDENTS', value: shortlistedCount.toString(), subtext: 'Qualified Round 1', borderLeft: '' },
+            { label: 'PENDING OD REQUESTS', value: odCount.toString(), subtext: 'Requires Immediate Action', borderLeft: '' },
         ];
 
         sendResponse(res, 200, stats, 'Fetched department stats');
     } catch (err) {
         console.error('[HodController] Error:', err);
-        sendResponse(res, 500, null, 'Internal Server Error');
+        // Send the actual error message to help debug (though in prod we hide it)
+        sendResponse(res, 500, null, `Internal Server Error: ${err.message}`);
     }
 };
 

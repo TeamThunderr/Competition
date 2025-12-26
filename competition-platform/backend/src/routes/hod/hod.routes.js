@@ -20,6 +20,7 @@ router.get('/users', hodController.getDepartmentUsers);
 // Competition View (Read Only)
 router.get('/competitions', hodCompetitionController.getAllCompetitions);
 router.get('/competition/:id', hodCompetitionController.getCompetitionDetails);
+router.get('/competition/:id/stats', hodCompetitionController.getCompetitionStats);
 
 // OD Management Routes
 router.get('/pending-od', odController.getPendingODRequests);

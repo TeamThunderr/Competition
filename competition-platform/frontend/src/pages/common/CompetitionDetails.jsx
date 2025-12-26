@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Users, ExternalLink, ArrowLeft, Globe, Clock, MessageSquare } from 'lucide-react';
+import { Calendar, Users, ExternalLink, ArrowLeft, Globe, Clock, MessageSquare, Layers } from 'lucide-react';
+import { getCurrentUser } from '../../services/authService';
+import { getCompetitionStudents, getHODCompetitionStats } from '../../services/usersService';
 
 const CompetitionDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [competition, setCompetition] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [statsData, setStatsData] = useState({ total_sections: [], registered: [], shortlisted: [], total: [] });
+    const user = getCurrentUser();
+    const isFaculty = user?.role === 'FACULTY';
+    const isHOD = user?.role === 'HOD';
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -16,6 +22,14 @@ const CompetitionDetails = () => {
                     const data = await response.json();
                     setCompetition(data);
                 }
+
+                if (isFaculty) {
+                    const students = await getCompetitionStudents(id);
+                    setStatsData(students);
+                } else if (isHOD) {
+                    const hodStats = await getHODCompetitionStats(id);
+                    setStatsData(hodStats);
+                }
             } catch (err) {
                 console.error('Error:', err);
             } finally {
@@ -23,7 +37,7 @@ const CompetitionDetails = () => {
             }
         };
         fetchDetails();
-    }, [id]);
+    }, [id, isFaculty, isHOD]);
 
     if (loading) return <div className="p-8 text-center text-gray-500">Loading details...</div>;
     if (!competition) return <div className="p-8 text-center text-red-500">Competition not found</div>;
@@ -36,7 +50,7 @@ const CompetitionDetails = () => {
                 className="mb-6 flex items-center text-gray-600 hover:text-blue-600 transition-colors"
             >
                 <ArrowLeft size={20} className="mr-2" />
-                Back to Dashboard
+                {isFaculty ? "Back to Dashboard" : isHOD ? "Back to Department" : "Back to Dashboard"}
             </button>
 
             {/* Header Card */}
@@ -49,8 +63,8 @@ const CompetitionDetails = () => {
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900 mb-2">{competition.title}</h1>
                             <div className="flex items-center gap-3">
-                                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-                                    DETAILS VIEW
+                                <span className={`px-3 py-1 bg-${isHOD ? 'purple' : 'green'}-100 text-${isHOD ? 'purple' : 'green'}-700 rounded-full text-xs font-semibold`}>
+                                    {isHOD ? "DEPARTMENT VIEW" : isFaculty ? "MENTOR VIEW" : "DETAILS VIEW"}
                                 </span>
                                 <span className="text-gray-500 text-sm flex items-center gap-1">
                                     <Globe size={14} />
@@ -74,44 +88,12 @@ const CompetitionDetails = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column: Description & Timeline */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Description */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4">About this Event</h2>
-                        <div className="prose text-gray-600 leading-relaxed whitespace-pre-wrap">
-                            {competition.description || "No description provided."}
-                        </div>
-                    </div>
-
-                    {/* Timeline (Mocked for now, as DB only has dates) */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4">Updates Timeline</h2>
-                        <div className="border-l-2 border-gray-100 pl-6 space-y-8">
-                            <div className="relative">
-                                <span className="absolute -left-[29px] top-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white ring-1 ring-blue-100"></span>
-                                <h3 className="font-semibold text-gray-900">Registration Detected</h3>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    System detected this competition from {competition.platform}.
-                                </p>
-                            </div>
-                            {competition.registration_deadline && (
-                                <div className="relative">
-                                    <span className="absolute -left-[29px] top-1 w-3 h-3 bg-red-400 rounded-full border-2 border-white ring-1 ring-red-100"></span>
-                                    <h3 className="font-semibold text-gray-900">Registration Deadline</h3>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        {new Date(competition.registration_deadline).toDateString()}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right Column: Key Info */}
-                <div className="space-y-6">
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+            {/* Content Section: Conditionally Render based on Role */}
+            {isFaculty || isHOD ? (
+                // FACULTY/HOD VIEW (3 Column Layout)
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    {/* Event Info (Left Side - Small) */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:col-span-1 h-fit">
                         <h2 className="font-bold text-gray-900 mb-4">Event Information</h2>
                         <div className="space-y-4 text-sm">
                             <div className="flex justify-between py-2 border-b border-gray-50">
@@ -152,8 +134,171 @@ const CompetitionDetails = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Stats Columns (Right Side - Wide) */}
+                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Column 1: Total Sections (HOD) OR Total Students (Faculty) */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                {isHOD ? `Total Sections In Dept` : `Total Students (${statsData.total?.length || 0})`}
+                            </h3>
+                            <div className="h-96 overflow-y-auto pr-2 space-y-2">
+                                {isHOD ? (
+                                    // HOD: List Sections
+                                    statsData.total_sections?.length > 0 ? (
+                                        statsData.total_sections.map((sec, idx) => (
+                                            <div key={idx} className="flex justify-between items-center text-sm p-3 bg-gray-50 rounded-lg">
+                                                <div className="font-medium text-gray-900 flex items-center gap-2">
+                                                    <Layers size={14} className="text-gray-400" />
+                                                    Section {sec.name}
+                                                </div>
+                                                <div className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded font-medium">
+                                                    {sec.count} Students
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-sm text-gray-400 text-center py-4">No sections found</div>
+                                    )
+                                ) : (
+                                    // Faculty: List Students
+                                    statsData.total?.map(student => (
+                                        <div key={student.id} className="text-sm p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                            <div className="font-medium text-gray-900">{student.name}</div>
+                                            <div className="text-xs text-gray-500">{student.regNo}</div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Column 2: Registered Students */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                Registered ({statsData.registered?.length || 0})
+                            </h3>
+                            <div className="h-96 overflow-y-auto pr-2 space-y-2">
+                                {statsData.registered?.map(student => (
+                                    <div key={student.id} className="text-sm p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                        <div className="font-medium text-gray-900">{student.name}</div>
+                                        <div className="flex justify-between items-center mt-1">
+                                            <span className="text-xs text-blue-600">{student.regNo} {student.section && `(${student.section})`}</span>
+                                            {student.verified ?
+                                                <span className="text-[10px] bg-green-200 text-green-800 px-1.5 py-0.5 rounded">Verified</span> :
+                                                <span className="text-[10px] bg-yellow-200 text-yellow-800 px-1.5 py-0.5 rounded">Pending</span>
+                                            }
+                                        </div>
+                                    </div>
+                                ))}
+                                {(!statsData.registered || statsData.registered.length === 0) && <div className="text-sm text-gray-400 text-center py-4">No registrations yet</div>}
+                            </div>
+                        </div>
+
+                        {/* Column 3: Shortlisted Students */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                Shortlisted ({statsData.shortlisted?.length || 0})
+                            </h3>
+                            <div className="h-96 overflow-y-auto pr-2 space-y-2">
+                                {statsData.shortlisted?.map(student => (
+                                    <div key={student.id} className="text-sm p-3 bg-purple-50 rounded-lg border border-purple-100">
+                                        <div className="font-medium text-gray-900">{student.name}</div>
+                                        <div className="text-xs text-purple-600">{student.regNo} {student.section && `(${student.section})`}</div>
+                                    </div>
+                                ))}
+                                {(!statsData.shortlisted || statsData.shortlisted.length === 0) && <div className="text-sm text-gray-400 text-center py-4">No shortlisted students</div>}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+
+            ) : (
+                // STUDENT VIEW (Standard One with About & Timeline)
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    // ... (Student/Default View kept same)
+                    {/* Left Column: Description & Timeline */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Description */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4">About this Event</h2>
+                            <div className="prose text-gray-600 leading-relaxed whitespace-pre-wrap">
+                                {competition.description || "No description provided."}
+                            </div>
+                        </div>
+
+                        {/* Timeline (Mocked for now, as DB only has dates) */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4">Updates Timeline</h2>
+                            <div className="border-l-2 border-gray-100 pl-6 space-y-8">
+                                <div className="relative">
+                                    <span className="absolute -left-[29px] top-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white ring-1 ring-blue-100"></span>
+                                    <h3 className="font-semibold text-gray-900">Registration Detected</h3>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        System detected this competition from {competition.platform}.
+                                    </p>
+                                </div>
+                                {competition.registration_deadline && (
+                                    <div className="relative">
+                                        <span className="absolute -left-[29px] top-1 w-3 h-3 bg-red-400 rounded-full border-2 border-white ring-1 ring-red-100"></span>
+                                        <h3 className="font-semibold text-gray-900">Registration Deadline</h3>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            {new Date(competition.registration_deadline).toDateString()}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Key Info (Same as before) */}
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                            <h2 className="font-bold text-gray-900 mb-4">Event Information</h2>
+                            <div className="space-y-4 text-sm">
+                                <div className="flex justify-between py-2 border-b border-gray-50">
+                                    <span className="text-gray-500 flex items-center gap-2">
+                                        <Clock size={16} /> Registration Ends
+                                    </span>
+                                    <span className="font-medium text-gray-900">
+                                        {competition.registration_deadline
+                                            ? new Date(competition.registration_deadline).toLocaleDateString()
+                                            : "TBA"}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between py-2 border-b border-gray-50">
+                                    <span className="text-gray-500 flex items-center gap-2">
+                                        <Calendar size={16} /> Event Date
+                                    </span>
+                                    <span className="font-medium text-gray-900">
+                                        {competition.event_date
+                                            ? new Date(competition.event_date).toLocaleDateString()
+                                            : "TBA"}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between py-2 border-b border-gray-50">
+                                    <span className="text-gray-500 flex items-center gap-2">
+                                        <Users size={16} /> Team Size
+                                    </span>
+                                    <span className="font-medium text-gray-900">
+                                        {competition.min_team_size} - {competition.max_team_size} Members
+                                    </span>
+                                </div>
+                                <div className="flex justify-between py-2">
+                                    <span className="text-gray-500 flex items-center gap-2">
+                                        <MessageSquare size={16} /> Mode
+                                    </span>
+                                    <span className="font-medium text-gray-900">
+                                        {competition.mode || "Online"}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -34,6 +34,44 @@ const GlobalRepository = () => {
         return new Date(deadline) > new Date() ? 'Open' : 'Closed';
     };
 
+    const filteredCompetitions = competitions.filter(comp => {
+        const deadlineDate = new Date(comp.registration_deadline);
+        const now = new Date();
+        // Reset time for date-only comparison if desired, but precise is safer
+
+        if (activeTab === 'All') return true;
+
+        if (activeTab === 'Active') {
+            // Logic: Active means registration is currently open
+            return deadlineDate >= now;
+        }
+
+        if (activeTab === 'Completed') {
+            // Logic: Registration deadline has passed
+            return deadlineDate < now;
+        }
+
+        if (activeTab === 'Upcoming') {
+            // Logic: Usually for "Registration starts in future", but for now, 
+            // user requested tabs to work. If data lacks start_date, merge with Active or omit.
+            // Let's assume Upcoming means "Active" but maybe far out? 
+            // Or if user intends "Events happening in future but reg closed?"
+            // Standard interpretation: 
+            // Active = Reg Open. 
+            // Upcoming = Reg hasn't started yet. (Need reg_start_date)
+            // Since we only have deadline, I will handle 'Upcoming' as 'Active' for now OR 'Open > 7 days'?
+            // Let's stick to: Upcoming = Same as Active (Reg Open) to avoid empty list, 
+            // or check if 'event_date' is far future?
+            // User said: "according to database".
+            // If DB has no start_date, I will just treat 'Active' as Open.
+            // I will make 'Upcoming' show competitions where deadline is > 30 days from now? 
+            // Or better: Active = open, Upcoming = open.
+            return deadlineDate >= now;
+        }
+
+        return true;
+    });
+
     const [statsModalOpen, setStatsModalOpen] = useState(false);
     const [selectedCompetitionStats, setSelectedCompetitionStats] = useState(null);
     const [selectedCompTitle, setSelectedCompTitle] = useState('');
@@ -155,8 +193,8 @@ const GlobalRepository = () => {
                                 <tr>
                                     <td colSpan="8" className="px-6 py-12 text-center text-gray-500">Loading...</td>
                                 </tr>
-                            ) : competitions.length > 0 ? (
-                                competitions.map((comp) => (
+                            ) : filteredCompetitions.length > 0 ? (
+                                filteredCompetitions.map((comp) => (
                                     <tr key={comp.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="font-medium text-gray-900">{comp.title || 'Untitled'}</div>
@@ -165,7 +203,9 @@ const GlobalRepository = () => {
                                         <td className="px-6 py-4 text-sm text-gray-600">{comp.platform}</td>
                                         <td className="px-6 py-4 text-sm text-gray-600">{new Date(comp.registration_deadline).toLocaleDateString()}</td>
                                         <td className="px-6 py-4 text-sm text-gray-600">All</td>
-                                        <td className="px-6 py-4 text-center text-sm text-gray-600">-</td>
+                                        <td className="px-6 py-4 text-center text-sm text-gray-600">
+                                            {comp.registrations && comp.registrations[0] ? comp.registrations[0].count : 0}
+                                        </td>
                                         <td className="px-6 py-4 text-center text-sm text-gray-600">-</td>
                                         <td className="px-6 py-4 text-center">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatus(comp.registration_deadline) === 'Open'

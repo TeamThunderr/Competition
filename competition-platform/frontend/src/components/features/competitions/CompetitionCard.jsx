@@ -152,6 +152,18 @@ const CompetitionCard = ({ competition, onCheckStatus, onUploadProof, onRequestO
                     View Info
                 </Link>
 
+                {/* Show Registration Count for Faculty/HOD */}
+                {!showRegister && (
+                    <div className="flex items-center text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100" title="Total Registrations">
+                        <Users className="w-4 h-4 mr-2" />
+                        <span className="font-medium">
+                            {competition.registrations && competition.registrations[0]
+                                ? competition.registrations[0].count
+                                : 0}
+                        </span>
+                    </div>
+                )}
+
                 {renderAction()}
             </div>
         </div>

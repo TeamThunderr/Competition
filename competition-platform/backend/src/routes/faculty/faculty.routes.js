@@ -22,6 +22,7 @@ router.get('/registrations', facultyController.getRecentRegistrations); // New
 // Competition View (Read Only)
 router.get('/competitions', facultyCompetitionController.getAllCompetitions);
 router.get('/competition/:id', facultyCompetitionController.getCompetitionDetails);
+router.get('/competition/:id/students', facultyCompetitionController.getCompetitionStudents);
 
 // Verification Routes
 router.get('/pending-verifications', verificationController.getPendingVerifications);

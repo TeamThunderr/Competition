@@ -107,3 +107,81 @@ export const getDepartmentUsers = async () => {
         throw error;
     }
 };
+
+export const getCompetitionStudents = async (competitionId) => {
+    try {
+        const user = getCurrentUser();
+        if (!user || user.role !== 'FACULTY') {
+            throw new Error('Unauthorized');
+        }
+
+        const response = await fetch(`${API_URL}/faculty/competition/${competitionId}/students`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user.id
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error: ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching competition students:", error);
+        throw error;
+    }
+};
+
+export const getHODCompetitionStats = async (competitionId) => {
+    try {
+        const user = getCurrentUser();
+        if (!user || user.role !== 'HOD') {
+            throw new Error('Unauthorized');
+        }
+
+        const response = await fetch(`${API_URL}/hod/competition/${competitionId}/stats`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user.id
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error: ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching HOD stats:", error);
+        throw error;
+    }
+};
+
+export const getFacultyCompetitions = async () => {
+    try {
+        const user = getCurrentUser();
+        if (!user || user.role !== 'FACULTY') {
+            throw new Error('Unauthorized');
+        }
+
+        const response = await fetch(`${API_URL}/faculty/competitions`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user.id
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error: ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching faculty competitions:", error);
+        throw error;
+    }
+};
