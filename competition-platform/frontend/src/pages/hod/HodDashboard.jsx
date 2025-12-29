@@ -4,7 +4,10 @@ import { ChevronDown, CheckCircle, User, FileText, Users, Award } from 'lucide-r
 import { getDepartmentUsers } from '../../services/usersService';
 import { api } from '../../services/api';
 
+import { useNavigate } from 'react-router-dom';
+
 const HodDashboard = () => {
+    const navigate = useNavigate();
     const [selectedSection, setSelectedSection] = useState('All Sections');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -14,17 +17,26 @@ const HodDashboard = () => {
     const [sectionData, setSectionData] = useState([]); // Real Data now
 
     useEffect(() => {
+        const controller = new AbortController();
         const fetchUsers = async () => {
             try {
+                // Pass signal if your API client supports it, otherwise manually check before setting state
                 const data = await getDepartmentUsers();
-                setUsers(data);
+                if (!controller.signal.aborted) {
+                    setUsers(data);
+                }
             } catch (error) {
-                console.error("Failed to fetch department users", error);
+                if (!controller.signal.aborted) {
+                    console.error("Failed to fetch department users", error);
+                }
             } finally {
-                setLoading(false);
+                if (!controller.signal.aborted) {
+                    setLoading(false);
+                }
             }
         };
         fetchUsers();
+        return () => controller.abort();
     }, []);
 
     const [overviewStats, setOverviewStats] = useState([
@@ -35,37 +47,39 @@ const HodDashboard = () => {
     ]);
 
     useEffect(() => {
+        const controller = new AbortController();
         const fetchStats = async () => {
             try {
-                // const storedUser = localStorage.getItem('user'); // Handled by API
-                // const user = storedUser ? JSON.parse(storedUser) : null;
-                // if (!user) return;
+                // Note: axios/fetch supports signal, assuming api.get supports config object as second arg
+                const resData = await api.get('/api/hod/stats', { signal: controller.signal });
 
-                const resData = await api.get('/api/hod/stats');
-
-                // Old compatibility: if it returns array directly (backward compat)
-                // New API client returns response.json() directly. 
-                // So if resData.data exists, use it.
-                if (resData) {
-                    if (Array.isArray(resData.data)) {
-                        setOverviewStats(resData.data);
-                    }
-                    // New Structure: { cards: [], sections: [] }
-                    else if (resData.data && resData.data.cards) {
-                        setOverviewStats(resData.data.cards);
-                        if (resData.data.sections) {
-                            setSectionData(resData.data.sections);
+                if (!controller.signal.aborted) {
+                    // Old compatibility: if it returns array directly (backward compat)
+                    if (resData) {
+                        if (Array.isArray(resData.data)) {
+                            setOverviewStats(resData.data);
                         }
-                    } else if (resData.cards) { // Case where API wrapper unwraps it
-                        setOverviewStats(resData.cards);
-                        if (resData.sections) setSectionData(resData.sections);
+                        // New Structure: { cards: [], sections: [] }
+                        else if (resData.data && resData.data.cards) {
+                            setOverviewStats(resData.data.cards);
+                            if (resData.data.sections) {
+                                setSectionData(resData.data.sections);
+                            }
+                        } else if (resData.cards) { // Case where API wrapper unwraps it
+                            setOverviewStats(resData.cards);
+                            if (resData.sections) setSectionData(resData.sections);
+                        }
                     }
                 }
             } catch (err) {
-                console.error("Failed to fetch dashboard stats", err);
+                // Ignore abort errors
+                if (err.name !== 'CanceledError' && err.code !== 'ERR_CANCELED' && !controller.signal.aborted) {
+                    console.error("Failed to fetch dashboard stats", err);
+                }
             }
         };
         fetchStats();
+        return () => controller.abort();
     }, []);
 
     // Derived Data Processing for Dropdowns & Detailed Views
@@ -82,15 +96,17 @@ const HodDashboard = () => {
         .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', undefined, { numeric: true, sensitivity: 'base' }));
 
     // Find analytics for selected section
+    // Find analytics for selected section
     const currentSectionAnalytics = sectionData.find(s => s.section === selectedSection) || {
         totalStudents: sectionStudents.length,
+        batch: 'N/A', // Default if not found
         registered: 0,
         qualified: 0,
         pending: 0
     };
 
     const detailedStats = [
-        { label: 'SECTION STUDENTS', value: currentSectionAnalytics.totalStudents.toString(), subtext: 'Batch 2023-27', borderLeft: 'border-l-4 border-blue-500' },
+        { label: 'SECTION STUDENTS', value: currentSectionAnalytics.totalStudents.toString(), subtext: `Batch ${currentSectionAnalytics.batch || 'N/A'}`, borderLeft: 'border-l-4 border-blue-500' },
         { label: 'PARTICIPATING', value: currentSectionAnalytics.registered.toString(), subtext: 'Registered Events', borderLeft: '' },
         { label: 'QUALIFIED', value: currentSectionAnalytics.qualified.toString(), subtext: 'Round 1 Cleared', borderLeft: '' },
         { label: 'PENDING OD REQUESTS', value: currentSectionAnalytics.pending.toString(), subtext: 'Waiting Approval', borderLeft: '' },
@@ -124,7 +140,7 @@ const HodDashboard = () => {
                 {/* Header */}
                 <div className="flex justify-between items-start mb-8">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Department Coordinator</h1>
+                        <h1 className="text-2xl font-bold text-gray-900">Head of Department</h1>
                         <p className="text-gray-500 mt-1">
                             {selectedSection === 'All Sections' ? 'Overview of All Sections' : `Detailed View: ${selectedSection}`}
                         </p>
@@ -273,7 +289,10 @@ const HodDashboard = () => {
                             </span> that require validation against email evidence.
                         </p>
 
-                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                        <button
+                            onClick={() => navigate('/hod/approvals')}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                        >
                             <CheckCircle size={18} />
                             <span>Review OD Requests</span>
                         </button>

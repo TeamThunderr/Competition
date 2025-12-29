@@ -11,16 +11,35 @@ const getDepartmentStats = async (req, res) => {
         const hodDeptId = req.user.department_id;
         console.log(`[HodController] Fetching stats for Dept: ${hodDeptId}`);
 
-        // 1. Fetch ALL Student IDs in this Dept (Central source of truth)
-        const { data: deptStudentsRaw, error: userError } = await supabase
-            .from('users')
-            .select('id, section')
-            .eq('role', 'STUDENT')
-            .eq('department_id', hodDeptId);
+        // 1. Fetch ALL Student IDs in this Dept (Pagination for >1000 students)
+        console.log('[HodController] Step 1: Fetching students (paginated)...');
+        let deptStudents = [];
+        let page = 0;
+        let hasMore = true;
+        const pageSize = 1000;
 
-        if (userError) throw userError;
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, section')
+                .eq('role', 'STUDENT')
+                .eq('department_id', hodDeptId)
+                .range(page * pageSize, (page + 1) * pageSize - 1);
 
-        const deptStudents = deptStudentsRaw || [];
+            if (error) {
+                console.error('[HodController] Step 1 Error:', error);
+                throw error;
+            }
+
+            if (data.length > 0) {
+                deptStudents = [...deptStudents, ...data];
+                if (data.length < pageSize) hasMore = false;
+                page++;
+            } else {
+                hasMore = false;
+            }
+        }
+
         const studentCount = deptStudents.length;
         const studentIds = deptStudents.map(u => u.id);
 
@@ -28,39 +47,50 @@ const getDepartmentStats = async (req, res) => {
         const uniqueSections = [...new Set(deptStudents.map(u => u.section).filter(Boolean))].length;
 
         // 2. Active Competitions (Standard check)
+        console.log('[HodController] Step 2: Fetching active competitions...');
         const now = new Date().toISOString();
         const { count: activeCompCount, error: compError } = await supabase
             .from('competitions')
             .select('id', { count: 'exact', head: true })
             .gt('registration_deadline', now);
 
-        if (compError) throw compError;
+        if (compError) {
+            console.error('[HodController] Step 2 Error:', compError);
+            throw compError;
+        }
 
         // 3. Shortlisted Students (Filter by Student IDs)
         let shortlistedCount = 0;
-        if (studentIds.length > 0) {
-            const { count, error: shortError } = await supabase
-                .from('competition_status')
-                .select('id', { count: 'exact', head: true })
-                .eq('is_shortlisted', true)
-                .in('user_id', studentIds);
+        console.log('[HodController] Step 3: Fetching shortlisted count (optimized join)...');
+        // Join with users table to filter by department_id
+        const { count: sCount, error: shortError } = await supabase
+            .from('competition_status')
+            .select('users!inner(department_id)', { count: 'exact', head: true })
+            .eq('is_shortlisted', true)
+            .eq('users.department_id', hodDeptId);
 
-            if (shortError) throw shortError;
-            shortlistedCount = count || 0;
+        if (shortError) {
+            console.error('[HodController] Step 3 Error:', shortError);
+            throw shortError;
         }
+        shortlistedCount = sCount || 0;
 
         // 4. Pending OD Requests (Filter by Student IDs)
         let odCount = 0;
-        if (studentIds.length > 0) {
-            const { count, error: odError } = await supabase
-                .from('od_requests')
-                .select('id', { count: 'exact', head: true })
-                .eq('status', 'PENDING')
-                .in('user_id', studentIds);
+        console.log('[HodController] Step 4: Fetching pending OD requests (optimized join)...');
+        // Use user_id FK to filter by requester's department
+        const { count: oCount, error: odError } = await supabase
+            .from('od_requests')
+            .select('users!user_id!inner(department_id)', { count: 'exact', head: true })
+            .eq('status', 'PENDING')
+            .eq('users.department_id', hodDeptId);
 
-            if (odError) throw odError;
-            odCount = count || 0;
+        if (odError) {
+            console.error('[HodController] Step 4 Error:', odError);
+            console.error('[HodController] Step 4 full error:', JSON.stringify(odError));
+            throw odError;
         }
+        odCount = oCount || 0;
 
         const stats = [
             { label: 'TOTAL DEPT. STUDENTS', value: studentCount.toString(), subtext: `Across ${uniqueSections} Sections`, borderLeft: 'border-l-4 border-blue-500' },
@@ -69,25 +99,43 @@ const getDepartmentStats = async (req, res) => {
             { label: 'PENDING OD REQUESTS', value: odCount.toString(), subtext: 'Requires Immediate Action', borderLeft: '' },
         ];
 
-        // ... (previous stats calculation kept) ...
-
         // 6. Detailed Section Analytics (Replacing Mock Data)
         // We need: Section Name | Total Students | Registered count | Qualified count | Pending OD count
 
         // Fetch all students in dept with their registration/status/OD info
         // This is a bit heavy, so we might want to optimize later, but for < 1000 students it's fine.
-        const { data: analyticsUsers, error: analyticsError } = await supabase
-            .from('users')
-            .select(`
-                id, section, role,
-                registrations ( id, verified ),
-                competition_status ( is_shortlisted, is_winner ),
-                od_requests ( status )
-            `)
-            .eq('department_id', hodDeptId)
-            .eq('role', 'STUDENT');
+        // Fetch all students in dept with their registration/status/OD info
+        console.log('[HodController] Step 6: Fetching detailed analytics (paginated)...');
+        let analyticsUsers = [];
+        let aPage = 0;
+        let aHasMore = true;
 
-        if (analyticsError) throw analyticsError;
+        while (aHasMore) {
+            const { data, error } = await supabase
+                .from('users')
+                .select(`
+                    id, section, role, admission_year,
+                    registrations:registrations!user_id ( id, verified ),
+                    competition_status ( is_shortlisted, is_winner ),
+                    od_requests:od_requests!user_id ( status )
+                `)
+                .eq('department_id', hodDeptId)
+                .eq('role', 'STUDENT')
+                .range(aPage * pageSize, (aPage + 1) * pageSize - 1);
+
+            if (error) {
+                console.error('[HodController] Step 6 Error:', error);
+                throw error;
+            }
+
+            if (data.length > 0) {
+                analyticsUsers = [...analyticsUsers, ...data];
+                if (data.length < pageSize) aHasMore = false;
+                aPage++;
+            } else {
+                aHasMore = false;
+            }
+        }
 
         // Process Analytics
         const sectionMap = {};
@@ -95,9 +143,10 @@ const getDepartmentStats = async (req, res) => {
         analyticsUsers.forEach(u => {
             const sec = u.section || 'Unassigned';
             if (!sectionMap[sec]) {
+                const batch = u.admission_year ? `${u.admission_year}-${u.admission_year + 4}` : 'N/A';
                 sectionMap[sec] = {
                     section: sec,
-                    batch: '2024-28', // TODO: Derive from year/reg_no if available
+                    batch: batch,
                     totalStudents: 0,
                     registered: 0,
                     qualified: 0,
@@ -125,9 +174,9 @@ const getDepartmentStats = async (req, res) => {
             sections: sectionAnalytics
         }, 'Fetched department stats and analytics');
     } catch (err) {
-        console.error('[HodController] Error:', err);
+        console.error('[HodController] Full Error Object:', JSON.stringify(err, null, 2));
         // Send the actual error message to help debug (though in prod we hide it)
-        sendResponse(res, 500, null, `Internal Server Error: ${err.message}`);
+        sendResponse(res, 500, null, `Internal Server Error: ${err.message || 'Unknown error'}`);
     }
 };
 
@@ -182,4 +231,313 @@ const getDepartmentUsers = async (req, res) => {
     }
 };
 
-module.exports = { getDepartmentStats, getDepartmentUsers };
+const getDepartmentAnalytics = async (req, res) => {
+    try {
+        const hodDeptId = req.user.department_id;
+
+        // 1. Overall Stats (Total Students, Participants, Shortlisted, Winners)
+        // We use inner join on users to filter by department
+        const { data: deptStats, error: statsError } = await supabase
+            .from('competition_status')
+            .select(`
+                is_shortlisted, 
+                is_winner,
+                users!inner(department_id)
+            `)
+            .eq('users.department_id', hodDeptId);
+
+        if (statsError) throw statsError;
+
+        const totalParticipations = deptStats.length;
+        const totalShortlisted = deptStats.filter(s => s.is_shortlisted).length;
+        const totalWinners = deptStats.filter(s => s.is_winner).length;
+
+        // Qualification Rate
+        const qualificationRate = totalParticipations > 0
+            ? ((totalShortlisted / totalParticipations) * 100).toFixed(1)
+            : 0;
+
+        // 2. ROI Analysis (Competition-wise breakdown)
+        // We want to know which competitions have the most participation/success from this dept
+        const { data: roiData, error: roiError } = await supabase
+            .from('competitions')
+            .select(`
+                id, title, event_date,
+                registrations!inner(
+                    users!inner(department_id)
+                ),
+                competition_status(
+                    is_shortlisted,
+                    is_winner,
+                    users!inner(department_id)
+                )
+            `)
+            .eq('registrations.users.department_id', hodDeptId)
+        // Note: Supabase filtering on nested resources can be tricky. 
+        // We'll fetch relevant competitions and filter in memory if needed or rely on the inner join constraints.
+        // A simpler approach for ROI is fetching all competitions that have at least one registration from this dept.
+
+        // Alternative ROI Query: Fetch competitions, then counts. 
+        // Let's try a direct approach: get all status entries for this dept, joined with competition details.
+        const { data: compStats, error: compError } = await supabase
+            .from('competition_status')
+            .select(`
+                competition_id,
+                is_shortlisted,
+                is_winner,
+                competitions ( id, title, event_date ),
+                users!inner(department_id)
+            `)
+            .eq('users.department_id', hodDeptId);
+
+        if (compError) throw compError;
+
+        // Aggregate by Competition
+        const compMap = {};
+        compStats.forEach(item => {
+            const cId = item.competition_id;
+            const title = item.competitions?.title || 'Unknown';
+
+            if (!compMap[cId]) {
+                compMap[cId] = {
+                    id: cId,
+                    title: title,
+                    participants: 0,
+                    qualified: 0,
+                    winners: 0
+                };
+            }
+
+            compMap[cId].participants++;
+            if (item.is_shortlisted) compMap[cId].qualified++;
+            if (item.is_winner) compMap[cId].winners++;
+        });
+
+        const roiAnalysis = Object.values(compMap).map(c => ({
+            ...c,
+            impactScore: (c.qualified * 2) + (c.winners * 5), // Arbitrary score: 2pts for shortlist, 5pts for win
+            conversionRate: c.participants > 0 ? ((c.qualified / c.participants) * 100).toFixed(1) : 0
+        })).sort((a, b) => b.impactScore - a.impactScore);
+
+
+        // 3. Growth Trend (Simulated for now based on event_date)
+        // In a real app, we'd group `registrations.created_at` by month.
+        // For now, we'll return an empty structure or implied trend.
+
+        sendResponse(res, 200, {
+            metrics: {
+                qualificationRate,
+                totalWins: totalWinners,
+                activeParticipants: totalParticipations // This is technically "total registrations", distinct users would require a Set
+            },
+            roi: roiAnalysis,
+            growth: [] // Todo
+        }, 'Fetched department analytics');
+
+    } catch (err) {
+        console.error('[HodController] Analytics Error:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
+    }
+};
+
+const getDashboardAnalysis = async (req, res) => {
+    try {
+        const hodDeptId = req.user.department_id;
+        console.log(`[HodController] Analysis for Dept: ${hodDeptId}`);
+
+        // 1. Fetch Processed Data for Analysis
+        console.log('[HodController] Step 1: Fetching all users...');
+        // We need all students to calculate batches and years.
+        let allUsers = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, full_name, role, admission_year, cgpa, registration_no')
+                .eq('department_id', hodDeptId)
+                .range(page * pageSize, (page + 1) * pageSize - 1);
+
+            if (error) {
+                console.error('[HodController] Step 1 Error:', error);
+                throw error;
+            }
+            if (data.length > 0) {
+                allUsers = [...allUsers, ...data];
+                page++;
+                if (data.length < pageSize) hasMore = false;
+            } else {
+                hasMore = false;
+            }
+        }
+        console.log(`[HodController] Step 1 Done. Fetched ${allUsers.length} users.`);
+
+        const students = allUsers.filter(u => u.role === 'STUDENT');
+        const facultyCount = allUsers.filter(u => u.role === 'FACULTY').length;
+        const studentIds = students.map(s => s.id);
+
+        // 2. Fetch Aggregated Registration Stats (With Details for Analytics)
+        console.log('[HodController] Step 2: Fetching detailed registration data...');
+
+        let allRegistrations = [];
+
+        if (studentIds.length > 0) {
+            const chunkSize = 50;
+            for (let i = 0; i < studentIds.length; i += chunkSize) {
+                const chunk = studentIds.slice(i, i + chunkSize);
+
+                const { data: regData, error: regError } = await supabase
+                    .from('registrations')
+                    .select(`
+                        id, 
+                        user_id, 
+                        verified, 
+                        registered_at,
+                        competition_id,
+                        competitions ( title )
+                    `)
+                    .in('user_id', chunk);
+
+                if (regError) {
+                    console.error('[HodController] Step 2 Reg Error in Chunk:', regError);
+                    throw regError;
+                }
+
+                if (regData) {
+                    allRegistrations = [...allRegistrations, ...regData];
+                }
+            }
+        }
+        console.log(`[HodController] Step 2 Done. Fetched ${allRegistrations.length} registrations.`);
+
+        // --- PROCESSING ANALYTICS IN MEMORY ---
+
+        // A. Summary Metrics
+        const totalRegistrations = allRegistrations.length;
+        const verifiedRegistrations = allRegistrations.filter(r => r.verified).length;
+        const pendingVerifications = allRegistrations.filter(r => !r.verified).length;
+
+        // B. At-Risk Students (CGPA < 6.5 AND 0 Participation)
+        // Create a Set of active participants
+        const participatingStudentIds = new Set(allRegistrations.map(r => r.user_id));
+
+        const atRiskStudents = students.filter(s => {
+            const cgpa = parseFloat(s.cgpa || 0);
+            const hasParticipated = participatingStudentIds.has(s.id);
+            // Threshold: CGPA < 6.5 (if CGPA exists) AND No Participation
+            // Note: If CGPA is null/0, we might consider them at risk or missing data. 
+            // Let's assume strict check: s.cgpa must be present and < 6.5.
+            return (s.cgpa && cgpa < 6.5) && !hasParticipated;
+        }).map(s => ({
+            id: s.id,
+            name: s.full_name,
+            regNo: s.registration_no,
+            cgpa: s.cgpa,
+            batch: s.admission_year ? `${s.admission_year}-${s.admission_year + 4}` : 'N/A'
+        }));
+
+        // C. Participation Trends (Monthly)
+        // Group by Month-Year (e.g., "Oct 2024")
+        const trendMap = {};
+        allRegistrations.forEach(r => {
+            const date = new Date(r.created_at || r.registered_at); // specific fallback
+            const key = date.toLocaleString('default', { month: 'short', year: 'numeric' }); // e.g., "Dec 2024"
+            if (!trendMap[key]) trendMap[key] = { name: key, date: date, count: 0 };
+            trendMap[key].count++;
+        });
+
+        // Sort by date
+        const participationTrend = Object.values(trendMap)
+            .sort((a, b) => a.date - b.date)
+            .map(t => ({ name: t.name, count: t.count }));
+
+
+        // D. Top Competitions
+        const compMap = {};
+        allRegistrations.forEach(r => {
+            const title = r.competitions?.title || 'Unknown Competition';
+            if (!compMap[title]) compMap[title] = 0;
+            compMap[title]++;
+        });
+
+        const topCompetitions = Object.entries(compMap)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5); // Start with Top 5
+
+
+        // E. Batch & Academic Year Stats (Existing Logic optimized)
+        console.log('[HodController] Step 3: Processing batch/year stats...');
+        const currentYear = new Date().getFullYear();
+        const batchMap = {};
+        const yearMap = {
+            '1st Year': { count: 0, totalCgpa: 0, studentsWithCgpa: 0 },
+            '2nd Year': { count: 0, totalCgpa: 0, studentsWithCgpa: 0 },
+            '3rd Year': { count: 0, totalCgpa: 0, studentsWithCgpa: 0 },
+            '4th Year': { count: 0, totalCgpa: 0, studentsWithCgpa: 0 },
+        };
+
+        students.forEach(s => {
+            // Batch Stats
+            const batchLabel = s.admission_year ? `${s.admission_year}-${s.admission_year + 4}` : 'Unknown';
+            if (!batchMap[batchLabel]) batchMap[batchLabel] = 0;
+            batchMap[batchLabel]++;
+
+            // Academic Year Stats
+            if (s.admission_year) {
+                const diff = currentYear - s.admission_year;
+                const academicYear = diff === 0 ? '1st Year' :
+                    diff === 1 ? '2nd Year' :
+                        diff === 2 ? '3rd Year' :
+                            diff === 3 ? '4th Year' : 'Alumni/Other';
+
+                if (yearMap[academicYear]) {
+                    yearMap[academicYear].count++;
+                    if (s.cgpa) {
+                        yearMap[academicYear].totalCgpa += parseFloat(s.cgpa);
+                        yearMap[academicYear].studentsWithCgpa++;
+                    }
+                }
+            }
+        });
+
+        const batchStats = Object.keys(batchMap).map(key => ({
+            name: key, // for XAxis
+            students: batchMap[key]
+        })).sort((a, b) => b.name.localeCompare(a.name));
+
+        const academicStats = Object.keys(yearMap).map(key => ({
+            year: key,
+            count: yearMap[key].count,
+            avgCgpa: yearMap[key].studentsWithCgpa > 0
+                ? (yearMap[key].totalCgpa / yearMap[key].studentsWithCgpa).toFixed(2)
+                : 'N/A'
+        }));
+
+        console.log('[HodController] Step 3 Done. Sending response.');
+
+        sendResponse(res, 200, {
+            summary: {
+                totalStudents: students.length,
+                totalFaculty: facultyCount,
+                totalCompetitions: totalRegistrations || 0,
+                verifiedSubmissions: verifiedRegistrations || 0,
+                pendingVerifications: pendingVerifications || 0
+            },
+            batchStats,
+            academicStats,
+            atRiskStudents,
+            participationTrend,
+            topCompetitions
+        }, 'Fetched dashboard analysis');
+
+    } catch (err) {
+        console.error('[HodController] Dashboard Analysis Error:', err);
+        sendResponse(res, 500, null, `Internal Server Error: ${err.message}`);
+    }
+};
+
+
+module.exports = { getDepartmentStats, getDepartmentUsers, getDepartmentAnalytics, getDashboardAnalysis };

@@ -17,7 +17,7 @@ import FacultyVerify from './pages/faculty/FacultyVerify';
 import HodDashboard from './pages/hod/HodDashboard';
 import OdApprovals from './pages/hod/OdApprovals';
 import HodAnalytics from './pages/hod/HodAnalytics';
-import HodNotifications from './pages/hod/HodNotifications';
+
 import HodCompetitions from './pages/hod/HodCompetitions';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentSearch from './pages/admin/StudentSearch';
@@ -54,14 +54,13 @@ function App() {
       <Route path="/faculty/students" element={<StudentList />} />
       <Route path="/faculty/alerts" element={<FacultyAlerts />} />
       <Route path="/faculty/verify" element={<FacultyVerify />} />
-      
+
 
 
       {/* HOD Routes */}
       <Route path="/hod" element={<HodDashboard />} />
       <Route path="/hod/approvals" element={<OdApprovals />} />
       <Route path="/hod/analytics" element={<HodAnalytics />} />
-      <Route path="/hod/notifications" element={<HodNotifications />} />
       <Route path="/hod/competitions" element={<HodCompetitions />} />
 
       {/* Admin Routes */}

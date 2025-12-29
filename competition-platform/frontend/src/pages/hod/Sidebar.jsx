@@ -17,7 +17,6 @@ const HodSidebar = () => {
         { icon: LayoutDashboard, label: 'Dept. Dashboard', path: '/hod' },
         { icon: CheckCircle, label: 'OD Approvals', path: '/hod/approvals' },
         { icon: BarChart2, label: 'Analytics', path: '/hod/analytics' },
-        { icon: Bell, label: 'Notifications', path: '/hod/notifications' },
         { icon: Briefcase, label: 'All Competitions', path: '/hod/competitions' },
     ];
 

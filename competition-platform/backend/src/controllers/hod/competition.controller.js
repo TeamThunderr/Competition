@@ -49,6 +49,8 @@ const getCompetitionStats = async (req, res) => {
         const { id: competitionId } = req.params;
         const { department_id } = req.user;
 
+        console.log(`[HOD Stats] Fetching for Comp: ${competitionId}, Dept: ${department_id}`);
+
         // 1. Fetch Students in HOD's Department
         let allStudents = [];
         let page = 0;
@@ -65,27 +67,16 @@ const getCompetitionStats = async (req, res) => {
 
             if (error) throw error;
 
-            allStudents = [...allStudents, ...pageData];
-            page++;
-            if (pageData.length < pageSize) hasMore = false;
+            if (pageData.length > 0) {
+                allStudents = [...allStudents, ...pageData];
+                page++;
+                if (pageData.length < pageSize) hasMore = false;
+            } else {
+                hasMore = false;
+            }
         }
 
         const myStudentIds = allStudents.map(s => s.id);
-
-        // Group students by section for the "Sections" column
-        const studentsBySection = {};
-        allStudents.forEach(s => {
-            const sec = s.section || 'Unknown';
-            if (!studentsBySection[sec]) studentsBySection[sec] = [];
-            studentsBySection[sec].push(s);
-        });
-
-        // HOD View: "Total Section" -> We will return list of sections with their student counts
-        const totalSectionsData = Object.keys(studentsBySection).map(sec => ({
-            name: sec,
-            count: studentsBySection[sec].length,
-            students: studentsBySection[sec].map(s => ({ id: s.id, name: s.full_name, regNo: s.registration_no }))
-        }));
 
         if (myStudentIds.length === 0) {
             return res.status(200).json({
@@ -95,24 +86,49 @@ const getCompetitionStats = async (req, res) => {
             });
         }
 
-        // 2. Fetch Registrations for HOD's Department
-        const { data: registrations, error: regError } = await supabase
-            .from('registrations')
-            .select('user_id, verified')
-            .eq('competition_id', competitionId)
-            .in('user_id', myStudentIds);
+        // Group students by section
+        const studentsBySection = {};
+        allStudents.forEach(s => {
+            const sec = s.section || 'Unknown';
+            if (!studentsBySection[sec]) studentsBySection[sec] = [];
+            studentsBySection[sec].push(s);
+        });
 
-        if (regError) throw regError;
+        const totalSectionsData = Object.keys(studentsBySection).map(sec => ({
+            name: sec,
+            count: studentsBySection[sec].length,
+            students: studentsBySection[sec].map(s => ({ id: s.id, name: s.full_name, regNo: s.registration_no }))
+        }));
 
-        // 3. Fetch Shortlisted (HOD's Dept)
-        const { data: statusData, error: statusError } = await supabase
-            .from('competition_status')
-            .select('user_id, is_shortlisted')
-            .eq('competition_id', competitionId)
-            .in('user_id', myStudentIds)
-            .eq('is_shortlisted', true);
+        // 2. Fetch Registrations (Chunked to avoid URL length issues)
+        let registrations = [];
+        const chunkSize = 50;
+        for (let i = 0; i < myStudentIds.length; i += chunkSize) {
+            const chunk = myStudentIds.slice(i, i + chunkSize);
+            const { data: regData, error: regError } = await supabase
+                .from('registrations')
+                .select('user_id, verified')
+                .eq('competition_id', competitionId)
+                .in('user_id', chunk);
 
-        if (statusError) throw statusError;
+            if (regError) throw regError;
+            if (regData) registrations = [...registrations, ...regData];
+        }
+
+        // 3. Fetch Shortlisted (Chunked)
+        let statusData = [];
+        for (let i = 0; i < myStudentIds.length; i += chunkSize) {
+            const chunk = myStudentIds.slice(i, i + chunkSize);
+            const { data: sData, error: sError } = await supabase
+                .from('competition_status')
+                .select('user_id, is_shortlisted')
+                .eq('competition_id', competitionId)
+                .in('user_id', chunk)
+                .eq('is_shortlisted', true);
+
+            if (sError) throw sError;
+            if (sData) statusData = [...statusData, ...sData];
+        }
 
         // Map Data
         const registeredMap = new Map(registrations.map(r => [r.user_id, r]));
@@ -127,7 +143,7 @@ const getCompetitionStats = async (req, res) => {
                     name: s.full_name,
                     regNo: s.registration_no,
                     section: s.section,
-                    verified: registeredMap.get(s.id).verified
+                    verified: registeredMap.get(s.id)?.verified || false
                 })),
             shortlisted: allStudents
                 .filter(s => shortlistedSet.has(s.id))
@@ -142,8 +158,9 @@ const getCompetitionStats = async (req, res) => {
         res.status(200).json(response);
 
     } catch (err) {
-        console.error('Error fetching HOD stats:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error('[HOD Stats] Error:', err);
+        // Return 500 with message
+        res.status(500).json({ error: `Internal Server Error: ${err.message}` });
     }
 };
 

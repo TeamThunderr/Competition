@@ -16,6 +16,8 @@ router.use(roleMiddleware('HOD'));
 
 router.get('/stats', hodController.getDepartmentStats);
 router.get('/users', hodController.getDepartmentUsers);
+router.get('/analytics', hodController.getDepartmentAnalytics);
+router.get('/dashboard-analysis', hodController.getDashboardAnalysis);
 
 // Competition View (Read Only)
 router.get('/competitions', hodCompetitionController.getAllCompetitions);

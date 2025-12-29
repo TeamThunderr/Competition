@@ -64,6 +64,13 @@ const createCompetition = async (req, res) => {
 const getCompetitionById = async (req, res) => {
     try {
         const { id } = req.params;
+
+        // Simple regex check for UUID (approximate)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(id)) {
+            return res.status(400).json({ error: 'Invalid Competition ID Format' });
+        }
+
         const { data, error } = await supabase
             .from('competitions')
             .select('*')
@@ -71,6 +78,7 @@ const getCompetitionById = async (req, res) => {
             .single();
 
         if (error) {
+            console.error('[Competition Core] Supabase Error:', error);
             return res.status(500).json({ error: error.message });
         }
 
@@ -80,8 +88,8 @@ const getCompetitionById = async (req, res) => {
 
         res.status(200).json(data);
     } catch (err) {
-        console.error('Error fetching competition:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error('[Competition Core] Internal Error:', err);
+        res.status(500).json({ error: `Internal Server Error: ${err.message}` });
     }
 };
 

@@ -43,3 +43,25 @@ export const getHODCompetitionStats = async (competitionId) => {
     return response.data || response;
 };
 
+// OD Management APIs
+export const getPendingODRequests = async () => {
+    const response = await api.get('/api/hod/pending-od');
+    return response.data || response;
+};
+
+export const manageODRequest = async (requestId, status) => {
+    // status: 'APPROVED' or 'REJECTED'
+    const response = await api.post('/api/hod/manage-od', { request_id: requestId, status });
+    return response.data || response;
+};
+
+
+export const getDepartmentAnalytics = async () => {
+    const response = await api.get('/api/hod/analytics');
+    return response.data || response;
+};
+
+export const getDashboardAnalysis = async () => {
+    const response = await api.get('/api/hod/dashboard-analysis');
+    return response.data || response;
+};

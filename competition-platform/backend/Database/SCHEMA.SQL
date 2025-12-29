@@ -20,7 +20,7 @@ CREATE TABLE users (
 
     -- student-only
     registration_no TEXT UNIQUE,
-    year INT,
+    admission_year INT,
     cgpa NUMERIC(3,2),
     attendance NUMERIC(5,2),
 
