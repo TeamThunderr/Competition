@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Upload, Search, FileSpreadsheet, X, Loader } from 'lucide-react';
 import { getMyStudents } from '../../services/usersService';
 
 const StudentList = () => {
+    const navigate = useNavigate();
     const [isUploadMode, setIsUploadMode] = useState(false);
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -17,6 +19,7 @@ const StudentList = () => {
                 // Map backend user format to UI format
                 // UI: rollNo, name, section, email, status (active)
                 const mappedStudents = data.map(s => ({
+                    id: s.id,
                     rollNo: s.registration_no,
                     name: s.full_name,
                     section: s.section,
@@ -140,7 +143,11 @@ const StudentList = () => {
                                     filteredStudents
                                         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
                                         .map((student, index) => (
-                                            <tr key={index} className="hover:bg-gray-50/50 transition-colors">
+                                            <tr
+                                                key={index}
+                                                onClick={() => navigate(`/faculty/students/${student.id}`)}
+                                                className="hover:bg-gray-50/50 transition-colors cursor-pointer"
+                                            >
                                                 <td className="px-6 py-4 text-sm text-gray-500 font-medium">{index + 1}</td>
                                                 <td className="px-6 py-4 text-sm text-gray-600 font-medium">{student.rollNo}</td>
                                                 <td className="px-6 py-4">

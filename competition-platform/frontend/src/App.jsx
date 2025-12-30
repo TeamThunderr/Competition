@@ -10,6 +10,7 @@ import Profile from './pages/student/Profile';
 
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import StudentList from './pages/faculty/StudentList';
+import StudentDetail from './pages/faculty/StudentDetail';
 import FacultyVerify from './pages/faculty/FacultyVerify';
 import ActiveCompetitions from './pages/faculty/ActiveCompetitions';
 
@@ -51,6 +52,7 @@ function App() {
 
       <Route path="/faculty" element={<FacultyDashboard />} />
       <Route path="/faculty/students" element={<StudentList />} />
+      <Route path="/faculty/students/:id" element={<StudentDetail />} />
       <Route path="/faculty/verify" element={<FacultyVerify />} />
       <Route path="/faculty/competitions" element={<ActiveCompetitions />} />
 

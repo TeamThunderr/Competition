@@ -299,4 +299,157 @@ const getRecentRegistrations = async (req, res) => {
     }
 };
 
-module.exports = { getMyStudents, getStats, getDashboardStats, getRecentRegistrations };
+const getStudentDetails = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const { assigned_sections, department_id, id: facultyId } = req.user;
+
+        console.log(`[FacultyDebug] getStudentDetails - Faculty: ${facultyId} Dept: ${department_id} Student: ${studentId}`);
+        console.log(`[FacultyDebug] Assigned Sections (Raw):`, assigned_sections);
+
+        // 1a. Validate UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(studentId)) {
+            console.warn(`[FacultyDebug] Invalid UUID: ${studentId}`);
+            return sendResponse(res, 400, null, 'Invalid Student ID format');
+        }
+
+        // 1b. Fetch Student
+        const { data: student, error: studentError } = await supabase
+            .from('users')
+            .select('id, full_name, registration_no, email, department_id, section, departments(name)')
+            .eq('id', studentId)
+            .single();
+
+        if (studentError || !student) {
+            console.error(`[FacultyDebug] Student fetch error or not found:`, studentError);
+            return sendResponse(res, 404, null, 'Student not found');
+        }
+
+        console.log(`[FacultyDebug] Fetched Student: ID=${student.id}, Dept=${student.department_id}, Section=${student.section}`);
+
+        // 1c. Verify Department
+        if (student.department_id !== department_id) {
+            console.warn(`[FacultyDebug] Dept Mismatch: FacultyDept=${department_id}, StudentDept=${student.department_id}`);
+            return sendResponse(res, 403, null, 'Unauthorized: Student belongs to another department');
+        }
+
+        // 1d. Verify Section
+        // Parse assigned sections - handle "CSE-A" -> "A" and plain "A". Case insensitive.
+        const allowedSections = (assigned_sections || []).map(s => {
+            if (!s) return '';
+            const parts = s.split('-');
+            // If "CSE-A", take "A". If "A", take "A".
+            return (parts.length > 1 ? parts[1] : parts[0]).trim().toUpperCase();
+        }).filter(s => s !== '');
+
+        const studentSection = (student.section || '').trim().toUpperCase();
+
+        console.log(`[FacultyDebug] Allowed Sections (Parsed): ${JSON.stringify(allowedSections)}`);
+        console.log(`[FacultyDebug] Student Section (Parsed): '${studentSection}'`);
+
+        if (!allowedSections.includes(studentSection)) {
+            console.warn(`[FacultyDebug] Section Mismatch! Allowed: ${allowedSections}, Got: ${studentSection}`);
+            return sendResponse(res, 403, null, 'Unauthorized: Student is not in your assigned sections');
+        }
+
+        // 2. Fetch Registrations & Competitions
+        const { data: registrations, error: regError } = await supabase
+            .from('registrations')
+            .select(`
+                id,
+                registered_at,
+                verified,
+                competitions (
+                    id,
+                    title,
+                    platform
+                )
+            `)
+            .eq('user_id', studentId);
+
+        if (regError) throw regError;
+
+        // 3. Fetch Status (Qualified/Won)
+        const { data: statuses, error: statusError } = await supabase
+            .from('competition_status')
+            .select('*')
+            .eq('user_id', studentId);
+
+        if (statusError) throw statusError;
+
+        // 4. Fetch Class Advisor (Faculty for this section)
+        // Find faculty in same dept whose assigned_sections (array) string-contains the student section.
+        // Since SQL 'contains' is strict on JSON array elements, and our format varies (CSE-A vs A),
+        // we'll fetch keys and filter in memory or use a broad text search.
+        // Simplest: Fetch all faculty in dept, find match. (Faculty count is small < 50 usually)
+
+        let classAdvisorName = 'Not Assigned';
+        const { data: deptFaculty, error: facultyError } = await supabase
+            .from('users')
+            .select('full_name, assigned_sections')
+            .eq('role', 'FACULTY')
+            .eq('department_id', department_id);
+
+        if (!facultyError && deptFaculty) {
+            const advisor = deptFaculty.find(f => {
+                const sections = f.assigned_sections || [];
+                // Check if any assigned section matches student section (fuzzy match for 'A' vs 'CSE-A')
+                return sections.some(s => {
+                    const parsed = s.split('-').pop().trim().toUpperCase();
+                    return parsed === studentSection;
+                });
+            });
+            if (advisor) classAdvisorName = advisor.full_name;
+        }
+
+        // Aggregate Data
+        const competitionDetails = registrations.map(reg => {
+            const statusEntry = statuses?.find(s => s.competition_id === reg.competitions.id);
+
+            let status = 'Registered';
+            const isVerified = reg.verified;
+
+            if (statusEntry?.is_shortlisted) status = 'Qualified';
+            if (statusEntry?.is_winner) status = 'Won';
+
+            return {
+                id: reg.competitions.id,
+                competitionName: reg.competitions.title,
+                platform: reg.competitions.platform || 'N/A',
+                regType: 'Individual',
+                status: status,
+                verificationStatus: isVerified ? 'Verified' : 'Pending',
+                registeredAt: reg.registered_at
+            };
+        });
+
+        const stats = {
+            registered: registrations.length,
+            qualified: statuses?.filter(s => s.is_shortlisted).length || 0,
+            won: statuses?.filter(s => s.is_winner).length || 0,
+        };
+
+        const responseData = {
+            profile: {
+                name: student.full_name,
+                rollNo: student.registration_no,
+                email: student.email,
+                department: student.departments.name,
+                section: student.section,
+                classAdvisor: classAdvisorName
+            },
+            stats,
+            competitions: competitionDetails
+        };
+
+        sendResponse(res, 200, responseData, 'Fetched student details');
+
+    } catch (err) {
+        console.error('[FacultyController] Error fetching student details:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
+    }
+};
+
+module.exports = { getMyStudents, getStats, getDashboardStats, getRecentRegistrations, getStudentDetails };
+
