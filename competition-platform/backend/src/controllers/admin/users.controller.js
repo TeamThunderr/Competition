@@ -10,8 +10,12 @@ exports.getStudents = async (req, res) => {
             .select(`
                 id,
                 full_name,
+                email,
                 registration_no,
                 section,
+                year,
+                cgpa,
+                attendance,
                 departments!inner (
                     name
                 )
