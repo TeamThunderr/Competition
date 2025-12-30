@@ -14,7 +14,7 @@ const ActiveCompetitions = () => {
             try {
                 // Using HOD endpoint as it likely returns all competitions appropriate for staff view
                 // Or fallback to student endpoint if needed. Let's try HOD one first or a generic one.
-                const response = await api.get('/api/hod/competitions');
+                const response = await api.get('/api/faculty/competitions');
                 setCompetitions(response.data || response);
             } catch (err) {
                 console.error("Failed to fetch competitions", err);

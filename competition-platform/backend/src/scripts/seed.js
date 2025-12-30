@@ -128,7 +128,8 @@ async function seedDatabase() {
                 registration_no: rollNo,
                 year: 2,
                 cgpa: 8.5,
-                attendance: 90.0
+                attendance: 90.0,
+                phone_number: `98765${String(num).padStart(5, '0')}`
             });
         }
 
@@ -150,7 +151,8 @@ async function seedDatabase() {
                 registration_no: rollNo,
                 year: 2,
                 cgpa: 8.5,
-                attendance: 90.0
+                attendance: 90.0,
+                phone_number: `98765${String(absoluteNum).padStart(5, '0')}`
             });
         }
 

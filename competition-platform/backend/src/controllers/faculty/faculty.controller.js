@@ -233,12 +233,47 @@ const getDashboardStats = async (req, res) => {
             throw odError;
         }
 
+        // 5. Determine Batch Label
+        let batchLabel = 'N/A';
+        if (myStudentIds.length > 0) {
+            const { data: sampleStudent } = await supabase
+                .from('users')
+                .select('registration_no')
+                .eq('id', myStudentIds[0])
+                .single();
+
+            if (sampleStudent?.registration_no) {
+                const regNo = sampleStudent.registration_no;
+                // Try to detect year.
+                // Scenario A: Starts with Year (e.g., "24..." -> 2024)
+                // Scenario B: Standard College Code (e.g., "737624..." -> 2024)
+
+                let yearShort = null;
+                const prefix = regNo.substring(0, 2);
+                const mid = regNo.length >= 6 ? regNo.substring(4, 6) : null;
+
+                // Heuristic: Valid batch years are likely between 20 (2020) and 30 (2030) for this active system
+                if (parseInt(prefix) >= 15 && parseInt(prefix) <= 40) {
+                    yearShort = prefix;
+                } else if (mid && parseInt(mid) >= 15 && parseInt(mid) <= 40) {
+                    yearShort = mid;
+                }
+
+                if (yearShort) {
+                    const startYear = 2000 + parseInt(yearShort, 10);
+                    const endYear = startYear + 4;
+                    batchLabel = `${startYear}-${endYear}`;
+                }
+            }
+        }
+
         const stats = {
             total_students: totalStudents,
             comp_registered: registeredCount || 0,
             comp_qualified: qualifiedCount || 0,
             od_requests: odCount || 0,
-            section_label: assigned_sections?.join(', ') || 'N/A'
+            section_label: assigned_sections?.join(', ') || 'N/A',
+            batch_label: batchLabel
         };
 
         console.log('[FacultyDebug] Stats compiled:', stats);
@@ -317,7 +352,7 @@ const getStudentDetails = async (req, res) => {
         // 1b. Fetch Student
         const { data: student, error: studentError } = await supabase
             .from('users')
-            .select('id, full_name, registration_no, email, department_id, section, departments(name)')
+            .select('id, full_name, registration_no, email, phone_number, department_id, section, cgpa, departments(name)')
             .eq('id', studentId)
             .single();
 
@@ -326,7 +361,7 @@ const getStudentDetails = async (req, res) => {
             return sendResponse(res, 404, null, 'Student not found');
         }
 
-        console.log(`[FacultyDebug] Fetched Student: ID=${student.id}, Dept=${student.department_id}, Section=${student.section}`);
+        console.log(`[FacultyDebug] Fetched Student: ID=${student.id}, Dept=${student.department_id}, Section=${student.section}, CGPA=${student.cgpa}, Phone=${student.phone_number}`);
 
         // 1c. Verify Department
         if (student.department_id !== department_id) {
@@ -424,6 +459,27 @@ const getStudentDetails = async (req, res) => {
             };
         });
 
+        // Calculate Batch
+        let batchLabel = 'N/A';
+        if (student.registration_no) {
+            const regNo = student.registration_no;
+            let yearShort = null;
+            const prefix = regNo.substring(0, 2);
+            const mid = regNo.length >= 6 ? regNo.substring(4, 6) : null;
+
+            if (parseInt(prefix) >= 15 && parseInt(prefix) <= 40) {
+                yearShort = prefix;
+            } else if (mid && parseInt(mid) >= 15 && parseInt(mid) <= 40) {
+                yearShort = mid;
+            }
+
+            if (yearShort) {
+                const startYear = 2000 + parseInt(yearShort, 10);
+                const endYear = startYear + 4;
+                batchLabel = `${startYear}-${endYear}`;
+            }
+        }
+
         const stats = {
             registered: registrations.length,
             qualified: statuses?.filter(s => s.is_shortlisted).length || 0,
@@ -437,7 +493,10 @@ const getStudentDetails = async (req, res) => {
                 email: student.email,
                 department: student.departments.name,
                 section: student.section,
-                classAdvisor: classAdvisorName
+                classAdvisor: classAdvisorName,
+                batch: batchLabel,
+                cgpa: student.cgpa || 'N/A',
+                phoneNumber: student.phone_number || 'N/A'
             },
             stats,
             competitions: competitionDetails
