@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 const HodDashboard = () => {
     const navigate = useNavigate();
     const [selectedSection, setSelectedSection] = useState('All Sections');
+    const [activeTab, setActiveTab] = useState('2nd'); // 2nd, 3rd, 4th
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     // Feature State
@@ -19,9 +20,10 @@ const HodDashboard = () => {
     useEffect(() => {
         const controller = new AbortController();
         const fetchUsers = async () => {
+            setLoading(true); // Show loading when switching years
             try {
-                // Pass signal if your API client supports it, otherwise manually check before setting state
-                const data = await getDepartmentUsers();
+                // Fetch users for the ACTIVE TAB Year
+                const data = await getDepartmentUsers(activeTab);
                 if (!controller.signal.aborted) {
                     setUsers(data);
                 }
@@ -37,7 +39,7 @@ const HodDashboard = () => {
         };
         fetchUsers();
         return () => controller.abort();
-    }, []);
+    }, [activeTab]);
 
     const [overviewStats, setOverviewStats] = useState([
         { label: 'TOTAL DEPT. STUDENTS', value: '...', subtext: 'Loading...', borderLeft: 'border-l-4 border-blue-500' },
@@ -85,17 +87,20 @@ const HodDashboard = () => {
     // Derived Data Processing for Dropdowns & Detailed Views
     const students = users.filter(u => u.role === 'STUDENT');
 
+    // Filter Sections based on Tab
+    // Always filter by academic year as Overview is gone.
+    const filteredSectionData = sectionData.filter(s => s.academicYear === `${activeTab} Year`);
+
     // Sort sections alphabetically
-    const sections = sectionData.length > 0
-        ? sectionData.map(s => s.section).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-        : [...new Set(students.map(s => s.section).filter(Boolean))].sort();
+    const sections = filteredSectionData.length > 0
+        ? filteredSectionData.map(s => s.section).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+        : [];
 
     // Stats for "Detailed View" (Specific Section)
     const sectionStudents = students
         .filter(s => s.section === selectedSection)
         .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', undefined, { numeric: true, sensitivity: 'base' }));
 
-    // Find analytics for selected section
     // Find analytics for selected section
     const currentSectionAnalytics = sectionData.find(s => s.section === selectedSection) || {
         totalStudents: sectionStudents.length,
@@ -112,11 +117,37 @@ const HodDashboard = () => {
         { label: 'PENDING OD REQUESTS', value: currentSectionAnalytics.pending.toString(), subtext: 'Waiting Approval', borderLeft: '' },
     ];
 
-    const currentStats = selectedSection === 'All Sections' ? overviewStats : detailedStats;
+    // Dynamic Overview Stats for the SELECTED BATCH/YEAR (aggregated from sections)
+    const calculateBatchStats = () => {
+        // Aggregate
+        const totalStd = filteredSectionData.reduce((acc, curr) => acc + (curr.totalStudents || 0), 0);
+        // Note: registered is count of students who registered at least once? Or something else. 
+        // Based on backend it is count of students who have registrations.
+        // But for dashboard cards we might want total active competitions (global) or something else.
+        // The original overviewStats had 'ACTIVE COMPETITIONS'. This is usually department wide not per batch.
+        // Let's keep 'ACTIVE COMPETITIONS' global.
+
+        const totalQual = filteredSectionData.reduce((acc, curr) => acc + (curr.qualified || 0), 0);
+        const totalPending = filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0);
+
+        // Active Competitions is global.
+        const originalActiveComp = overviewStats.find(s => s.label === 'ACTIVE COMPETITIONS')?.value || '0';
+
+        return [
+            { label: `${activeTab.toUpperCase()} YEAR STUDENTS`, value: totalStd.toString(), subtext: `Across ${filteredSectionData.length} Sections`, borderLeft: 'border-l-4 border-blue-500' },
+            { label: 'ACTIVE COMPETITIONS', value: originalActiveComp, subtext: 'Ongoing this semester', borderLeft: '' },
+            { label: 'SHORTLISTED STUDENTS', value: totalQual.toString(), subtext: 'Qualified Round 1', borderLeft: '' },
+            { label: 'PENDING OD REQUESTS', value: totalPending.toString(), subtext: 'Requires Immediate Action', borderLeft: '' },
+        ];
+    };
+
+    // If 'All Sections' is selected, use calculated stats based on tab. Else use detailed section stats.
+    const currentStats = selectedSection === 'All Sections' ? calculateBatchStats() : detailedStats;
 
     // Student List for Detailed View
     // Map to UI format
     const studentList = sectionStudents.map(s => ({
+        id: s.id, // Include ID
         name: s.full_name,
         email: s.email,
         reg: s.registration_no,
@@ -138,42 +169,64 @@ const HodDashboard = () => {
 
             <div className="flex-1 ml-64 p-8">
                 {/* Header */}
-                <div className="flex justify-between items-start mb-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Head of Department</h1>
+                        <h1 className="text-2xl font-bold text-gray-900">
+                            {activeTab} Year Dashboard
+                        </h1>
                         <p className="text-gray-500 mt-1">
-                            {selectedSection === 'All Sections' ? 'Overview of All Sections' : `Detailed View: ${selectedSection}`}
+                            {selectedSection === 'All Sections'
+                                ? `Overview of ${activeTab} Year Sections`
+                                : `Detailed View: ${selectedSection}`}
                         </p>
                     </div>
 
-                    <div className="relative">
-                        <button
-                            onClick={toggleDropdown}
-                            className="bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm text-gray-700 flex items-center space-x-2 shadow-sm hover:bg-gray-50 min-w-[200px] justify-between"
-                        >
-                            <span>{selectedSection === 'All Sections' ? 'All Sections (Overview)' : selectedSection}</span>
-                            <ChevronDown size={16} />
-                        </button>
-
-                        {isDropdownOpen && (
-                            <div className="absolute right-0 mt-2 w-full bg-white border border-gray-100 rounded-lg shadow-lg z-10 py-1">
+                    <div className="flex gap-4">
+                        {/* Year Tabs */}
+                        <div className="flex bg-white p-1 rounded-lg border border-gray-200 shadow-sm h-10 items-center">
+                            {['2nd', '3rd', '4th'].map((tab) => (
                                 <button
-                                    onClick={() => handleSectionSelect('All Sections')}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    key={tab}
+                                    onClick={() => { setActiveTab(tab); setSelectedSection('All Sections'); }}
+                                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === tab
+                                        ? 'bg-blue-50 text-blue-700 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                                        }`}
                                 >
-                                    All Sections (Overview)
+                                    {tab} Year
                                 </button>
-                                {sections.map((section) => (
+                            ))}
+                        </div>
+
+                        <div className="relative">
+                            <button
+                                onClick={toggleDropdown}
+                                className="bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm text-gray-700 flex items-center space-x-2 shadow-sm hover:bg-gray-50 min-w-[200px] justify-between h-10"
+                            >
+                                <span>{selectedSection === 'All Sections' ? 'All Sections' : selectedSection}</span>
+                                <ChevronDown size={16} />
+                            </button>
+
+                            {isDropdownOpen && (
+                                <div className="absolute right-0 mt-2 w-full bg-white border border-gray-100 rounded-lg shadow-lg z-10 py-1 max-h-60 overflow-y-auto">
                                     <button
-                                        key={section}
-                                        onClick={() => handleSectionSelect(section)}
+                                        onClick={() => handleSectionSelect('All Sections')}
                                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                     >
-                                        {section}
+                                        All Sections
                                     </button>
-                                ))}
-                            </div>
-                        )}
+                                    {sections.map((section) => (
+                                        <button
+                                            key={section}
+                                            onClick={() => handleSectionSelect(section)}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                        >
+                                            {section}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -205,7 +258,7 @@ const HodDashboard = () => {
                                     onClick={() => handleSectionSelect('All Sections')}
                                     className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
                                 >
-                                    Back to Overview
+                                    Back to Batch Overview
                                 </button>
                             )}
                         </div>
@@ -216,22 +269,24 @@ const HodDashboard = () => {
                                     <table className="w-full">
                                         <thead>
                                             <tr className="text-left">
-                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6">Section</th>
-                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6">Batch</th>
-                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total No of Students</th>
-                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total No of Students Registered</th>
-                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total No of Students Qualified</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/12">Section</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-2/12">Faculty</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-2/12">Batch</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total Students</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Registered</th>
+                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Qualified</th>
                                                 <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">OD Pending</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-50">
-                                            {sectionData.map((row, index) => (
+                                            {filteredSectionData.map((row, index) => (
                                                 <tr
                                                     key={index}
                                                     className="group hover:bg-gray-50 transition-colors cursor-pointer"
                                                     onClick={() => handleSectionSelect(row.section)}
                                                 >
                                                     <td className="py-4 text-sm font-semibold text-gray-900">{row.section}</td>
+                                                    <td className="py-4 text-sm text-gray-600">{row.classAdvisor || 'Not Assigned'}</td>
                                                     <td className="py-4 text-sm text-gray-500">{row.batch}</td>
                                                     <td className="py-4 text-sm font-medium text-gray-900 text-center">{row.totalStudents}</td>
                                                     <td className="py-4 text-sm text-blue-600 font-medium text-center">{row.registered}</td>
@@ -248,7 +303,11 @@ const HodDashboard = () => {
                                 <div className="space-y-4">
                                     {studentList.length > 0 ? (
                                         studentList.map((student, index) => (
-                                            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                            <div
+                                                key={index}
+                                                onClick={() => navigate(`/hod/students/${student.id}`)}
+                                                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                                            >
                                                 <div className="flex items-center space-x-4">
                                                     <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600">
                                                         {student.icon}

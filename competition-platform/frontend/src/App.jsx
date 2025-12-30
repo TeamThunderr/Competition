@@ -19,6 +19,8 @@ import OdApprovals from './pages/hod/OdApprovals';
 import HodAnalytics from './pages/hod/HodAnalytics';
 
 import HodCompetitions from './pages/hod/HodCompetitions';
+import HodStudentDetail from './pages/hod/HodStudentDetail';
+import HodFaculty from './pages/hod/HodFaculty';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentSearch from './pages/admin/StudentSearch';
 import UploadCompetitions from './pages/admin/UploadCompetitions';
@@ -63,6 +65,8 @@ function App() {
       <Route path="/hod/approvals" element={<OdApprovals />} />
       <Route path="/hod/analytics" element={<HodAnalytics />} />
       <Route path="/hod/competitions" element={<HodCompetitions />} />
+      <Route path="/hod/students/:id" element={<HodStudentDetail />} />
+      <Route path="/hod/faculty" element={<HodFaculty />} />
 
       {/* Admin Routes */}
       <Route path="/admin" element={<AdminDashboard />} />

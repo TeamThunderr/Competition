@@ -22,9 +22,20 @@ export const getRecentRegistrations = async () => {
     return response.data || response;
 };
 
-// HOD APIs
-export const getDepartmentUsers = async () => {
-    const response = await api.get('/api/hod/users');
+// HOD Specific
+export const getHodStudentDetails = async (id) => {
+    try {
+        const response = await api.get(`/api/hod/students/${id}`);
+        return response.data || response;
+    } catch (error) {
+        console.error("Error fetching student details for HOD:", error);
+        throw error;
+    }
+};
+
+export const getDepartmentUsers = async (year) => {
+    const query = year ? `?year=${year}` : '';
+    const response = await api.get(`/api/hod/users${query}`);
     return response.data || response;
 };
 
@@ -70,4 +81,15 @@ export const getDepartmentAnalytics = async () => {
 export const getDashboardAnalysis = async () => {
     const response = await api.get('/api/hod/dashboard-analysis');
     return response.data || response;
+};
+
+// HOD: Get Faculty Directory
+export const getDepartmentFaculty = async () => {
+    try {
+        const response = await api.get('/api/hod/faculty');
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching faculty:", error);
+        throw error;
+    }
 };

@@ -139,14 +139,79 @@ const getDepartmentStats = async (req, res) => {
 
         // Process Analytics
         const sectionMap = {};
+        const currentYear = new Date().getFullYear();
+
+        // Fetch Faculty for Class Advisor Mapping
+        const { data: facultyData } = await supabase
+            .from('users')
+            .select('full_name, assigned_sections')
+            .eq('role', 'FACULTY')
+            .eq('department_id', hodDeptId);
 
         analyticsUsers.forEach(u => {
             const sec = u.section || 'Unassigned';
-            if (!sectionMap[sec]) {
+
+            // Determine Academic Year
+            const diff = u.admission_year ? currentYear - u.admission_year : -1;
+            const academicYearLabel = diff === 1 ? '2nd Year' :
+                diff === 2 ? '3rd Year' :
+                    diff === 3 ? '4th Year' : 'Other';
+
+            // Composite Key to separate A (2nd Year) from A (3rd Year)
+            const mapKey = `${sec}-${academicYearLabel}`;
+
+            if (!sectionMap[mapKey]) {
                 const batch = u.admission_year ? `${u.admission_year}-${u.admission_year + 4}` : 'N/A';
-                sectionMap[sec] = {
+
+                // Find Faculty Advisor
+                let facultyNames = [];
+                if (facultyData) {
+                    console.log(`[HodController] Debug: Looking for faculty for Section '${sec}' in`, facultyData.map(f => `${f.full_name}:[${f.assigned_sections}]`));
+
+                    const advisors = facultyData.filter(f => {
+                        const sections = f.assigned_sections || [];
+                        return sections.some(s => {
+                            // Robust Parsing: "CSE-A", "A", "Section A", "III-A"
+                            // Strategy: Check if the section char (A, B, C) matches the END of the assigned string
+
+                            if (!s) return false;
+
+                            const cleanAssigned = s.trim().toUpperCase();
+                            const cleanTarget = sec.trim().toUpperCase();
+
+                            // Direct Match
+                            if (cleanAssigned === cleanTarget) return true;
+
+                            // Suffix Match (e.g. "CSE-A" ends with "A")
+                            // Be careful of "AB" matching "B" (unlikely for section names usually)
+                            // Assuming section is usually single char A, B, C or A1, B1
+                            if (cleanAssigned.endsWith(`-${cleanTarget}`)) return true;
+                            if (cleanAssigned.endsWith(` ${cleanTarget}`)) return true;
+
+                            return false;
+                        });
+                    });
+
+                    if (advisors.length > 0) {
+                        facultyNames = advisors.map(a => a.full_name);
+                    }
+                }
+
+                // Requirement: 2 Faculties per section. If missing, show "Not Assigned".
+                let advisorString = '';
+                if (facultyNames.length === 0) {
+                    advisorString = 'Not Assigned, Not Assigned';
+                } else if (facultyNames.length === 1) {
+                    advisorString = `${facultyNames[0]}, Not Assigned`;
+                } else {
+                    advisorString = facultyNames.join(', ');
+                }
+
+                sectionMap[mapKey] = {
                     section: sec,
                     batch: batch,
+                    academicYear: academicYearLabel,
+                    classAdvisor: advisorString,
                     totalStudents: 0,
                     registered: 0,
                     qualified: 0,
@@ -154,7 +219,7 @@ const getDepartmentStats = async (req, res) => {
                 };
             }
 
-            const s = sectionMap[sec];
+            const s = sectionMap[mapKey];
             s.totalStudents++;
 
             // Registered: Has at least one registration
@@ -167,7 +232,11 @@ const getDepartmentStats = async (req, res) => {
             if (u.od_requests && u.od_requests.some(od => od.status === 'PENDING')) s.pending++;
         });
 
-        const sectionAnalytics = Object.values(sectionMap).sort((a, b) => a.section.localeCompare(b.section));
+        const sectionAnalytics = Object.values(sectionMap).sort((a, b) => {
+            // Sort by Year (desc) then Section (asc)
+            if (a.academicYear !== b.academicYear) return a.academicYear.localeCompare(b.academicYear);
+            return a.section.localeCompare(b.section, undefined, { numeric: true });
+        });
 
         sendResponse(res, 200, {
             cards: stats,
@@ -183,6 +252,23 @@ const getDepartmentStats = async (req, res) => {
 const getDepartmentUsers = async (req, res) => {
     try {
         const hodDeptId = req.user.department_id;
+        const { year } = req.query; // '2nd', '3rd', '4th'
+
+        console.log(`[HodController] Fetching users for Dept: ${hodDeptId}, Year: ${year || 'All'}`);
+
+        // Calculate admission year if year filter is present
+        let targetAdmissionYear = null;
+        if (year) {
+            const currentYear = new Date().getFullYear();
+            // 2nd Year = current - 1, 3rd = current - 2, etc.
+            // Actually, usually:
+            // 1st Year: Admitted Current Year (e.g. 2024) (diff 0)
+            // 2nd Year: Admitted Previous Year (e.g. 2023) (diff 1)
+            const yearNum = parseInt(year); // Extract number from '2nd', '3rd'
+            if (!isNaN(yearNum)) {
+                targetAdmissionYear = currentYear - (yearNum - 1);
+            }
+        }
 
         // Fetch all users (Students & Faculty) in the same department
         // PAGINATION LOGIC
@@ -192,7 +278,7 @@ const getDepartmentUsers = async (req, res) => {
         let hasMore = true;
 
         while (hasMore) {
-            const { data: pageData, error: pageError } = await supabase
+            let query = supabase
                 .from('users')
                 .select(`
                     id,
@@ -202,11 +288,19 @@ const getDepartmentUsers = async (req, res) => {
                     section,
                     registration_no,
                     assigned_sections,
+                    admission_year, 
                     departments!inner (
                         name
                     )
                 `)
-                .eq('department_id', hodDeptId)
+                .eq('department_id', hodDeptId);
+
+            // Apply Year Filter
+            if (targetAdmissionYear) {
+                query = query.eq('admission_year', targetAdmissionYear);
+            }
+
+            const { data: pageData, error: pageError } = await query
                 .order('role', { ascending: true })
                 .order('section', { ascending: true })
                 .range(page * pageSize, (page + 1) * pageSize - 1);
@@ -473,7 +567,6 @@ const getDashboardAnalysis = async (req, res) => {
         const currentYear = new Date().getFullYear();
         const batchMap = {};
         const yearMap = {
-            '1st Year': { count: 0, totalCgpa: 0, studentsWithCgpa: 0 },
             '2nd Year': { count: 0, totalCgpa: 0, studentsWithCgpa: 0 },
             '3rd Year': { count: 0, totalCgpa: 0, studentsWithCgpa: 0 },
             '4th Year': { count: 0, totalCgpa: 0, studentsWithCgpa: 0 },
@@ -482,23 +575,33 @@ const getDashboardAnalysis = async (req, res) => {
         students.forEach(s => {
             // Batch Stats
             const batchLabel = s.admission_year ? `${s.admission_year}-${s.admission_year + 4}` : 'Unknown';
+            // Only count if admission year suggests 2nd/3rd/4th year (i.e. not current year)
+            // But if we want to track batch counts generally we might keep it. 
+            // However, user asked to "Exlude 1st year" largely.
+            // Let's keep batchMap inclusive if they want to see "2025-2029" in distribution? 
+            // The prompt says "remove the first year in the academic performance".
+            // Let's apply validYears filter to batchMap too for consistency if desired, 
+            // but primarily for academicStats as requested.
+
+            const diff = s.admission_year ? currentYear - s.admission_year : -1;
+
+            // Filter 1st Year (diff === 0) from EVERYTHING if we want to be "Strict" again.
+            // Previous prompt said "strictly exclude 1st year".
+            if (diff <= 0) return; // Skip 1st years completely.
+
             if (!batchMap[batchLabel]) batchMap[batchLabel] = 0;
             batchMap[batchLabel]++;
 
             // Academic Year Stats
-            if (s.admission_year) {
-                const diff = currentYear - s.admission_year;
-                const academicYear = diff === 0 ? '1st Year' :
-                    diff === 1 ? '2nd Year' :
-                        diff === 2 ? '3rd Year' :
-                            diff === 3 ? '4th Year' : 'Alumni/Other';
+            const academicYear = diff === 1 ? '2nd Year' :
+                diff === 2 ? '3rd Year' :
+                    diff === 3 ? '4th Year' : null;
 
-                if (yearMap[academicYear]) {
-                    yearMap[academicYear].count++;
-                    if (s.cgpa) {
-                        yearMap[academicYear].totalCgpa += parseFloat(s.cgpa);
-                        yearMap[academicYear].studentsWithCgpa++;
-                    }
+            if (academicYear && yearMap[academicYear]) {
+                yearMap[academicYear].count++;
+                if (s.cgpa) {
+                    yearMap[academicYear].totalCgpa += parseFloat(s.cgpa);
+                    yearMap[academicYear].studentsWithCgpa++;
                 }
             }
         });
@@ -540,4 +643,203 @@ const getDashboardAnalysis = async (req, res) => {
 };
 
 
-module.exports = { getDepartmentStats, getDepartmentUsers, getDepartmentAnalytics, getDashboardAnalysis };
+const getStudentDetails = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const { department_id } = req.user;
+
+        console.log(`[HodController] getStudentDetails hit for StudentID: ${studentId}`);
+
+        // 1. Validate UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(studentId)) {
+            return sendResponse(res, 400, null, 'Invalid Student ID format');
+        }
+
+        // 2. Fetch Student
+        const { data: student, error: studentError } = await supabase
+            .from('users')
+            .select('id, full_name, registration_no, email, department_id, section, departments(name)')
+            .eq('id', studentId)
+            .single();
+
+        if (studentError || !student) {
+            return sendResponse(res, 404, null, 'Student not found');
+        }
+
+        // 3. Verify Department (Strict Access Control)
+        if (student.department_id !== department_id) {
+            return sendResponse(res, 403, null, 'Unauthorized: Student belongs to another department');
+        }
+
+        // 4. Fetch Registrations & Competitions
+        const { data: registrations, error: regError } = await supabase
+            .from('registrations')
+            .select(`
+                id,
+                registered_at,
+                verified,
+                competitions (
+                    id,
+                    title,
+                    platform
+                )
+            `)
+            .eq('user_id', studentId);
+
+        if (regError) throw regError;
+
+        // 5. Fetch Status (Qualified/Won)
+        const { data: statuses, error: statusError } = await supabase
+            .from('competition_status')
+            .select('*')
+            .eq('user_id', studentId);
+
+        if (statusError) throw statusError;
+
+        // 6. Fetch Class Advisor
+        let classAdvisorName = 'Not Assigned';
+        const studentSection = (student.section || '').trim().toUpperCase();
+
+        const { data: deptFaculty, error: facultyError } = await supabase
+            .from('users')
+            .select('full_name, assigned_sections')
+            .eq('role', 'FACULTY')
+            .eq('department_id', department_id);
+
+        if (!facultyError && deptFaculty) {
+            const advisor = deptFaculty.find(f => {
+                const sections = f.assigned_sections || [];
+                return sections.some(s => {
+                    const parsed = s.split('-').pop().trim().toUpperCase();
+                    return parsed === studentSection;
+                });
+            });
+            if (advisor) classAdvisorName = advisor.full_name;
+        }
+
+        // Aggregate Data
+        const competitionDetails = registrations.map(reg => {
+            const statusEntry = statuses?.find(s => s.competition_id === reg.competitions.id);
+            let status = 'Registered';
+            const isVerified = reg.verified;
+
+            if (statusEntry?.is_shortlisted) status = 'Qualified';
+            if (statusEntry?.is_winner) status = 'Won';
+
+            return {
+                id: reg.competitions.id,
+                competitionName: reg.competitions.title,
+                platform: reg.competitions.platform || 'N/A',
+                regType: 'Individual',
+                status: status,
+                verificationStatus: isVerified ? 'Verified' : 'Pending',
+                registeredAt: reg.registered_at
+            };
+        });
+
+        const stats = {
+            registered: registrations.length,
+            qualified: statuses?.filter(s => s.is_shortlisted).length || 0,
+            won: statuses?.filter(s => s.is_winner).length || 0,
+        };
+
+        const responseData = {
+            profile: {
+                name: student.full_name,
+                rollNo: student.registration_no,
+                email: student.email,
+                department: student.departments.name,
+                section: student.section,
+                classAdvisor: classAdvisorName
+            },
+            stats,
+            competitions: competitionDetails
+        };
+
+        sendResponse(res, 200, responseData, 'Fetched student details');
+
+    } catch (err) {
+        console.error('[HodController] Error fetching student details:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
+    }
+};
+
+
+const getDepartmentFaculty = async (req, res) => {
+    try {
+        const hodDeptId = req.user.department_id;
+        console.log(`[HodController] Fetching faculty for Dept: ${hodDeptId}`);
+
+        // 1. Fetch All Faculty
+        const { data: faculty, error: facultyError } = await supabase
+            .from('users')
+            .select('id, full_name, email, phone, assigned_sections, designation, avatar_url')
+            .eq('role', 'FACULTY')
+            .eq('department_id', hodDeptId);
+
+        if (facultyError) throw facultyError;
+
+        // 2. Fetch Student Counts per Section for Stats calculation
+        // We need to know how many students are in "A", "B", etc.
+        const { data: students, error: studentError } = await supabase
+            .from('users')
+            .select('section')
+            .eq('role', 'STUDENT')
+            .eq('department_id', hodDeptId);
+
+        if (studentError) throw studentError;
+
+        // Pre-calculate section counts: { "A": 45, "B": 42 }
+        const sectionCounts = {};
+        students.forEach(s => {
+            if (s.section) {
+                const sec = s.section.trim().toUpperCase();
+                sectionCounts[sec] = (sectionCounts[sec] || 0) + 1;
+            }
+        });
+
+        // 3. Map Faculty Data with Stats
+        const facultyList = faculty.map(f => {
+            const sections = f.assigned_sections || [];
+
+            // Calculate total students under this faculty
+            let totalStudents = 0;
+            const cleanSections = sections.map(s => {
+                // Formatting "CSE-A" to "A" for matching if needed, but display original
+                // Our matching logic in students is usually strict on the suffix or exact match 
+                // but let's assume sectionCounts keys are like "A", "B" and user assigned is "CSE-A", "A"
+
+                // Logic: Extract the last part "A" from "CSE-A"
+                const activeSec = s.split('-').pop().trim().toUpperCase();
+
+                // Add count if exists
+                totalStudents += (sectionCounts[activeSec] || 0);
+
+                return s; // Return original string for display
+            });
+
+            return {
+                id: f.id,
+                name: f.full_name,
+                email: f.email,
+                phone: f.phone || 'N/A',
+                designation: f.designation || 'Assistant Professor', // Default falllback
+                sections: cleanSections,
+                stats: {
+                    studentsCount: totalStudents,
+                    sectionsCount: sections.length
+                },
+                avatar: f.avatar_url
+            };
+        });
+
+        sendResponse(res, 200, facultyList, 'Fetched department faculty');
+
+    } catch (err) {
+        console.error('[HodController] Error fetching faculty:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
+    }
+};
+
+module.exports = { getDepartmentStats, getDepartmentUsers, getDepartmentAnalytics, getDashboardAnalysis, getStudentDetails, getDepartmentFaculty };

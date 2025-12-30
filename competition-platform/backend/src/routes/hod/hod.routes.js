@@ -18,6 +18,10 @@ router.get('/stats', hodController.getDepartmentStats);
 router.get('/users', hodController.getDepartmentUsers);
 router.get('/analytics', hodController.getDepartmentAnalytics);
 router.get('/dashboard-analysis', hodController.getDashboardAnalysis);
+router.get('/students/:studentId', hodController.getStudentDetails);
+
+// Faculty Directory
+router.get('/faculty', hodController.getDepartmentFaculty);
 
 // Competition View (Read Only)
 router.get('/competitions', hodCompetitionController.getAllCompetitions);
