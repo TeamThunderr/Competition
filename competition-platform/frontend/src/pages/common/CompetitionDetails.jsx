@@ -222,35 +222,14 @@ const CompetitionDetails = () => {
                     {/* Left Column: Description & Timeline */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Description */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">About this Event</h2>
-                            <div className="prose text-gray-600 leading-relaxed whitespace-pre-wrap">
-                                {competition.description || "No description provided."}
-                            </div>
-                        </div>
-
-                        {/* Timeline (Mocked for now, as DB only has dates) */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">Updates Timeline</h2>
-                            <div className="border-l-2 border-gray-100 pl-6 space-y-8">
-                                <div className="relative">
-                                    <span className="absolute -left-[29px] top-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white ring-1 ring-blue-100"></span>
-                                    <h3 className="font-semibold text-gray-900">Registration Detected</h3>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        System detected this competition from {competition.platform}.
-                                    </p>
+                        {competition.description && (
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+                                <h2 className="text-xl font-bold text-gray-900 mb-4">About this Event</h2>
+                                <div className="prose text-gray-600 leading-relaxed whitespace-pre-wrap">
+                                    {competition.description}
                                 </div>
-                                {competition.registration_deadline && (
-                                    <div className="relative">
-                                        <span className="absolute -left-[29px] top-1 w-3 h-3 bg-red-400 rounded-full border-2 border-white ring-1 ring-red-100"></span>
-                                        <h3 className="font-semibold text-gray-900">Registration Deadline</h3>
-                                        <p className="text-sm text-gray-500 mt-1">
-                                            {new Date(competition.registration_deadline).toDateString()}
-                                        </p>
-                                    </div>
-                                )}
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Right Column: Key Info (Same as before) */}

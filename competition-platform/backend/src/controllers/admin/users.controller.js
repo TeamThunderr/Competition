@@ -13,7 +13,7 @@ exports.getStudents = async (req, res) => {
                 email,
                 registration_no,
                 section,
-                year,
+                admission_year,
                 cgpa,
                 attendance,
                 departments!inner (
