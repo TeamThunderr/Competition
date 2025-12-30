@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, Bell, LogOut, CheckCircle } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, CheckCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { logoutUser } from '../../services/authService';
 import logo from '../../assets/logo.png';
@@ -16,7 +16,6 @@ const Sidebar = () => {
     const menuItems = [
         { icon: LayoutDashboard, label: 'Mentor Dashboard', path: '/faculty' },
         { icon: Users, label: 'Student List', path: '/faculty/students' },
-        { icon: Bell, label: 'Alerts', path: '/faculty/alerts' },
         { icon: CheckCircle, label: 'Verify Proofs', path: '/faculty/verify' },
         { icon: LayoutDashboard, label: 'Active Competitions', path: '/faculty/competitions' },
     ];

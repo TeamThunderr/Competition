@@ -6,6 +6,11 @@ export const getMyStudents = async () => {
     return response.data || response;
 };
 
+export const getStudentDetails = async (studentId) => {
+    const response = await api.get(`/api/faculty/students/${studentId}`);
+    return response.data || response;
+};
+
 // Faculty Dashboard APIs
 export const getFacultyDashboardStats = async () => {
     const response = await api.get('/api/faculty/dashboard-stats');
@@ -25,7 +30,8 @@ export const getDepartmentUsers = async () => {
 
 // Verification APIs
 export const getPendingVerifications = async () => {
-    return await api.get('/api/faculty/pending-verifications');
+    const response = await api.get('/api/faculty/pending-verifications');
+    return response.data || response;
 };
 
 export const verifyRegistration = async (registrationId, action) => {

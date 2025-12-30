@@ -18,6 +18,8 @@ router.get('/students', facultyController.getMyStudents);
 router.get('/stats', facultyController.getStats); // Existing, maybe deprecated?
 router.get('/dashboard-stats', facultyController.getDashboardStats); // New
 router.get('/registrations', facultyController.getRecentRegistrations); // New
+router.get('/students/:studentId', facultyController.getStudentDetails);
+
 
 // Competition View (Read Only)
 router.get('/competitions', facultyCompetitionController.getAllCompetitions);
