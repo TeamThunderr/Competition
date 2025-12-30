@@ -6,6 +6,11 @@ export const getMyStudents = async () => {
     return response.data || response;
 };
 
+export const getStudentDetails = async (studentId) => {
+    const response = await api.get(`/api/faculty/students/${studentId}`);
+    return response.data || response;
+};
+
 // Faculty Dashboard APIs
 export const getFacultyDashboardStats = async () => {
     const response = await api.get('/api/faculty/dashboard-stats');
@@ -17,9 +22,20 @@ export const getRecentRegistrations = async () => {
     return response.data || response;
 };
 
-// HOD APIs
-export const getDepartmentUsers = async () => {
-    const response = await api.get('/api/hod/users');
+// HOD Specific
+export const getHodStudentDetails = async (id) => {
+    try {
+        const response = await api.get(`/api/hod/students/${id}`);
+        return response.data || response;
+    } catch (error) {
+        console.error("Error fetching student details for HOD:", error);
+        throw error;
+    }
+};
+
+export const getDepartmentUsers = async (year) => {
+    const query = year ? `?year=${year}` : '';
+    const response = await api.get(`/api/hod/users${query}`);
     return response.data || response;
 };
 
@@ -44,3 +60,76 @@ export const getHODCompetitionStats = async (competitionId) => {
     return response.data || response;
 };
 
+// OD Management APIs
+export const getPendingODRequests = async () => {
+    const response = await api.get('/api/hod/pending-od');
+    return response.data || response;
+};
+
+export const manageODRequest = async (requestId, status) => {
+    // status: 'APPROVED' or 'REJECTED'
+    const response = await api.post('/api/hod/manage-od', { request_id: requestId, status });
+    return response.data || response;
+};
+
+
+export const getDepartmentAnalytics = async () => {
+    const response = await api.get('/api/hod/analytics');
+    return response.data || response;
+};
+
+export const getDashboardAnalysis = async () => {
+    const response = await api.get('/api/hod/dashboard-analysis');
+    return response.data || response;
+};
+
+// HOD: Get Faculty Directory
+export const getDepartmentFaculty = async () => {
+    try {
+        const response = await api.get('/api/hod/faculty');
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching faculty:", error);
+        throw error;
+    }
+};
+
+export const downloadWinnersReport = async () => {
+    try {
+        const response = await api.get('/api/hod/stats/export-winners', {
+            responseType: 'blob', // Important for file download
+        });
+
+        // Create link to download
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Winners_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+    } catch (error) {
+        console.error("Error downloading report:", error);
+        throw error;
+    }
+};
+
+export default {
+    getMyStudents,
+    getStudentDetails,
+    getFacultyDashboardStats,
+    getRecentRegistrations,
+    getPendingVerifications,
+    verifyRegistration,
+    getCompetitionStudents,
+    getHODCompetitionStats,
+    getPendingODRequests,
+    manageODRequest,
+    getDepartmentUsers,
+    getDepartmentAnalytics,
+    getDashboardAnalysis,
+    getHodStudentDetails,
+    getDepartmentFaculty,
+    downloadWinnersReport
+};

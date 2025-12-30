@@ -20,7 +20,7 @@ CREATE TABLE users (
 
     -- student-only
     registration_no TEXT UNIQUE,
-    year INT,
+    admission_year INT,
     cgpa NUMERIC(3,2),
     attendance NUMERIC(5,2),
 
@@ -109,3 +109,7 @@ CREATE TABLE team_members (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     PRIMARY KEY (team_id, user_id)
 );
+ALTER TABLE users ADD COLUMN phone_number TEXT;
+UPDATE users 
+SET phone_number = '98765' || substring(registration_no from 5) 
+WHERE role = 'STUDENT';

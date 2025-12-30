@@ -13,7 +13,7 @@ const getPendingODRequests = async (req, res) => {
             .from('od_requests')
             .select(`
                 *,
-                users!inner(full_name, registration_no, department_id, section),
+                users:users!od_requests_user_id_fkey!inner(full_name, registration_no, department_id, section),
                 competitions(title, event_date)
             `)
             .eq('status', 'PENDING')

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, CheckCircle, BarChart2, Bell, Briefcase, LogOut } from 'lucide-react';
+import { LayoutDashboard, CheckCircle, BarChart2, Bell, Briefcase, LogOut, Users } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import { logoutUser } from '../../services/authService';
@@ -15,9 +15,9 @@ const HodSidebar = () => {
 
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dept. Dashboard', path: '/hod' },
+        { icon: Users, label: 'Faculty Directory', path: '/hod/faculty' },
         { icon: CheckCircle, label: 'OD Approvals', path: '/hod/approvals' },
         { icon: BarChart2, label: 'Analytics', path: '/hod/analytics' },
-        { icon: Bell, label: 'Notifications', path: '/hod/notifications' },
         { icon: Briefcase, label: 'All Competitions', path: '/hod/competitions' },
     ];
 

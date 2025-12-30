@@ -10,14 +10,17 @@ import Profile from './pages/student/Profile';
 
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import StudentList from './pages/faculty/StudentList';
+import StudentDetail from './pages/faculty/StudentDetail';
 import FacultyVerify from './pages/faculty/FacultyVerify';
 import ActiveCompetitions from './pages/faculty/ActiveCompetitions';
 
 import HodDashboard from './pages/hod/HodDashboard';
 import OdApprovals from './pages/hod/OdApprovals';
 import HodAnalytics from './pages/hod/HodAnalytics';
-import HodNotifications from './pages/hod/HodNotifications';
+
 import HodCompetitions from './pages/hod/HodCompetitions';
+import HodStudentDetail from './pages/hod/HodStudentDetail';
+import HodFaculty from './pages/hod/HodFaculty';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentSearch from './pages/admin/StudentSearch';
 import UploadCompetitions from './pages/admin/UploadCompetitions';
@@ -51,6 +54,7 @@ function App() {
 
       <Route path="/faculty" element={<FacultyDashboard />} />
       <Route path="/faculty/students" element={<StudentList />} />
+      <Route path="/faculty/students/:id" element={<StudentDetail />} />
       <Route path="/faculty/verify" element={<FacultyVerify />} />
       <Route path="/faculty/competitions" element={<ActiveCompetitions />} />
 
@@ -60,8 +64,9 @@ function App() {
       <Route path="/hod" element={<HodDashboard />} />
       <Route path="/hod/approvals" element={<OdApprovals />} />
       <Route path="/hod/analytics" element={<HodAnalytics />} />
-      <Route path="/hod/notifications" element={<HodNotifications />} />
       <Route path="/hod/competitions" element={<HodCompetitions />} />
+      <Route path="/hod/students/:id" element={<HodStudentDetail />} />
+      <Route path="/hod/faculty" element={<HodFaculty />} />
 
       {/* Admin Routes */}
       <Route path="/admin" element={<AdminDashboard />} />

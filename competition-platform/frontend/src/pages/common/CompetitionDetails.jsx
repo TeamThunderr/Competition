@@ -145,17 +145,31 @@ const CompetitionDetails = () => {
                             </h3>
                             <div className="h-96 overflow-y-auto pr-2 space-y-2">
                                 {isHOD ? (
-                                    // HOD: List Sections
+                                    // HOD: List Sections Grouped by Year
                                     statsData.total_sections?.length > 0 ? (
-                                        statsData.total_sections.map((sec, idx) => (
-                                            <div key={idx} className="flex justify-between items-center text-sm p-3 bg-gray-50 rounded-lg">
-                                                <div className="font-medium text-gray-900 flex items-center gap-2">
-                                                    <Layers size={14} className="text-gray-400" />
-                                                    Section {sec.name}
-                                                </div>
-                                                <div className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded font-medium">
-                                                    {sec.count} Students
-                                                </div>
+                                        statsData.total_sections.map((group, gIdx) => (
+                                            <div key={gIdx} className="mb-3">
+                                                <details className="group" open={group.year === '2nd Year' || group.year === '3rd Year'}>
+                                                    <summary className="flex justify-between items-center font-bold text-gray-700 cursor-pointer p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                                        <span>{group.year}</span>
+                                                        <span className="text-xs bg-white px-2 py-0.5 rounded text-gray-500 shadow-sm border border-gray-200">
+                                                            {group.totalStudents} Students
+                                                        </span>
+                                                    </summary>
+                                                    <div className="mt-2 pl-2 space-y-2 border-l-2 border-gray-100 ml-2">
+                                                        {group.sections.map((sec, sIdx) => (
+                                                            <div key={sIdx} className="flex justify-between items-center text-sm p-2 bg-white border border-gray-100 rounded-md shadow-sm">
+                                                                <div className="font-medium text-gray-900 flex items-center gap-2">
+                                                                    <Layers size={14} className="text-gray-400" />
+                                                                    Section {sec.name}
+                                                                </div>
+                                                                <div className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded font-medium border border-gray-100">
+                                                                    {sec.count} Students
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </details>
                                             </div>
                                         ))
                                     ) : (

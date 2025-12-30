@@ -1,10 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import HodSidebar from './Sidebar';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Check, X, Clock, Calendar } from 'lucide-react'; // Added icons
+import { getPendingODRequests, manageODRequest } from '../../services/usersService';
 
 const OdApprovals = () => {
-    // Empty pending list as "fake details" are not allowed
-    const pendingApprovals = [];
+    const [pendingApprovals, setPendingApprovals] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchODs = async () => {
+            try {
+                const data = await getPendingODRequests();
+                setPendingApprovals(data || []);
+            } catch (error) {
+                console.error("Failed to fetch OD requests", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchODs();
+    }, []);
+
+    const handleAction = async (id, status) => {
+        try {
+            await manageODRequest(id, status);
+            // Remove from list locally for instant UI update
+            setPendingApprovals(prev => prev.filter(od => od.id !== id));
+            // Optional: Show success toast
+        } catch (error) {
+            console.error(`Failed to ${status} OD request`, error);
+            // Optional: Show error toast
+        }
+    };
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans">
@@ -26,10 +53,49 @@ const OdApprovals = () => {
 
                 {/* Content */}
                 <div className="space-y-6">
-                    {pendingApprovals.length > 0 ? (
+                    {loading ? (
+                        <div className="text-center py-12 text-gray-500">Loading requests...</div>
+                    ) : pendingApprovals.length > 0 ? (
                         pendingApprovals.map(approval => (
-                            <div key={approval.id}>
-                                {/* Card content would go here */}
+                            <div key={approval.id} className="bg-white rounded-xl border border-gray-100 p-6 flex justify-between items-center shadow-sm">
+                                <div>
+                                    <div className="flex items-center space-x-3 mb-1">
+                                        <h3 className="font-semibold text-gray-900">{approval.users?.full_name || 'Unknown Student'}</h3>
+                                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full border border-gray-200">
+                                            {approval.users?.registration_no}
+                                        </span>
+                                        <span className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full border border-blue-100">
+                                            Sec {approval.users?.section}
+                                        </span>
+                                    </div>
+                                    <div className="text-sm text-gray-500 flex items-center space-x-4">
+                                        <span className="flex items-center space-x-1">
+                                            <ShieldCheck size={14} />
+                                            <span>{approval.competitions?.title || 'External Event'}</span>
+                                        </span>
+                                        <span className="flex items-center space-x-1">
+                                            <Calendar size={14} />
+                                            <span>{approval.competitions?.event_date ? new Date(approval.competitions.event_date).toLocaleDateString() : 'Date N/A'}</span>
+                                        </span>
+                                        {/* Assuming requested_dates is stored or just using event date for now */}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center space-x-3">
+                                    <button
+                                        onClick={() => handleAction(approval.id, 'REJECTED')}
+                                        className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
+                                    >
+                                        Reject
+                                    </button>
+                                    <button
+                                        onClick={() => handleAction(approval.id, 'APPROVED')}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center space-x-2 shadow-sm"
+                                    >
+                                        <Check size={16} />
+                                        <span>Approve OD</span>
+                                    </button>
+                                </div>
                             </div>
                         ))
                     ) : (

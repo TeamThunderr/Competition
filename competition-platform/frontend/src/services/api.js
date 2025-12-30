@@ -47,23 +47,31 @@ async function request(endpoint, options = {}) {
             throw new Error(errorBody.error || errorBody.message || `API Error: ${response.status}`);
         }
 
-        // 6. Return JSON
-        // Some endpoints might return empty body (204)
+        // 6. Return Data based on Type
         if (response.status === 204) return null;
+
+        // Handle Blob (File Download)
+        if (options.responseType === 'blob') {
+            return await response.blob();
+        }
+
+        // Default: JSON
         return await response.json();
 
     } catch (error) {
-        console.error(`[API] Request failed: ${endpoint}`, error);
+        if (error.name !== 'AbortError') {
+            console.error(`[API] Request failed: ${endpoint}`, error);
+        }
         throw error;
     }
 }
 
 // Exported Methods
 export const api = {
-    get: (endpoint) => request(endpoint, { method: 'GET' }),
-    post: (endpoint, body) => request(endpoint, { method: 'POST', body: JSON.stringify(body) }),
-    put: (endpoint, body) => request(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
-    del: (endpoint) => request(endpoint, { method: 'DELETE' }),
+    get: (endpoint, options = {}) => request(endpoint, { method: 'GET', ...options }),
+    post: (endpoint, body, options = {}) => request(endpoint, { method: 'POST', body: JSON.stringify(body), ...options }),
+    put: (endpoint, body, options = {}) => request(endpoint, { method: 'PUT', body: JSON.stringify(body), ...options }),
+    del: (endpoint, options = {}) => request(endpoint, { method: 'DELETE', ...options }),
 
     // Check Health
     checkHealth: () => request('/health')
