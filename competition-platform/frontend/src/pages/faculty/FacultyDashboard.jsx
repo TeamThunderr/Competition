@@ -10,7 +10,8 @@ const FacultyDashboard = () => {
         comp_registered: 0,
         comp_qualified: 0,
         od_requests: 0,
-        section_label: 'Loading...'
+        section_label: 'Loading...',
+        batch_label: '...'
     });
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -55,9 +56,8 @@ const FacultyDashboard = () => {
                     <div className="flex items-center gap-2 text-gray-600 mt-2 text-sm">
                         <span>Class {stats.section_label}</span>
                         <span>|</span>
-                        <span>Batch </span>
-                        <span>|</span>
-                        <span className="text-blue-600 font-medium"></span>
+                        <span>Batch : </span>
+                        <span className="text-blue-600 font-medium">{stats.batch_label}</span>
                     </div>
                 </div>
 

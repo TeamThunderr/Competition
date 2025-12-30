@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { ArrowLeft, Award, CheckCircle, ExternalLink, Trophy, User, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Award, CheckCircle, ExternalLink, Trophy, User, Clock, AlertCircle, Phone } from 'lucide-react';
 import { getStudentDetails } from '../../services/usersService';
 
 const StudentDetail = () => {
@@ -81,24 +81,51 @@ const StudentDetail = () => {
                     >
                         <ArrowLeft size={18} /> Back to Student List
                     </button>
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
-                            <div className="flex items-center gap-4 text-gray-500 mt-2">
-                                <span className="flex items-center gap-1"><User size={16} /> {profile.rollNo}</span>
-                                <span>|</span>
-                                <span>{profile.department} - Section {profile.section}</span>
-                                <span>|</span>
-                                <span>|</span>
-                                <span>{profile.email}</span>
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                            <div>
+                                <div className="flex items-center gap-3">
+                                    <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border ${isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                                        {isActive ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-gray-500 mt-3 text-sm">
+                                    <span className="flex items-center gap-1.5"><User size={16} className="text-gray-400" /> {profile.rollNo}</span>
+                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span>{profile.department} - Section {profile.section}</span>
+                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span>{profile.email}</span>
+                                    {profile.phoneNumber && profile.phoneNumber !== 'N/A' && (
+                                        <>
+                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                            <a href={`tel:${profile.phoneNumber}`} className="flex items-center gap-1.5 hover:text-blue-600 transition-colors">
+                                                <Phone size={14} />
+                                                {profile.phoneNumber}
+                                            </a>
+                                        </>
+                                    )}
+                                    {profile.batch && (
+                                        <>
+                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-100 font-medium">
+                                                Batch {profile.batch}
+                                            </span>
+                                        </>
+                                    )}
+                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span className="flex items-center gap-1.5 font-medium text-gray-700">
+                                        <Award size={16} className="text-amber-500" />
+                                        CGPA: {profile.cgpa}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-blue-600 mt-4 text-sm font-medium bg-blue-50/50 px-3 py-2 rounded-lg border border-blue-100 w-fit">
+                                    <User size={14} />
+                                    <span>Class Advisor: {profile.classAdvisor || 'Not Assigned'}</span>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2 text-blue-600 mt-2 text-sm font-medium">
-                                <User size={14} />
-                                <span>Class Advisor: {profile.classAdvisor || 'Not Assigned'}</span>
-                            </div>
-                        </div>
-                        <div className={`px-4 py-1 rounded-full text-sm font-medium border ${isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
-                            {isActive ? 'Active Student' : 'Inactive'}
+
+                            {/* Actions / Additional Info could go here */}
                         </div>
                     </div>
                 </div>
