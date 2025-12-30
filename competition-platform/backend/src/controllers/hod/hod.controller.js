@@ -774,28 +774,59 @@ const getDepartmentFaculty = async (req, res) => {
         // 1. Fetch All Faculty
         const { data: faculty, error: facultyError } = await supabase
             .from('users')
-            .select('id, full_name, email, phone, assigned_sections, designation, avatar_url')
+            .select('id, full_name, email, phone_number, assigned_sections')
             .eq('role', 'FACULTY')
             .eq('department_id', hodDeptId);
 
         if (facultyError) throw facultyError;
 
-        // 2. Fetch Student Counts per Section for Stats calculation
-        // We need to know how many students are in "A", "B", etc.
-        const { data: students, error: studentError } = await supabase
-            .from('users')
-            .select('section')
-            .eq('role', 'STUDENT')
-            .eq('department_id', hodDeptId);
+        // 2. Fetch Student Counts per Section for Stats calculation (Paginated)
+        // We need section AND admission_year to breakdown by year
+        let allStudents = [];
+        let page = 0;
+        let hasMore = true;
+        const pageSize = 1000;
 
-        if (studentError) throw studentError;
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('users')
+                .select('section, admission_year')
+                .eq('role', 'STUDENT')
+                .eq('department_id', hodDeptId)
+                .range(page * pageSize, (page + 1) * pageSize - 1);
 
-        // Pre-calculate section counts: { "A": 45, "B": 42 }
+            if (error) throw error;
+
+            if (data.length > 0) {
+                allStudents = [...allStudents, ...data];
+                page++;
+                if (data.length < pageSize) hasMore = false;
+            } else {
+                hasMore = false;
+            }
+        }
+
+        // Pre-calculate section counts with Year Breakdown
+        // Structure: sectionCounts["A"] = { total: 45, byYear: { "2nd Year": 20, "3rd Year": 25 } }
         const sectionCounts = {};
-        students.forEach(s => {
+        const currentYear = new Date().getFullYear();
+
+        allStudents.forEach(s => {
             if (s.section) {
                 const sec = s.section.trim().toUpperCase();
-                sectionCounts[sec] = (sectionCounts[sec] || 0) + 1;
+
+                // Determine Year
+                const diff = s.admission_year ? currentYear - s.admission_year : -1;
+                const academicYear = diff === 1 ? '2nd Year' :
+                    diff === 2 ? '3rd Year' :
+                        diff === 3 ? '4th Year' : 'Other';
+
+                if (!sectionCounts[sec]) {
+                    sectionCounts[sec] = { total: 0, byYear: {} };
+                }
+
+                sectionCounts[sec].total++;
+                sectionCounts[sec].byYear[academicYear] = (sectionCounts[sec].byYear[academicYear] || 0) + 1;
             }
         });
 
@@ -803,35 +834,47 @@ const getDepartmentFaculty = async (req, res) => {
         const facultyList = faculty.map(f => {
             const sections = f.assigned_sections || [];
 
-            // Calculate total students under this faculty
             let totalStudents = 0;
-            const cleanSections = sections.map(s => {
-                // Formatting "CSE-A" to "A" for matching if needed, but display original
-                // Our matching logic in students is usually strict on the suffix or exact match 
-                // but let's assume sectionCounts keys are like "A", "B" and user assigned is "CSE-A", "A"
+            let yearBreakdown = {};
 
+            const cleanSections = sections.map(s => {
                 // Logic: Extract the last part "A" from "CSE-A"
                 const activeSec = s.split('-').pop().trim().toUpperCase();
 
-                // Add count if exists
-                totalStudents += (sectionCounts[activeSec] || 0);
+                const stats = sectionCounts[activeSec];
+                if (stats) {
+                    totalStudents += stats.total;
+                    // Aggregate years
+                    Object.entries(stats.byYear).forEach(([year, count]) => {
+                        yearBreakdown[year] = (yearBreakdown[year] || 0) + count;
+                    });
+                }
 
-                return s; // Return original string for display
+                return s;
             });
 
             return {
                 id: f.id,
                 name: f.full_name,
                 email: f.email,
-                phone: f.phone || 'N/A',
+                phone: f.phone_number || 'N/A',
                 designation: f.designation || 'Assistant Professor', // Default falllback
                 sections: cleanSections,
                 stats: {
                     studentsCount: totalStudents,
-                    sectionsCount: sections.length
+                    sectionsCount: sections.length,
+                    yearBreakdown: yearBreakdown // New detailed breakdown
                 },
-                avatar: f.avatar_url
+                avatar: null
             };
+        });
+
+        // Sort by Section (First assigned) then Name
+        facultyList.sort((a, b) => {
+            const secA = a.sections[0] || 'ZZ';
+            const secB = b.sections[0] || 'ZZ';
+            if (secA !== secB) return secA.localeCompare(secB, undefined, { numeric: true });
+            return a.name.localeCompare(b.name);
         });
 
         sendResponse(res, 200, facultyList, 'Fetched department faculty');
@@ -842,4 +885,66 @@ const getDepartmentFaculty = async (req, res) => {
     }
 };
 
-module.exports = { getDepartmentStats, getDepartmentUsers, getDepartmentAnalytics, getDashboardAnalysis, getStudentDetails, getDepartmentFaculty };
+
+const exportWinnersCsv = async (req, res) => {
+    try {
+        const hodDeptId = req.user.department_id;
+        console.log(`[HodController] Exporting winners for Dept: ${hodDeptId}`);
+
+        // Fetch Winners with details
+        // We use !inner on users to filter by HOD's department
+        const { data: winners, error } = await supabase
+            .from('competition_status')
+            .select(`
+                is_winner,
+                users!inner (full_name, registration_no, section, department_id, admission_year),
+                competitions (title, event_date, organizer)
+            `)
+            .eq('is_winner', true)
+            .eq('users.department_id', hodDeptId);
+
+        if (error) throw error;
+
+        // Generate CSV
+        const header = ['Student Name', 'Reg No', 'Section', 'Year', 'Competition', 'Organizer', 'Date'];
+        const rows = winners.map(w => {
+            const u = w.users;
+            const c = w.competitions;
+
+            // Calculate Year (approx)
+            const currentYear = new Date().getFullYear();
+            const diff = u.admission_year ? currentYear - u.admission_year : -1;
+            const yearLabel = diff === 1 ? '2nd' : diff === 2 ? '3rd' : diff === 3 ? '4th' : 'N/A';
+
+            return [
+                `"${u.full_name}"`,
+                `"${u.registration_no || ''}"`,
+                `"${u.section || ''}"`,
+                `"${yearLabel} Year"`,
+                `"${c.title}"`,
+                `"${c.organizer || ''}"`,
+                `"${c.event_date || ''}"`
+            ].join(',');
+        });
+
+        const csvString = [header.join(','), ...rows].join('\n');
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="winners_report.csv"');
+        res.status(200).send(csvString);
+
+    } catch (err) {
+        console.error('[HodController] Error exporting CSV:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
+    }
+};
+
+module.exports = {
+    getDepartmentStats,
+    getDepartmentUsers,
+    getDepartmentAnalytics,
+    getDashboardAnalysis,
+    getStudentDetails,
+    getDepartmentFaculty,
+    exportWinnersCsv
+};

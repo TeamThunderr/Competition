@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import HodSidebar from './Sidebar';
-import { ChevronDown, CheckCircle, User, FileText, Users, Award } from 'lucide-react';
-import { getDepartmentUsers } from '../../services/usersService';
+import { ChevronDown, CheckCircle, User, FileText, Users, Award, FileDown, BarChart3, TrendingUp, Calendar, ChevronRight } from 'lucide-react';
+import { getDepartmentUsers, downloadWinnersReport } from '../../services/usersService';
 import { api } from '../../services/api';
 
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,14 @@ const HodDashboard = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sectionData, setSectionData] = useState([]); // Real Data now
+
+    const handleDownloadReport = async () => {
+        try {
+            await downloadWinnersReport();
+        } catch (error) {
+            alert("Failed to download report");
+        }
+    };
 
     useEffect(() => {
         const controller = new AbortController();
@@ -168,17 +176,26 @@ const HodDashboard = () => {
             <HodSidebar />
 
             <div className="flex-1 ml-64 p-8">
-                {/* Header */}
+                {/* Header with Download Button */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">
-                            {activeTab} Year Dashboard
-                        </h1>
-                        <p className="text-gray-500 mt-1">
-                            {selectedSection === 'All Sections'
-                                ? `Overview of ${activeTab} Year Sections`
-                                : `Detailed View: ${selectedSection}`}
-                        </p>
+                    <div className="flex items-center gap-4"> {/* Added a flex container for title and button */}
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">
+                                {activeTab} Year Dashboard
+                            </h1>
+                            <p className="text-gray-500 mt-1">
+                                {selectedSection === 'All Sections'
+                                    ? `Overview of ${activeTab} Year Sections`
+                                    : `Detailed View: ${selectedSection}`}
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleDownloadReport}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm h-10" // Added h-10 for alignment
+                        >
+                            <FileDown size={18} />
+                            <span>Winners Report</span>
+                        </button>
                     </div>
 
                     <div className="flex gap-4">

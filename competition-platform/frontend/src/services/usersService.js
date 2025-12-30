@@ -93,3 +93,43 @@ export const getDepartmentFaculty = async () => {
         throw error;
     }
 };
+
+export const downloadWinnersReport = async () => {
+    try {
+        const response = await api.get('/api/hod/stats/export-winners', {
+            responseType: 'blob', // Important for file download
+        });
+
+        // Create link to download
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Winners_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+    } catch (error) {
+        console.error("Error downloading report:", error);
+        throw error;
+    }
+};
+
+export default {
+    getMyStudents,
+    getStudentDetails,
+    getFacultyDashboardStats,
+    getRecentRegistrations,
+    getPendingVerifications,
+    verifyRegistration,
+    getCompetitionStudents,
+    getHODCompetitionStats,
+    getPendingODRequests,
+    manageODRequest,
+    getDepartmentUsers,
+    getDepartmentAnalytics,
+    getDashboardAnalysis,
+    getHodStudentDetails,
+    getDepartmentFaculty,
+    downloadWinnersReport
+};

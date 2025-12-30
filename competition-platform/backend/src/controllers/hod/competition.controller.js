@@ -60,7 +60,7 @@ const getCompetitionStats = async (req, res) => {
         while (hasMore) {
             const { data: pageData, error } = await supabase
                 .from('users')
-                .select('id, full_name, registration_no, section')
+                .select('id, full_name, registration_no, section, admission_year')
                 .eq('role', 'STUDENT')
                 .eq('department_id', department_id)
                 .range(page * pageSize, (page + 1) * pageSize - 1);
@@ -86,19 +86,42 @@ const getCompetitionStats = async (req, res) => {
             });
         }
 
-        // Group students by section
-        const studentsBySection = {};
+        // Group students by Year -> Section
+        const groups = { "2nd Year": {}, "3rd Year": {}, "4th Year": {}, "Other": {} };
+        const currentYear = new Date().getFullYear();
+
         allStudents.forEach(s => {
+            const diff = s.admission_year ? currentYear - s.admission_year : -1;
+            let academicYear = 'Other';
+            if (diff === 1) academicYear = '2nd Year';
+            else if (diff === 2) academicYear = '3rd Year';
+            else if (diff === 3) academicYear = '4th Year';
+
             const sec = s.section || 'Unknown';
-            if (!studentsBySection[sec]) studentsBySection[sec] = [];
-            studentsBySection[sec].push(s);
+            if (!groups[academicYear][sec]) groups[academicYear][sec] = [];
+            groups[academicYear][sec].push(s);
         });
 
-        const totalSectionsData = Object.keys(studentsBySection).map(sec => ({
-            name: sec,
-            count: studentsBySection[sec].length,
-            students: studentsBySection[sec].map(s => ({ id: s.id, name: s.full_name, regNo: s.registration_no }))
-        }));
+        // Transform to Array for Frontend
+        const yearOrder = ["2nd Year", "3rd Year", "4th Year", "Other"];
+        const totalSectionsData = yearOrder
+            .map(year => {
+                const sectionsObj = groups[year];
+                if (Object.keys(sectionsObj).length === 0) return null;
+
+                const sectionsList = Object.keys(sectionsObj).sort().map(sec => ({
+                    name: sec,
+                    count: sectionsObj[sec].length,
+                    students: sectionsObj[sec].map(s => ({ id: s.id, name: s.full_name, regNo: s.registration_no }))
+                }));
+
+                return {
+                    year: year,
+                    totalStudents: sectionsList.reduce((acc, curr) => acc + curr.count, 0),
+                    sections: sectionsList
+                };
+            })
+            .filter(g => g !== null); // Remove empty years
 
         // 2. Fetch Registrations (Chunked to avoid URL length issues)
         let registrations = [];

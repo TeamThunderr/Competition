@@ -104,6 +104,15 @@ const HodFaculty = () => {
                                     <div className="text-right">
                                         <p className="text-xs text-gray-400 uppercase font-semibold mb-1">Students</p>
                                         <p className="text-lg font-bold text-gray-900">{member.stats.studentsCount}</p>
+
+                                        {/* Year Breakdown Tooltip/Text */}
+                                        <div className="flex flex-col text-[10px] text-gray-500 mt-1">
+                                            {member.stats.yearBreakdown && Object.entries(member.stats.yearBreakdown)
+                                                .sort((a, b) => a[0].localeCompare(b[0]))
+                                                .map(([year, count]) => (
+                                                    <span key={year}>{year}: {count}</span>
+                                                ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
