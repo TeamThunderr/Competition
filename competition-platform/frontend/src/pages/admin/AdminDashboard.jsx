@@ -8,7 +8,9 @@ const AdminDashboard = () => {
     const [stats, setStats] = useState({
         activeCompetitions: 0,
         totalParticipation: "0",
-        lastSync: "00:00"
+        lastSync: "00:00",
+        lastUpload: "Never",
+        closingSoonCount: 0
     });
 
     const [recentActivity, setRecentActivity] = useState([]);
@@ -28,38 +30,52 @@ const AdminDashboard = () => {
                 }
 
                 // 2. Fetch Competitions for Active Count
-                // api.js handles error throwing for non-ok responses
                 const comps = await api.get('/api/competitions');
                 let activeCount = 0;
                 let activities = [];
+                let closingSoon = 0;
+                let lastDate = "Never";
 
                 if (comps) {
                     console.log(`[AdminDashboard] Fetched ${comps.length} competitions total.`);
-
                     const now = new Date();
 
-                    // Filter active competitions (Registration Open)
+                    // Filter active competitions
                     const activeComps = comps.filter(c => {
                         if (!c.registration_deadline) return false;
                         const deadline = new Date(c.registration_deadline);
-                        return !isNaN(deadline.getTime()) && deadline > now;
+                        const isValid = !isNaN(deadline.getTime()) && deadline > now;
+
+                        if (isValid) {
+                            // Check urgency: closing within 7 days
+                            const diffTime = Math.abs(deadline - now);
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            if (diffDays <= 7) closingSoon++;
+                        }
+                        return isValid;
                     });
 
                     activeCount = activeComps.length;
-                    console.log(`[AdminDashboard] Active competitions count: ${activeCount}`);
 
-                    // Generate activity feed from new competitions (mocking activity from extraction)
-                    activities = comps.slice(0, 3).map(c => ({
-                        message: `New competition added: ${c.title}`,
+                    // Activity Feed
+                    activities = comps.slice(0, 5).map(c => ({
+                        action: "Competition added",
+                        target: c.title,
                         user: "System",
                         time: c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'
                     }));
+
+                    if (comps.length > 0) {
+                        lastDate = comps[0]?.created_at ? new Date(comps[0].created_at).toLocaleDateString() : "Just now";
+                    }
                 }
 
                 setStats({
                     activeCompetitions: activeCount,
                     totalParticipation: totalVerified.toString(),
-                    lastSync: new Date().toLocaleTimeString()
+                    lastSync: new Date().toLocaleTimeString(),
+                    lastUpload: lastDate,
+                    closingSoonCount: closingSoon
                 });
 
                 if (activities.length > 0) {
@@ -91,16 +107,18 @@ const AdminDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     {/* Active Competitions */}
                     <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Active Competitions</h3>
-                        <div className="text-3xl font-bold text-gray-900 mb-4">{stats.activeCompetitions}</div>
-                        <div className="flex gap-2">
-
-                        </div>
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Active Competitions (Accepting Entries)</h3>
+                        <div className="text-3xl font-bold text-gray-900 mb-2">{stats.activeCompetitions}</div>
+                        {stats.closingSoonCount > 0 && (
+                            <div className="text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded inline-block">
+                                {stats.closingSoonCount} closing this week
+                            </div>
+                        )}
                     </div>
 
                     {/* Total Participation */}
                     <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Total Participation</h3>
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Total Student Registrations</h3>
                         <div className="text-3xl font-bold text-gray-900 mb-4">{stats.totalParticipation}</div>
                         <div className="text-xs text-gray-400">Across 8 Departments</div>
                     </div>
@@ -108,7 +126,13 @@ const AdminDashboard = () => {
                     {/* Last Data Sync */}
                     <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Last Data Sync</h3>
-                        <div className="text-xl font-bold text-gray-900 mb-4">{stats.lastSync}</div>
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="text-xl font-bold text-gray-900">{stats.lastSync}</div>
+                            <span className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full font-medium">
+                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1"></span>
+                                Synced
+                            </span>
+                        </div>
                         <button className="text-blue-600 text-xs font-semibold hover:underline">Force Refresh</button>
                     </div>
                 </div>
@@ -125,23 +149,46 @@ const AdminDashboard = () => {
                             <p className="text-blue-100 mb-8 max-w-md">
                                 Upload new competition details via Excel or manually add upcoming events to the global repository.
                             </p>
-                            <Link to="/admin/upload" className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-blue-50 transition-colors shadow-sm inline-flex">
-                                <Upload size={20} />
-                                Launch Upload Panel
-                            </Link>
+                            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                                <Link to="/admin/upload" className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-blue-50 transition-colors shadow-sm">
+                                    <Upload size={20} />
+                                    Launch Upload Panel
+                                </Link>
+                                <Link to="/admin/repository" className="bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-blue-800 transition-colors border border-blue-500">
+                                    View All Competitions
+                                </Link>
+                            </div>
+                            <p className="mt-4 text-sm text-blue-200 opacity-80">
+                                Last upload: <span className="font-mono font-medium text-white">{stats.lastUpload}</span>
+                            </p>
                         </div>
                     </div>
 
                     {/* Activity Feed */}
                     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-gray-900 mb-6">Recent System Activity</h3>
-                        <div className="space-y-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-gray-900">Recent System Activity</h3>
+                            <Link to="/admin/logs" className="text-blue-600 text-sm font-medium hover:underline">View all logs</Link>
+                        </div>
+
+                        <div className="space-y-6 relative">
+                            {/* Timeline Line */}
+                            <div className="absolute left-1.5 top-2 bottom-2 w-0.5 bg-gray-100"></div>
+
                             {recentActivity.map((activity, index) => (
-                                <div key={index} className="border-b border-gray-50 last:border-0 pb-4 last:pb-0">
-                                    <p className="text-sm text-gray-800 font-medium mb-1">{activity.message}</p>
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="text-blue-600 font-medium">{activity.user}</span>
-                                        <span className="text-gray-400">{activity.time}</span>
+                                <div key={index} className="relative pl-6">
+                                    {/* Timeline Dot */}
+                                    <div className="absolute left-0 top-1.5 w-3.5 h-3.5 bg-blue-100 border-2 border-blue-600 rounded-full z-10"></div>
+
+                                    <div className="mb-1">
+                                        <span className="text-gray-900 font-medium">{activity.action}</span>
+                                        <span className="text-gray-400 mx-1">–</span>
+                                        <span className="text-gray-600">{activity.target}</span>
+                                    </div>
+                                    <div className="text-xs text-gray-500 flex items-center gap-1">
+                                        <span className="font-medium text-gray-700">{activity.user}</span>
+                                        <span>·</span>
+                                        <span>{activity.time}</span>
                                     </div>
                                 </div>
                             ))}
