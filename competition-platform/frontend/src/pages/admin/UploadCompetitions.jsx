@@ -9,7 +9,7 @@ const UploadCompetitions = () => {
     const [uploading, setUploading] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
-        platform: 'Devfolio',
+        platform: 'Unstop',
         deadline: '',
         link: '',
         description: '',
@@ -107,7 +107,7 @@ const UploadCompetitions = () => {
                 alert('Competition created successfully!');
                 setFormData({
                     title: '',
-                    platform: 'Devfolio',
+                    platform: 'Unstop',
                     deadline: '',
                     link: '',
                     description: '',
@@ -211,10 +211,11 @@ const UploadCompetitions = () => {
                                         onChange={handleInputChange}
                                         className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none bg-white"
                                     >
-                                        <option>Devfolio</option>
                                         <option>Unstop</option>
-                                        <option>HackerRank</option>
-                                        <option>Other</option>
+                                        <option>Devfolio</option>
+                                        <option>Devpost</option>
+                                        <option>Hack2skill</option>
+                                        <option>Others</option>
                                     </select>
                                     <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-400">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>

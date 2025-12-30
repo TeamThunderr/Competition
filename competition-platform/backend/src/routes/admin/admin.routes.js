@@ -30,6 +30,7 @@ router.get("/competition/:id/stats", statsController.getCompetitionStats);
 
 // 👥 Student & Faculty Data
 router.get("/students", usersController.getStudents);
+router.get("/student/:id", usersController.getStudentDetails);
 router.get("/faculty", usersController.getFaculty);
 
 module.exports = router;
