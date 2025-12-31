@@ -233,12 +233,47 @@ const getDashboardStats = async (req, res) => {
             throw odError;
         }
 
+        // 5. Determine Batch Label
+        let batchLabel = 'N/A';
+        if (myStudentIds.length > 0) {
+            const { data: sampleStudent } = await supabase
+                .from('users')
+                .select('registration_no')
+                .eq('id', myStudentIds[0])
+                .single();
+
+            if (sampleStudent?.registration_no) {
+                const regNo = sampleStudent.registration_no;
+                // Try to detect year.
+                // Scenario A: Starts with Year (e.g., "24..." -> 2024)
+                // Scenario B: Standard College Code (e.g., "737624..." -> 2024)
+
+                let yearShort = null;
+                const prefix = regNo.substring(0, 2);
+                const mid = regNo.length >= 6 ? regNo.substring(4, 6) : null;
+
+                // Heuristic: Valid batch years are likely between 20 (2020) and 30 (2030) for this active system
+                if (parseInt(prefix) >= 15 && parseInt(prefix) <= 40) {
+                    yearShort = prefix;
+                } else if (mid && parseInt(mid) >= 15 && parseInt(mid) <= 40) {
+                    yearShort = mid;
+                }
+
+                if (yearShort) {
+                    const startYear = 2000 + parseInt(yearShort, 10);
+                    const endYear = startYear + 4;
+                    batchLabel = `${startYear}-${endYear}`;
+                }
+            }
+        }
+
         const stats = {
             total_students: totalStudents,
             comp_registered: registeredCount || 0,
             comp_qualified: qualifiedCount || 0,
             od_requests: odCount || 0,
-            section_label: assigned_sections?.join(', ') || 'N/A'
+            section_label: assigned_sections?.join(', ') || 'N/A',
+            batch_label: batchLabel
         };
 
         console.log('[FacultyDebug] Stats compiled:', stats);
@@ -299,4 +334,181 @@ const getRecentRegistrations = async (req, res) => {
     }
 };
 
-module.exports = { getMyStudents, getStats, getDashboardStats, getRecentRegistrations };
+const getStudentDetails = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const { assigned_sections, department_id, id: facultyId } = req.user;
+
+        console.log(`[FacultyDebug] getStudentDetails - Faculty: ${facultyId} Dept: ${department_id} Student: ${studentId}`);
+        console.log(`[FacultyDebug] Assigned Sections (Raw):`, assigned_sections);
+
+        // 1a. Validate UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(studentId)) {
+            console.warn(`[FacultyDebug] Invalid UUID: ${studentId}`);
+            return sendResponse(res, 400, null, 'Invalid Student ID format');
+        }
+
+        // 1b. Fetch Student
+        const { data: student, error: studentError } = await supabase
+            .from('users')
+            .select('id, full_name, registration_no, email, phone_number, department_id, section, cgpa, departments(name)')
+            .eq('id', studentId)
+            .single();
+
+        if (studentError || !student) {
+            console.error(`[FacultyDebug] Student fetch error or not found:`, studentError);
+            return sendResponse(res, 404, null, 'Student not found');
+        }
+
+        console.log(`[FacultyDebug] Fetched Student: ID=${student.id}, Dept=${student.department_id}, Section=${student.section}, CGPA=${student.cgpa}, Phone=${student.phone_number}`);
+
+        // 1c. Verify Department
+        if (student.department_id !== department_id) {
+            console.warn(`[FacultyDebug] Dept Mismatch: FacultyDept=${department_id}, StudentDept=${student.department_id}`);
+            return sendResponse(res, 403, null, 'Unauthorized: Student belongs to another department');
+        }
+
+        // 1d. Verify Section
+        // Parse assigned sections - handle "CSE-A" -> "A" and plain "A". Case insensitive.
+        const allowedSections = (assigned_sections || []).map(s => {
+            if (!s) return '';
+            const parts = s.split('-');
+            // If "CSE-A", take "A". If "A", take "A".
+            return (parts.length > 1 ? parts[1] : parts[0]).trim().toUpperCase();
+        }).filter(s => s !== '');
+
+        const studentSection = (student.section || '').trim().toUpperCase();
+
+        console.log(`[FacultyDebug] Allowed Sections (Parsed): ${JSON.stringify(allowedSections)}`);
+        console.log(`[FacultyDebug] Student Section (Parsed): '${studentSection}'`);
+
+        if (!allowedSections.includes(studentSection)) {
+            console.warn(`[FacultyDebug] Section Mismatch! Allowed: ${allowedSections}, Got: ${studentSection}`);
+            return sendResponse(res, 403, null, 'Unauthorized: Student is not in your assigned sections');
+        }
+
+        // 2. Fetch Registrations & Competitions
+        const { data: registrations, error: regError } = await supabase
+            .from('registrations')
+            .select(`
+                id,
+                registered_at,
+                verified,
+                competitions (
+                    id,
+                    title,
+                    platform
+                )
+            `)
+            .eq('user_id', studentId);
+
+        if (regError) throw regError;
+
+        // 3. Fetch Status (Qualified/Won)
+        const { data: statuses, error: statusError } = await supabase
+            .from('competition_status')
+            .select('*')
+            .eq('user_id', studentId);
+
+        if (statusError) throw statusError;
+
+        // 4. Fetch Class Advisor (Faculty for this section)
+        // Find faculty in same dept whose assigned_sections (array) string-contains the student section.
+        // Since SQL 'contains' is strict on JSON array elements, and our format varies (CSE-A vs A),
+        // we'll fetch keys and filter in memory or use a broad text search.
+        // Simplest: Fetch all faculty in dept, find match. (Faculty count is small < 50 usually)
+
+        let classAdvisorName = 'Not Assigned';
+        const { data: deptFaculty, error: facultyError } = await supabase
+            .from('users')
+            .select('full_name, assigned_sections')
+            .eq('role', 'FACULTY')
+            .eq('department_id', department_id);
+
+        if (!facultyError && deptFaculty) {
+            const advisor = deptFaculty.find(f => {
+                const sections = f.assigned_sections || [];
+                // Check if any assigned section matches student section (fuzzy match for 'A' vs 'CSE-A')
+                return sections.some(s => {
+                    const parsed = s.split('-').pop().trim().toUpperCase();
+                    return parsed === studentSection;
+                });
+            });
+            if (advisor) classAdvisorName = advisor.full_name;
+        }
+
+        // Aggregate Data
+        const competitionDetails = registrations.map(reg => {
+            const statusEntry = statuses?.find(s => s.competition_id === reg.competitions.id);
+
+            let status = 'Registered';
+            const isVerified = reg.verified;
+
+            if (statusEntry?.is_shortlisted) status = 'Qualified';
+            if (statusEntry?.is_winner) status = 'Won';
+
+            return {
+                id: reg.competitions.id,
+                competitionName: reg.competitions.title,
+                platform: reg.competitions.platform || 'N/A',
+                regType: 'Individual',
+                status: status,
+                verificationStatus: isVerified ? 'Verified' : 'Pending',
+                registeredAt: reg.registered_at
+            };
+        });
+
+        // Calculate Batch
+        let batchLabel = 'N/A';
+        if (student.registration_no) {
+            const regNo = student.registration_no;
+            let yearShort = null;
+            const prefix = regNo.substring(0, 2);
+            const mid = regNo.length >= 6 ? regNo.substring(4, 6) : null;
+
+            if (parseInt(prefix) >= 15 && parseInt(prefix) <= 40) {
+                yearShort = prefix;
+            } else if (mid && parseInt(mid) >= 15 && parseInt(mid) <= 40) {
+                yearShort = mid;
+            }
+
+            if (yearShort) {
+                const startYear = 2000 + parseInt(yearShort, 10);
+                const endYear = startYear + 4;
+                batchLabel = `${startYear}-${endYear}`;
+            }
+        }
+
+        const stats = {
+            registered: registrations.length,
+            qualified: statuses?.filter(s => s.is_shortlisted).length || 0,
+            won: statuses?.filter(s => s.is_winner).length || 0,
+        };
+
+        const responseData = {
+            profile: {
+                name: student.full_name,
+                rollNo: student.registration_no,
+                email: student.email,
+                department: student.departments.name,
+                section: student.section,
+                classAdvisor: classAdvisorName,
+                batch: batchLabel,
+                cgpa: student.cgpa || 'N/A',
+                phoneNumber: student.phone_number || 'N/A'
+            },
+            stats,
+            competitions: competitionDetails
+        };
+
+        sendResponse(res, 200, responseData, 'Fetched student details');
+
+    } catch (err) {
+        console.error('[FacultyController] Error fetching student details:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
+    }
+};
+
+module.exports = { getMyStudents, getStats, getDashboardStats, getRecentRegistrations, getStudentDetails };
+

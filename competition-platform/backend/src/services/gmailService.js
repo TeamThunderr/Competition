@@ -113,8 +113,8 @@ const detectHackathonStatus = (text) => {
  * Extract Hackathon Name from Subject
  */
 const extractHackathonName = (subject, sender) => {
-    // Strategy 1: Split by separators like | or -
-    const separators = ['|', '–', '-', ':'];
+    // Strategy 1: Split by separators
+    const separators = ['|', '–', '-', ':', '[', ']']; // Added brackets for [Event Name]
     for (const sep of separators) {
         if (subject.includes(sep)) {
             const parts = subject.split(sep);
@@ -125,15 +125,17 @@ const extractHackathonName = (subject, sender) => {
         }
     }
 
-    // Strategy 2: If no separator, use the whole subject if reasonable length
+    // Strategy 2: Clean common prefixes
     let finalName = subject;
-    // ... logic to pick part ... 
-    // (Existing logic was simple splitting, let's keep it but clean the result)
-    if (subject.includes(' - ')) finalName = subject.split(' - ')[0]; // often "Event Name - Platform"
-    else if (subject.includes(' | ')) finalName = subject.split(' | ')[0];
 
-    // Clean common prefixes
-    const prefixes = ['Welcome to ', 'Registration Confirmed: ', 'You are registered for '];
+    // Clean common prefixes (Case Insensitive Check)
+    const prefixes = [
+        'Welcome to ',
+        'Registration Confirmed: ',
+        'You are registered for ',
+        'Registered successfully for ' // Added for Unstop
+    ];
+
     for (const p of prefixes) {
         if (finalName.toLowerCase().startsWith(p.toLowerCase())) {
             finalName = finalName.substring(p.length);
@@ -143,10 +145,11 @@ const extractHackathonName = (subject, sender) => {
     // Clean: Remove emojis and non-standard chars from start
     finalName = finalName.replace(/^[\u{1F600}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]\s*/gu, '');
 
+    // Clean: Remove trailing punctuation like '!' or '.'
+    finalName = finalName.replace(/[!.]+$/, '');
+
     // If name is just "Congratulations" or similar, try next part if available or using subject
     if (['congratulations', 'reminder', 'update'].includes(finalName.toLowerCase())) {
-        // If we had parts, take the next one
-        // But here we might need to be smarter. For now, let's just return the subject if the name is too generic
         return subject;
     }
 
