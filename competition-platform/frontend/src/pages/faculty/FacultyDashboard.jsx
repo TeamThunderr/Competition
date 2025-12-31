@@ -94,13 +94,15 @@ const FacultyDashboard = () => {
 
                             {competitions.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {competitions.map(comp => (
-                                        <CompetitionCard
-                                            key={comp.id}
-                                            competition={comp}
-                                            showRegister={false}
-                                        />
-                                    ))}
+                                    {competitions
+                                        .filter(comp => new Date(comp.registration_deadline) >= new Date())
+                                        .map(comp => (
+                                            <CompetitionCard
+                                                key={comp.id}
+                                                competition={comp}
+                                                showRegister={false}
+                                            />
+                                        ))}
                                 </div>
                             ) : (
                                 <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">

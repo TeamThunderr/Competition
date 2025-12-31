@@ -40,8 +40,8 @@ const ActiveCompetitions = () => {
             <div className="flex-1 ml-64 p-8">
                 <div className="flex justify-between items-center mb-8">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Active Competitions</h1>
-                        <p className="text-gray-500 mt-1">View all ongoing and upcoming competitions.</p>
+                        <h1 className="text-2xl font-bold text-gray-900">All Competitions</h1>
+                        <p className="text-gray-500 mt-1">View history of all competitions.</p>
                     </div>
                 </div>
 
