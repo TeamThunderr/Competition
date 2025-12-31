@@ -138,7 +138,7 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Content Grid (Action + Feed) */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                     {/* Manage Competitions Action Card */}
                     <div className="lg:col-span-2 bg-blue-600 rounded-xl p-8 text-white relative overflow-hidden shadow-lg">
                         {/* Background Pattern Hint */}
@@ -146,7 +146,7 @@ const AdminDashboard = () => {
 
                         <div className="relative z-10">
                             <h2 className="text-2xl font-bold mb-3">Manage Competitions</h2>
-                            <p className="text-blue-100 mb-8 max-w-md">
+                            <p className="text-blue-100 mb-10 max-w-md">
                                 Upload new competition details via Excel or manually add upcoming events to the global repository.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
@@ -165,6 +165,7 @@ const AdminDashboard = () => {
                     </div>
 
                     {/* Activity Feed */}
+                    {/* Activity Feed */}
                     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-gray-900">Recent System Activity</h3>
@@ -175,7 +176,7 @@ const AdminDashboard = () => {
                             {/* Timeline Line */}
                             <div className="absolute left-1.5 top-2 bottom-2 w-0.5 bg-gray-100"></div>
 
-                            {recentActivity.map((activity, index) => (
+                            {recentActivity.slice(0, 3).map((activity, index) => (
                                 <div key={index} className="relative pl-6">
                                     {/* Timeline Dot */}
                                     <div className="absolute left-0 top-1.5 w-3.5 h-3.5 bg-blue-100 border-2 border-blue-600 rounded-full z-10"></div>
@@ -192,6 +193,10 @@ const AdminDashboard = () => {
                                     </div>
                                 </div>
                             ))}
+
+                            {recentActivity.length === 0 && (
+                                <div className="text-gray-400 text-sm text-center py-4">No recent activity</div>
+                            )}
                         </div>
                     </div>
                 </div>
