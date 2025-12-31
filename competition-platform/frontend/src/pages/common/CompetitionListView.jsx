@@ -51,12 +51,15 @@ const CompetitionListView = ({
         return matchesSearch && matchesFilter;
     }).sort((a, b) => {
         // Sort by Priority: Active > Expired > No Deadline
+
+        // Helper to get deadline from correct property (DB uses registration_deadline)
+        const getDeadline = (obj) => obj.registration_deadline || obj.deadline;
+
         // Helper to parse 'DD/MM/YYYY' or ISO string
         const parseDate = (dateStr) => {
             if (!dateStr) return null;
             if (dateStr.includes('/')) {
                 const [day, month, year] = dateStr.split('/');
-                // Ensure padding
                 const paddedMonth = month.padStart(2, '0');
                 const paddedDay = day.padStart(2, '0');
                 return new Date(`${year}-${paddedMonth}-${paddedDay}`);
@@ -64,11 +67,11 @@ const CompetitionListView = ({
             return new Date(dateStr);
         };
 
-        const dateA = parseDate(a.deadline);
-        const dateB = parseDate(b.deadline);
+        const deadlineA = getDeadline(a);
+        const deadlineB = getDeadline(b);
 
-        // Debug: Check a specific collision if needed
-        // console.log("Comparing:", a.title, dateA?.toDateString(), "VS", b.title, dateB?.toDateString());
+        const dateA = parseDate(deadlineA);
+        const dateB = parseDate(deadlineB);
 
         // No deadline -> Push to end
         if (!dateA || isNaN(dateA.getTime())) return 1;
