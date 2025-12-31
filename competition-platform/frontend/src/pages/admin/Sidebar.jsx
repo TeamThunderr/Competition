@@ -16,7 +16,7 @@ const Sidebar = () => {
     const menuItems = [
         { icon: LayoutDashboard, label: 'CIT Dashboard', path: '/admin' },
         { icon: Search, label: 'Student Search', path: '/admin/search' },
-        { icon: Upload, label: 'Upload Competitions', path: '/admin/upload' },
+        { icon: Upload, label: 'Manage Competitions', path: '/admin/upload' },
         { icon: Bookmark, label: 'Global Repository', path: '/admin/repository' },
         { icon: BarChart3, label: 'Dept. Performance', path: '/admin/performance' },
     ];

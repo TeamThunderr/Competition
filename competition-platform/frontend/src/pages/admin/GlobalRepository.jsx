@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { Search, ChevronDown, Filter } from 'lucide-react';
+import { api } from '../../services/api';
 
 const GlobalRepository = () => {
     const [activeTab, setActiveTab] = useState('All');
     const [deptOpen, setDeptOpen] = useState(false);
     const [platformOpen, setPlatformOpen] = useState(false);
+    const [selectedDept, setSelectedDept] = useState('All Departments');
+    const [selectedPlatform, setSelectedPlatform] = useState('All Platforms');
 
     const tabs = ['All', 'Active', 'Upcoming', 'Completed'];
 
@@ -15,11 +18,8 @@ const GlobalRepository = () => {
     React.useEffect(() => {
         const fetchCompetitions = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/competitions');
-                if (response.ok) {
-                    const data = await response.json();
-                    setCompetitions(data);
-                }
+                const data = await api.get('/api/competitions');
+                setCompetitions(data);
             } catch (err) {
                 console.error("Failed to fetch competitions", err);
             } finally {
@@ -39,76 +39,99 @@ const GlobalRepository = () => {
         const now = new Date();
         // Reset time for date-only comparison if desired, but precise is safer
 
-        if (activeTab === 'All') return true;
-
         if (activeTab === 'Active') {
             // Logic: Active means registration is currently open
-            return deadlineDate >= now;
+            if (deadlineDate < now) return false;
         }
 
         if (activeTab === 'Completed') {
             // Logic: Registration deadline has passed
-            return deadlineDate < now;
+            if (deadlineDate >= now) return false;
         }
 
         if (activeTab === 'Upcoming') {
-            // Logic: Usually for "Registration starts in future", but for now, 
-            // user requested tabs to work. If data lacks start_date, merge with Active or omit.
-            // Let's assume Upcoming means "Active" but maybe far out? 
-            // Or if user intends "Events happening in future but reg closed?"
-            // Standard interpretation: 
-            // Active = Reg Open. 
-            // Upcoming = Reg hasn't started yet. (Need reg_start_date)
-            // Since we only have deadline, I will handle 'Upcoming' as 'Active' for now OR 'Open > 7 days'?
-            // Let's stick to: Upcoming = Same as Active (Reg Open) to avoid empty list, 
-            // or check if 'event_date' is far future?
-            // User said: "according to database".
-            // If DB has no start_date, I will just treat 'Active' as Open.
-            // I will make 'Upcoming' show competitions where deadline is > 30 days from now? 
-            // Or better: Active = open, Upcoming = open.
-            return deadlineDate >= now;
+            // Logic: Upcoming treated as Active for now per previous decision
+            if (deadlineDate < now) return false;
+        }
+
+        // Platform Filter
+        if (selectedPlatform !== 'All Platforms') {
+            const explicitPlatforms = ['Unstop', 'Devfolio', 'Devpost', 'Hack2skill'];
+
+            if (selectedPlatform === 'Others') {
+                // Should match if platform is NOT one of the explicit ones
+                if (!comp.platform || explicitPlatforms.includes(comp.platform)) return false;
+            } else {
+                // Exact match for explicit platforms
+                if (!comp.platform || comp.platform !== selectedPlatform) return false;
+            }
+        }
+
+        // Department Filter
+        if (selectedDept !== 'All Departments') {
+            // Enhanced Department Filtering Logic
+            let deptData = comp.departments;
+            if (deptData && deptData !== 'All') {
+                let depts = [];
+
+                if (Array.isArray(deptData)) {
+                    // Handle array of strings or objects (relations)
+                    depts = deptData.map(d => (typeof d === 'object' && d.name) ? d.name : d);
+                } else if (typeof deptData === 'string') {
+                    // Handle comma-separated or JSON string
+                    if (deptData.startsWith('[') && deptData.endsWith(']')) {
+                        try {
+                            const parsed = JSON.parse(deptData);
+                            depts = Array.isArray(parsed) ? parsed : [parsed];
+                        } catch (e) {
+                            depts = [deptData];
+                        }
+                    } else {
+                        depts = deptData.includes(',') ? deptData.split(',').map(d => d.trim()) : [deptData];
+                    }
+                } else if (typeof deptData === 'object') {
+                    // Single object (relation)
+                    if (deptData.name) depts = [deptData.name];
+                }
+
+                // Filter check
+                // If the competition has departments, check if selectedDept is in them.
+                // Also check if 'All' is in them (meaning open to everyone).
+                if (depts.length > 0) {
+                    if (!depts.includes(selectedDept) && !depts.includes('All') && !depts.includes('All Departments')) {
+                        return false;
+                    }
+                }
+            }
         }
 
         return true;
+    }).sort((a, b) => {
+        const now = new Date();
+        const aDeadline = new Date(a.registration_deadline);
+        const bDeadline = new Date(b.registration_deadline);
+
+        const aIsOpen = aDeadline >= now;
+        const bIsOpen = bDeadline >= now;
+
+        // Open competitions first
+        if (aIsOpen && !bIsOpen) return -1;
+        if (!aIsOpen && bIsOpen) return 1;
+
+        // Then sort by deadline (ascending - nearest first)
+        return aDeadline - bDeadline;
     });
 
-    const [statsModalOpen, setStatsModalOpen] = useState(false);
-    const [selectedCompetitionStats, setSelectedCompetitionStats] = useState(null);
-    const [selectedCompTitle, setSelectedCompTitle] = useState('');
-    const [statsError, setStatsError] = useState(null);
-
-    const handleViewStats = async (competition) => {
-        setSelectedCompTitle(competition.title);
-        setSelectedCompetitionStats(null); // Reset
-        setStatsError(null); // Reset error
-        setStatsModalOpen(true);
-
-        console.log("Fetching stats for:", competition.id);
-
-        try {
-            const response = await fetch(`http://localhost:5000/api/admin/competition/${competition.id}/stats`);
-            console.log("Response status:", response.status);
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log("Stats received:", data);
-                setSelectedCompetitionStats(data);
-            } else {
-                const errText = await response.text();
-                console.error("Stats fetch failed:", errText);
-                setStatsError(`Failed to load stats. Status: ${response.status}`);
-            }
-        } catch (error) {
-            console.error("Failed to fetch stats", error);
-            setStatsError("Network error or server unreachable.");
-        }
+    const handleViewStats = (competition) => {
+        // Navigate to dedicated stats page
+        window.location.href = `/admin/repository/${competition.id}`;
     };
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
             <Sidebar />
             <div className="flex-1 ml-64 p-6 min-w-0">
-                <div className="mb-8 text-left">
+                <div className="mb-8 text-center">
                     <h1 className="text-2xl font-bold text-gray-900">Global Repository</h1>
                     <p className="text-gray-500 mt-1">Master list of all competitions managed by CIT.</p>
                 </div>
@@ -141,13 +164,23 @@ const GlobalRepository = () => {
                                         onClick={() => { setDeptOpen(!deptOpen); setPlatformOpen(false); }}
                                         className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 w-44 justify-between transition-colors"
                                     >
-                                        All Departments
+                                        {selectedDept}
                                         <ChevronDown size={16} />
                                     </button>
                                     {deptOpen && (
-                                        <div className="absolute top-full right-0 mt-1 w-full bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-10 animate-in fade-in zoom-in-95 duration-100">
+                                        <div className="absolute top-full right-0 mt-1 w-full bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+                                            <button
+                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-medium"
+                                                onClick={() => { setSelectedDept('All Departments'); setDeptOpen(false); }}
+                                            >
+                                                All Departments
+                                            </button>
                                             {['CSE', 'AIDS', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'].map(dept => (
-                                                <button key={dept} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                                <button
+                                                    key={dept}
+                                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                                    onClick={() => { setSelectedDept(dept); setDeptOpen(false); }}
+                                                >
                                                     {dept}
                                                 </button>
                                             ))}
@@ -160,13 +193,23 @@ const GlobalRepository = () => {
                                         onClick={() => { setPlatformOpen(!platformOpen); setDeptOpen(false); }}
                                         className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 w-40 justify-between transition-colors"
                                     >
-                                        All Platforms
+                                        {selectedPlatform}
                                         <ChevronDown size={16} />
                                     </button>
                                     {platformOpen && (
-                                        <div className="absolute top-full right-0 mt-1 w-full bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-10 animate-in fade-in zoom-in-95 duration-100">
-                                            {['Devfolio', 'Unstop', 'HackerRank', 'Kaggle'].map(plat => (
-                                                <button key={plat} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                        <div className="absolute top-full right-0 mt-1 w-full bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+                                            <button
+                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-medium"
+                                                onClick={() => { setSelectedPlatform('All Platforms'); setPlatformOpen(false); }}
+                                            >
+                                                All Platforms
+                                            </button>
+                                            {['Unstop', 'Devfolio', 'Devpost', 'Hack2skill', 'Others'].map(plat => (
+                                                <button
+                                                    key={plat}
+                                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                                    onClick={() => { setSelectedPlatform(plat); setPlatformOpen(false); }}
+                                                >
                                                     {plat}
                                                 </button>
                                             ))}
@@ -179,37 +222,41 @@ const GlobalRepository = () => {
 
                     {/* Table */}
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left">
+                        <table className="w-full text-left whitespace-nowrap">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100">
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Competition Name</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Platform</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Participating Depts</th>
-                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Registrations</th>
-                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Qualified</th>
-                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Competition Name</th>
+                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Platform</th>
+                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
+                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Participating Depts</th>
+                                    <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Registrations</th>
+                                    <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Qualified</th>
+                                    <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="8" className="px-6 py-12 text-center text-gray-500">Loading...</td>
+                                        <td colSpan="8" className="px-4 py-12 text-center text-gray-500">Loading...</td>
                                     </tr>
-                                ) : competitions.length > 0 ? (
-                                    competitions.map((comp) => (
+                                ) : filteredCompetitions.length > 0 ? (
+                                    filteredCompetitions.map((comp) => (
                                         <tr key={comp.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="font-medium text-gray-900">{comp.title || 'Untitled'}</div>
+                                            <td className="px-4 py-4">
+                                                <div className="font-medium text-gray-900 truncate max-w-[200px]" title={comp.title}>{comp.title || 'Untitled'}</div>
                                                 <div className="text-xs text-gray-500">{comp.organizer}</div>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">{comp.platform}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">{new Date(comp.registration_deadline).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">All</td>
-                                            <td className="px-6 py-4 text-center text-sm text-gray-600">-</td>
-                                            <td className="px-6 py-4 text-center text-sm text-gray-600">-</td>
-                                            <td className="px-6 py-4 text-center">
+                                            <td className="px-4 py-4 text-sm text-gray-600">{comp.platform}</td>
+                                            <td className="px-4 py-4 text-sm text-gray-600">{new Date(comp.registration_deadline).toLocaleDateString()}</td>
+                                            <td className="px-4 py-4 text-sm text-gray-600">
+                                                {Array.isArray(comp.departments)
+                                                    ? comp.departments.join(', ')
+                                                    : (comp.departments || 'All')}
+                                            </td>
+                                            <td className="px-4 py-4 text-center text-sm text-gray-600">-</td>
+                                            <td className="px-4 py-4 text-center text-sm text-gray-600">-</td>
+                                            <td className="px-4 py-4 text-center">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatus(comp.registration_deadline) === 'Open'
                                                     ? 'bg-green-100 text-green-700'
                                                     : 'bg-red-100 text-red-700'
@@ -217,7 +264,7 @@ const GlobalRepository = () => {
                                                     {getStatus(comp.registration_deadline)}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-center">
+                                            <td className="px-4 py-4 text-center">
                                                 <button
                                                     onClick={() => handleViewStats(comp)}
                                                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
@@ -229,7 +276,7 @@ const GlobalRepository = () => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">
+                                        <td colSpan="8" className="px-4 py-12 text-center text-gray-500 text-sm">
                                             No competitions found.
                                         </td>
                                     </tr>
@@ -238,90 +285,9 @@ const GlobalRepository = () => {
                         </table>
                     </div>
                 </div>
-
-
-
-                {/* Stats Modal */}
-                {
-                    statsModalOpen && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                                    <h2 className="text-xl font-bold text-gray-900">{selectedCompTitle} - Statistics</h2>
-                                    <button onClick={() => setStatsModalOpen(false)} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-                                </div>
-
-                                <div className="p-6 overflow-y-auto">
-                                    {statsError ? (
-                                        <div className="text-center text-red-600 py-8">
-                                            <p className="font-bold">Error</p>
-                                            <p>{statsError}</p>
-                                        </div>
-                                    ) : !selectedCompetitionStats ? (
-                                        <div className="text-center py-8">Loading stats...</div>
-                                    ) : (
-                                        <div>
-                                            {/* Summary Cards */}
-                                            <div className="grid grid-cols-3 gap-4 mb-6">
-                                                <div className="bg-blue-50 p-4 rounded-lg text-center">
-                                                    <div className="text-2xl font-bold text-blue-700">{selectedCompetitionStats.overall.total}</div>
-                                                    <div className="text-xs text-blue-600 uppercase font-bold">Total Registrations</div>
-                                                </div>
-                                                <div className="bg-purple-50 p-4 rounded-lg text-center">
-                                                    <div className="text-2xl font-bold text-purple-700">{selectedCompetitionStats.overall.shortlisted}</div>
-                                                    <div className="text-xs text-purple-600 uppercase font-bold">Shortlisted</div>
-                                                </div>
-                                                <div className="bg-yellow-50 p-4 rounded-lg text-center">
-                                                    <div className="text-2xl font-bold text-yellow-700">{selectedCompetitionStats.overall.winners}</div>
-                                                    <div className="text-xs text-yellow-600 uppercase font-bold">Winners</div>
-                                                </div>
-                                            </div>
-
-                                            {/* Department Breakdown Table */}
-                                            <h3 className="font-bold text-gray-900 mb-3">Department Breakdown</h3>
-                                            <table className="w-full text-left text-sm">
-                                                <thead className="bg-gray-50">
-                                                    <tr>
-                                                        <th className="px-4 py-2 font-medium text-gray-500">Department</th>
-                                                        <th className="px-4 py-2 font-medium text-gray-500 text-center">Registered</th>
-                                                        <th className="px-4 py-2 font-medium text-gray-500 text-center">Shortlisted</th>
-                                                        <th className="px-4 py-2 font-medium text-gray-500 text-center">Winners</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-100">
-                                                    {selectedCompetitionStats.departments.map((dept, index) => (
-                                                        <tr key={index}>
-                                                            <td className="px-4 py-3 text-gray-900">{dept.name}</td>
-                                                            <td className="px-4 py-3 text-center text-gray-600">{dept.registrations}</td>
-                                                            <td className="px-4 py-3 text-center text-gray-600">{dept.shortlisted}</td>
-                                                            <td className="px-4 py-3 text-center text-gray-600">{dept.winners}</td>
-                                                        </tr>
-                                                    ))}
-                                                    {selectedCompetitionStats.departments.length === 0 && (
-                                                        <tr>
-                                                            <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No data available.</td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="p-4 border-t border-gray-100 bg-gray-50 text-right">
-                                    <button
-                                        onClick={() => setStatsModalOpen(false)}
-                                        className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
-                                    >
-                                        Close
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )
-                }
             </div>
         </div>
+
     );
 };
 

@@ -27,6 +27,9 @@ import UploadCompetitions from './pages/admin/UploadCompetitions';
 
 import ManualVerification from './pages/faculty/ManualVerification';
 import GlobalRepository from './pages/admin/GlobalRepository';
+import ActivityLogs from './pages/admin/ActivityLogs';
+import StudentDetails from './pages/admin/StudentDetails';
+import CompetitionStats from './pages/admin/CompetitionStats';
 
 import DeptPerformance from './pages/admin/DeptPerformance';
 import CompetitionDetails from './pages/common/CompetitionDetails';
@@ -73,6 +76,9 @@ function App() {
       <Route path="/admin/search" element={<StudentSearch />} />
       <Route path="/admin/upload" element={<UploadCompetitions />} />
       <Route path="/admin/repository" element={<GlobalRepository />} />
+      <Route path="/admin/logs" element={<ActivityLogs />} />
+      <Route path="/admin/repository/:id" element={<CompetitionStats />} />
+      <Route path="/admin/student/:id" element={<StudentDetails />} />
       <Route path="/admin/performance" element={<DeptPerformance />} />
 
       {/* Common Routes */}
