@@ -139,52 +139,67 @@ const CompetitionDetails = () => {
                     <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Column 1: Total Sections (HOD) OR Total Students (Faculty) */}
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                {isHOD ? `Total Sections In Dept` : `Total Students (${statsData.total?.length || 0})`}
-                            </h3>
-                            <div className="h-96 overflow-y-auto pr-2 space-y-2">
-                                {isHOD ? (
-                                    // HOD: List Sections Grouped by Year
-                                    statsData.total_sections?.length > 0 ? (
-                                        statsData.total_sections.map((group, gIdx) => (
-                                            <div key={gIdx} className="mb-3">
-                                                <details className="group" open={group.year === '2nd Year' || group.year === '3rd Year'}>
-                                                    <summary className="flex justify-between items-center font-bold text-gray-700 cursor-pointer p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                                                        <span>{group.year}</span>
-                                                        <span className="text-xs bg-white px-2 py-0.5 rounded text-gray-500 shadow-sm border border-gray-200">
-                                                            {group.totalStudents} Students
-                                                        </span>
-                                                    </summary>
-                                                    <div className="mt-2 pl-2 space-y-2 border-l-2 border-gray-100 ml-2">
-                                                        {group.sections.map((sec, sIdx) => (
-                                                            <div key={sIdx} className="flex justify-between items-center text-sm p-2 bg-white border border-gray-100 rounded-md shadow-sm">
-                                                                <div className="font-medium text-gray-900 flex items-center gap-2">
-                                                                    <Layers size={14} className="text-gray-400" />
-                                                                    Section {sec.name}
+                            {(() => {
+                                // Logic to filter out registered students from total list
+                                const unregisteredStudents = isHOD ? [] : (statsData.total || []).filter(student =>
+                                    !statsData.registered?.some(reg => reg.id === student.id)
+                                );
+
+                                return (
+                                    <>
+                                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                            {isHOD ? `Total Sections In Dept` : `Unregistered Students (${unregisteredStudents.length})`}
+                                        </h3>
+                                        <div className="h-96 overflow-y-auto pr-2 space-y-2">
+                                            {isHOD ? (
+                                                // HOD: List Sections Grouped by Year
+                                                statsData.total_sections?.length > 0 ? (
+                                                    statsData.total_sections.map((group, gIdx) => (
+                                                        <div key={gIdx} className="mb-3">
+                                                            <details className="group" open={group.year === '2nd Year' || group.year === '3rd Year'}>
+                                                                <summary className="flex justify-between items-center font-bold text-gray-700 cursor-pointer p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                                                    <span>{group.year}</span>
+                                                                    <span className="text-xs bg-white px-2 py-0.5 rounded text-gray-500 shadow-sm border border-gray-200">
+                                                                        {group.totalStudents} Students
+                                                                    </span>
+                                                                </summary>
+                                                                <div className="mt-2 pl-2 space-y-2 border-l-2 border-gray-100 ml-2">
+                                                                    {group.sections.map((sec, sIdx) => (
+                                                                        <div key={sIdx} className="flex justify-between items-center text-sm p-2 bg-white border border-gray-100 rounded-md shadow-sm">
+                                                                            <div className="font-medium text-gray-900 flex items-center gap-2">
+                                                                                <Layers size={14} className="text-gray-400" />
+                                                                                Section {sec.name}
+                                                                            </div>
+                                                                            <div className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded font-medium border border-gray-100">
+                                                                                {sec.count} Students
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
                                                                 </div>
-                                                                <div className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded font-medium border border-gray-100">
-                                                                    {sec.count} Students
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </details>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="text-sm text-gray-400 text-center py-4">No sections found</div>
-                                    )
-                                ) : (
-                                    // Faculty: List Students
-                                    statsData.total?.map(student => (
-                                        <div key={student.id} className="text-sm p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                            <div className="font-medium text-gray-900">{student.name}</div>
-                                            <div className="text-xs text-gray-500">{student.regNo}</div>
+                                                            </details>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="text-sm text-gray-400 text-center py-4">No sections found</div>
+                                                )
+                                            ) : (
+                                                // Faculty: List Unregistered Students
+                                                unregisteredStudents.length > 0 ? (
+                                                    unregisteredStudents.map(student => (
+                                                        <div key={student.id} className="text-sm p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                            <div className="font-medium text-gray-900">{student.name}</div>
+                                                            <div className="text-xs text-gray-500">{student.regNo}</div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="text-sm text-gray-400 text-center py-4">All students registered!</div>
+                                                )
+                                            )}
                                         </div>
-                                    ))
-                                )}
-                            </div>
+                                    </>
+                                );
+                            })()}
                         </div>
 
                         {/* Column 2: Registered Students */}

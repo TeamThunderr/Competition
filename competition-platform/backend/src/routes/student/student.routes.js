@@ -30,4 +30,9 @@ router.post('/upload-proof', registrationController.uploadProof);
 router.post('/request-od', odController.requestOD);
 router.get('/od-requests', odController.getMyODRequests);
 
+// Profile
+const profileController = require('../../controllers/student/profile.controller');
+router.get('/profile', profileController.getProfile);
+router.put('/profile', profileController.updateProfile);
+
 module.exports = router;

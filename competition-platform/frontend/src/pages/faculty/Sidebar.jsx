@@ -7,7 +7,7 @@ const Sidebar = () => {
         { icon: LayoutDashboard, label: 'Mentor Dashboard', path: '/faculty' },
         { icon: Users, label: 'Student List', path: '/faculty/students' },
         { icon: CheckCircle, label: 'Verify Proofs', path: '/faculty/verify' },
-        { icon: LayoutDashboard, label: 'Active Competitions', path: '/faculty/competitions' },
+        { icon: LayoutDashboard, label: 'All Competitions', path: '/faculty/competitions' },
     ];
 
     return <SharedSidebar menuItems={menuItems} />;

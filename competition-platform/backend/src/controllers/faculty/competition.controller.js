@@ -11,7 +11,7 @@ const getAllCompetitions = async (req, res) => {
         const { data: competitions, error } = await supabase
             .from('competitions')
             .select('*, registrations(count)')
-            .order('registration_deadline', { ascending: true });
+            .order('registration_deadline', { ascending: false });
 
         if (error) throw error;
 
@@ -83,7 +83,7 @@ const getCompetitionStudents = async (req, res) => {
         const myStudents = allStudents.filter(s => {
             if (allowedSections.length === 0) return true;
             return allowedSections.includes(s.section);
-        });
+        }).sort((a, b) => a.registration_no.localeCompare(b.registration_no));
 
         const myStudentIds = myStudents.map(s => s.id);
 
