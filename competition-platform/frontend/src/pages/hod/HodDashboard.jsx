@@ -3,7 +3,7 @@ import HodSidebar from './Sidebar';
 import { ChevronDown, CheckCircle, User, FileText, Users, Award, FileDown, BarChart3, TrendingUp, Calendar, ChevronRight } from 'lucide-react';
 import { getDepartmentUsers, downloadWinnersReport } from '../../services/usersService';
 import { api } from '../../services/api';
-
+import StudentListTable from '../common/StudentListTable';
 import { useNavigate } from 'react-router-dom';
 
 const HodDashboard = () => {
@@ -318,32 +318,12 @@ const HodDashboard = () => {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    {studentList.length > 0 ? (
-                                        studentList.map((student, index) => (
-                                            <div
-                                                key={index}
-                                                onClick={() => navigate(`/hod/students/${student.id}`)}
-                                                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                                            >
-                                                <div className="flex items-center space-x-4">
-                                                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600">
-                                                        {student.icon}
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-sm font-semibold text-gray-900">{student.name}</h3>
-                                                        <p className="text-xs text-gray-500">{student.reg} <span className="text-gray-300">|</span> {student.email}</p>
-                                                    </div>
-                                                </div>
-                                                <span className={`text-sm font-medium ${student.statusColor}`}>
-                                                    {student.status}
-                                                </span>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="text-center py-8 text-gray-500">
-                                            No students found in this section.
-                                        </div>
-                                    )}
+                                    <StudentListTable
+                                        students={studentList}
+                                        loading={loading}
+                                        onRowClick={(student) => navigate(`/hod/students/${student.id}`)}
+                                        emptyMessage="No students found in this section."
+                                    />
                                 </div>
                             )
                         }
