@@ -184,7 +184,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
             <div className="flex gap-3 flex-col sm:flex-row">
                 <Link
                     to={`/competitions/${competition.id}`}
-                    className="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors text-center"
+                    className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors text-center flex items-center justify-center"
                 >
                     View Info
                 </Link>
@@ -208,6 +208,14 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
                                 </span>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {showRegister && !isClosed && (
+                    <div className={`flex-1 flex items-center justify-center text-sm px-3 py-2 rounded-lg border ${daysLeft <= 3 ? 'bg-red-50 text-red-600 border-red-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`} title="Days Left">
+                        <span className="font-medium whitespace-nowrap">
+                            {daysLeft} days left
+                        </span>
                     </div>
                 )}
 
