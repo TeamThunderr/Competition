@@ -88,7 +88,14 @@ const CompetitionListView = ({
             return isExpiredA ? 1 : -1;
         }
 
-        // 2. Sorting: Closest date first
+        // 2. Sorting by Sub-group
+        if (isExpiredA) {
+            // Both Expired: Descending (Most recently closed first, i.e., closer to Today)
+            // dateB is "larger" (more recent) -> comes first
+            return dateB - dateA;
+        }
+
+        // Both Active: Ascending (Approaching deadline first)
         return dateA - dateB;
     });
 
