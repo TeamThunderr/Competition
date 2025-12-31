@@ -656,10 +656,10 @@ const getStudentDetails = async (req, res) => {
             return sendResponse(res, 400, null, 'Invalid Student ID format');
         }
 
-        // 2. Fetch Student
+        // 1b. Fetch Student
         const { data: student, error: studentError } = await supabase
             .from('users')
-            .select('id, full_name, registration_no, email, department_id, section, departments(name)')
+            .select('id, full_name, registration_no, email, phone_number, department_id, section, cgpa, departments(name)')
             .eq('id', studentId)
             .single();
 
@@ -738,6 +738,27 @@ const getStudentDetails = async (req, res) => {
             };
         });
 
+        // Calculate Batch
+        let batchLabel = 'N/A';
+        if (student.registration_no) {
+            const regNo = student.registration_no;
+            let yearShort = null;
+            const prefix = regNo.substring(0, 2);
+            const mid = regNo.length >= 6 ? regNo.substring(4, 6) : null;
+
+            if (parseInt(prefix) >= 15 && parseInt(prefix) <= 40) {
+                yearShort = prefix;
+            } else if (mid && parseInt(mid) >= 15 && parseInt(mid) <= 40) {
+                yearShort = mid;
+            }
+
+            if (yearShort) {
+                const startYear = 2000 + parseInt(yearShort, 10);
+                const endYear = startYear + 4;
+                batchLabel = `${startYear}-${endYear}`;
+            }
+        }
+
         const stats = {
             registered: registrations.length,
             qualified: statuses?.filter(s => s.is_shortlisted).length || 0,
@@ -751,7 +772,10 @@ const getStudentDetails = async (req, res) => {
                 email: student.email,
                 department: student.departments.name,
                 section: student.section,
-                classAdvisor: classAdvisorName
+                classAdvisor: classAdvisorName,
+                batch: batchLabel,
+                cgpa: student.cgpa || 'N/A',
+                phoneNumber: student.phone_number || 'N/A'
             },
             stats,
             competitions: competitionDetails
