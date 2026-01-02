@@ -88,9 +88,10 @@ export const getPendingODRequests = async () => {
     return response.data || response;
 };
 
-export const manageODRequest = async (requestId, status) => {
+export const manageODRequest = async (requestId, status, extraData = {}) => {
     // status: 'APPROVED' or 'REJECTED'
-    const response = await api.post('/api/hod/manage-od', { request_id: requestId, status });
+    // extraData: { timeSlot, duration }
+    const response = await api.post('/api/hod/manage-od', { request_id: requestId, status, ...extraData });
     return response.data || response;
 };
 
@@ -137,6 +138,17 @@ export const downloadWinnersReport = async () => {
     }
 };
 
+// Student OD & Competition APIs
+export const getStudentCompetitions = async () => {
+    const response = await api.get('/api/student/competitions');
+    return response.data || response;
+};
+
+export const requestOD = async (competitionId, reason) => {
+    const response = await api.post('/api/student/request-od', { competition_id: competitionId, reason });
+    return response.data || response;
+};
+
 export default {
     getMyStudents,
     getStudentDetails,
@@ -153,5 +165,7 @@ export default {
     getDashboardAnalysis,
     getHodStudentDetails,
     getDepartmentFaculty,
-    downloadWinnersReport
+    downloadWinnersReport,
+    getStudentCompetitions,
+    requestOD
 };

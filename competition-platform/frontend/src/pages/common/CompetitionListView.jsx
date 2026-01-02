@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, ChevronDown, Globe } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 /**
  * CompetitionListView Component
@@ -10,6 +11,7 @@ import CompetitionCard from '../../components/features/competitions/CompetitionC
  * - Platform filtering
  * - Responsive Grid Layout
  * - Empty state handling
+ * - Hybrid Sorting (Active: Asc, Expired: Desc)
  * 
  * @param {Component} Sidebar - The Sidebar component to render (FacultySidebar, HodSidebar, etc.)
  * @param {Array} competitions - List of competition objects
@@ -17,6 +19,7 @@ import CompetitionCard from '../../components/features/competitions/CompetitionC
  * @param {String} subtitle - Page subtitle
  * @param {Boolean} loading - Loading state
  * @param {Boolean} showRegister - Whether to show register button on cards (default: false)
+ * @param {String} role - User role for loader customization ('STUDENT', 'FACULTY', 'HOD')
  * @param {Object} cardActions - Event handlers to pass to CompetitionCard ({ onRegister, onRequestOD, onVerifyGmail })
  */
 const CompetitionListView = ({
@@ -26,6 +29,7 @@ const CompetitionListView = ({
     subtitle = "View all ongoing and upcoming competitions.",
     loading = false,
     showRegister = false,
+    role = 'STUDENT',
     cardActions = {}
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -90,8 +94,7 @@ const CompetitionListView = ({
 
         // 2. Sorting by Sub-group
         if (isExpiredA) {
-            // Both Expired: Descending (Most recently closed first, i.e., closer to Today)
-            // dateB is "larger" (more recent) -> comes first
+            // Both Expired: Descending (Most recently closed first)
             return dateB - dateA;
         }
 
@@ -159,7 +162,7 @@ const CompetitionListView = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {loading ? (
                         <div className="col-span-full py-12 flex justify-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <RoleBasedLoader role={role} />
                         </div>
                     ) : filteredCompetitions.length > 0 ? (
                         filteredCompetitions.map(comp => (

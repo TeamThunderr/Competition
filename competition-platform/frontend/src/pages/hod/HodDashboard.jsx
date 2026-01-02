@@ -323,6 +323,7 @@ const HodDashboard = () => {
                                         loading={loading}
                                         onRowClick={(student) => navigate(`/hod/students/${student.id}`)}
                                         emptyMessage="No students found in this section."
+                                        role="HOD"
                                     />
                                 </div>
                             )
@@ -341,8 +342,8 @@ const HodDashboard = () => {
 
                         <p className="text-sm text-gray-600 mb-6 leading-relaxed">
                             You have <span className="font-bold text-gray-900">
-                                0 pending OD requests
-                            </span> that require validation against email evidence.
+                                {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0)} pending OD {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0) === 1 ? 'request' : 'requests'}
+                            </span> that require {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0) === 1 ? 'validation' : 'validation'} against email evidence.
                         </p>
 
                         <button

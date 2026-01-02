@@ -1,147 +1,277 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import StudentSidebar from './Sidebar';
-import { Upload, Calendar, FileText, Send } from 'lucide-react';
+import { Upload, Calendar, FileText, Send, AlertCircle, Lock, Check, Clock } from 'lucide-react';
+import { getStudentCompetitions, requestOD } from '../../services/usersService';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const ODLetter = () => {
     const [formData, setFormData] = useState({
-        competition: '',
+        competitionId: '',
         date: '',
         reason: '',
         file: null
     });
     const [submitted, setSubmitted] = useState(false);
+    const [existingRequests, setExistingRequests] = useState([]);
+    const [eligibleCompetitions, setEligibleCompetitions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState(null);
 
-    // Mock active competitions for the dropdown
-    const activeCompetitions = [
-        { id: 1, title: 'Hackathon 2024 - IIT Madras' },
-        { id: 2, title: 'CodeQuest - NIT Trichy' },
-        { id: 3, title: 'AI Summit - Bangalore' }
-    ];
+    const fetchCompetitions = async () => {
+        try {
+            const data = await getStudentCompetitions();
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        // Mock submission logic
-        console.log("OD Request Submitted:", formData);
-        setSubmitted(true);
-        setTimeout(() => setSubmitted(false), 3000); // Reset after 3 seconds
+            // 1. Existing Requests (Pending, Approved, Rejected)
+            const requested = data.filter(comp => comp.my_od);
+            setExistingRequests(requested);
+
+            // 2. Eligible for New Request (Shortlisted AND No Request)
+            // User requested: "once rejected then ... again a form can be submitted but only for other competitions"
+            // This implies strict "One Shot" policy? Or maybe they meant "If rejected, you can't try THIS one again".
+            // Let's filter out ANY local request for now to be safe and avoid conflicts.
+            const eligible = data.filter(comp =>
+                comp.my_status?.is_shortlisted && !comp.my_od
+            );
+            setEligibleCompetitions(eligible);
+        } catch (err) {
+            console.error("Failed to load competitions", err);
+            setError("Failed to load data.");
+        } finally {
+            setLoading(false);
+        }
     };
+
+    useEffect(() => {
+        fetchCompetitions();
+    }, []);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+
+        if (name === 'competitionId') {
+            const selected = eligibleCompetitions.find(c => c.id === parseInt(value));
+            if (selected && selected.event_date) {
+                const dateStr = new Date(selected.event_date).toISOString().split('T')[0];
+                setFormData(prev => ({ ...prev, date: dateStr }));
+            }
+        }
+    };
+
+    const handleFileChange = (e) => {
+        setFormData(prev => ({ ...prev, file: e.target.files[0] }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        setError(null);
+
+        try {
+            await requestOD(formData.competitionId, formData.reason);
+            setSubmitted(true);
+            setFormData({ competitionId: '', date: '', reason: '', file: null });
+            fetchCompetitions(); // Refresh lists
+        } catch (err) {
+            // Handle 409 Conflict (Duplicate) gracefully
+            if (err.response && err.response.status === 409) {
+                setSubmitted(true); // Show success state anyway
+                fetchCompetitions();
+                return;
+            }
+
+            console.error("OD Request Error:", err);
+            const errMsg = err.response?.data?.error || "Failed to submit request.";
+            setError(errMsg);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const getDaysLeft = (dateString) => {
+        const eventDate = new Date(dateString);
+        const today = new Date();
+        const diffTime = eventDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 ? diffDays : 0;
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <RoleBasedLoader role="STUDENT" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
             <StudentSidebar />
             <div className="flex-1 ml-64 p-8">
-                <div className="max-w-3xl mx-auto">
-                    <div className="mb-8">
-                        <h1 className="text-2xl font-bold text-gray-900">Request OD Letter</h1>
-                        <p className="text-gray-500 mt-1">Submit a request for On-Duty (OD) for competition participation.</p>
+                <div className="max-w-6xl mx-auto space-y-8">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">On-Duty (OD) Management</h1>
+                        <p className="text-gray-500 mt-1">Track your OD status and request permissions for upcoming competitions.</p>
                     </div>
 
-                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 bg-gray-50">
-                            <h2 className="text-lg font-semibold text-gray-800">OD Request Form</h2>
-                        </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* LEFT COLUMN: Existing Requests Status */}
+                        <div className="lg:col-span-2 space-y-4">
+                            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                                <FileText size={20} className="text-blue-600" />
+                                My Applications
+                            </h2>
 
-                        <div className="p-8">
-                            {submitted ? (
-                                <div className="text-center py-12">
-                                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Send size={32} />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">Request Submitted!</h3>
-                                    <p className="text-gray-500">Your OD request has been sent to the HOD for approval.</p>
+                            {existingRequests.length === 0 ? (
+                                <div className="bg-white p-8 rounded-xl border border-dashed border-gray-300 text-center text-gray-500">
+                                    <p>No OD requests submitted yet.</p>
                                 </div>
                             ) : (
-                                <form onSubmit={handleSubmit} className="space-y-6 text-left">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Competition Selection */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Select Competition <span className="text-red-500">*</span></label>
-                                            <div className="relative">
-                                                <select
-                                                    required
-                                                    className="w-full pl-4 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
-                                                    value={formData.competition}
-                                                    onChange={(e) => setFormData({ ...formData, competition: e.target.value })}
-                                                >
-                                                    <option value="">-- Choose a Competition --</option>
-                                                    {activeCompetitions.map(comp => (
-                                                        <option key={comp.id} value={comp.title}>{comp.title}</option>
-                                                    ))}
-                                                </select>
-                                                <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
-                                                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                                <div className="grid grid-cols-1 gap-4">
+                                    {existingRequests.map(comp => (
+                                        <div key={comp.id} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center group hover:border-blue-200 transition-colors">
+                                            <div>
+                                                <h3 className="font-semibold text-gray-900">{comp.title}</h3>
+                                                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                                                    <span className="flex items-center gap-1">
+                                                        <Calendar size={14} />
+                                                        {new Date(comp.event_date).toLocaleDateString()}
+                                                    </span>
+
+                                                    {comp.my_od.status === 'APPROVED' && (
+                                                        <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-xs font-medium">
+                                                            <Clock size={12} />
+                                                            {getDaysLeft(comp.event_date)} Days to go
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        {/* Date Selection */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Date of Event <span className="text-red-500">*</span></label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                                                    <Calendar size={18} />
-                                                </div>
-                                                <input
-                                                    type="date"
-                                                    required
-                                                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                                    value={formData.date}
-                                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* File Upload */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Upload Proof / Invitation <span className="text-red-500">*</span></label>
-                                        <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition-colors bg-gray-50">
-                                            <div className="space-y-1 text-center">
-                                                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                                <div className="flex text-sm text-gray-600">
-                                                    <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
-                                                        <span>Upload a file</span>
-                                                        <input id="file-upload" name="file-upload" type="file" required={!formData.file} className="sr-only" onChange={(e) => setFormData({ ...formData, file: e.target.files[0] })} />
-                                                    </label>
-                                                    <p className="pl-1">or drag and drop</p>
-                                                </div>
-                                                <p className="text-xs text-gray-500">PDF, PNG, JPG up to 5MB</p>
-                                                {formData.file && (
-                                                    <p className="text-sm text-green-600 font-medium mt-2">Selected: {formData.file.name}</p>
+                                            <div className="text-right">
+                                                {comp.my_od.status === 'PENDING' && (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-50 text-yellow-700 border border-yellow-100">
+                                                        ⏳ Pending Approval
+                                                    </span>
+                                                )}
+                                                {comp.my_od.status === 'APPROVED' && (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-50 text-green-700 border border-green-100">
+                                                        ✅ OD Granted
+                                                    </span>
+                                                )}
+                                                {comp.my_od.status === 'REJECTED' && (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-50 text-red-700 border border-red-100">
+                                                        ❌ Request Rejected
+                                                    </span>
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
-
-                                    {/* Reason */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Reason / Description <span className="text-red-500">*</span></label>
-                                        <div className="relative">
-                                            <div className="absolute top-3 left-3 pointer-events-none text-gray-400">
-                                                <FileText size={18} />
-                                            </div>
-                                            <textarea
-                                                rows="4"
-                                                required
-                                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                                placeholder="Briefly explain why you are requesting OD..."
-                                                value={formData.reason}
-                                                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                                            ></textarea>
-                                        </div>
-                                    </div>
-
-                                    {/* Submit Button */}
-                                    <div className="pt-4 flex justify-end">
-                                        <button
-                                            type="submit"
-                                            className="inline-flex justify-center items-center py-3 px-8 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                                        >
-                                            Submit Request
-                                        </button>
-                                    </div>
-                                </form>
+                                    ))}
+                                </div>
                             )}
+                        </div>
+
+                        {/* RIGHT COLUMN: New Request Form */}
+                        <div className="lg:col-span-1">
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm sticky top-8">
+                                <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                                    <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+                                        <Send size={18} className="text-blue-600" />
+                                        New Request
+                                    </h2>
+                                </div>
+
+                                <div className="p-6">
+                                    {submitted ? (
+                                        <div className="text-center py-8">
+                                            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                <Send size={24} />
+                                            </div>
+                                            <h3 className="font-bold text-gray-900 mb-1">Sent!</h3>
+                                            <p className="text-sm text-gray-500 mb-4">HOD will review it shortly.</p>
+                                            <button
+                                                onClick={() => setSubmitted(false)}
+                                                className="text-sm text-blue-600 hover:underline font-medium"
+                                            >
+                                                Submit Another
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <form onSubmit={handleSubmit} className="space-y-4">
+                                            {error && (
+                                                <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm flex gap-2">
+                                                    <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                                                    <span className="flex-1">{error}</span>
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Competition</label>
+                                                <select
+                                                    name="competitionId"
+                                                    required
+                                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                    value={formData.competitionId}
+                                                    onChange={handleChange}
+                                                >
+                                                    <option value="">-- Select --</option>
+                                                    {eligibleCompetitions.map(comp => (
+                                                        <option key={comp.id} value={comp.id}>{comp.title}</option>
+                                                    ))}
+                                                </select>
+                                                {eligibleCompetitions.length === 0 && (
+                                                    <p className="text-xs text-orange-500 mt-1">No shortlisted competitions available.</p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Date</label>
+                                                <div className="relative">
+                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                                        <Lock size={14} />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        name="date"
+                                                        className="w-full pl-9 pr-4 py-2.5 bg-gray-100 border border-gray-200 rounded-lg text-sm outline-none text-gray-600 font-medium select-none"
+                                                        value={formData.date ? new Date(formData.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                                                        readOnly
+                                                        title="Date is locked to the competition event"
+                                                    />
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
+                                                    <Check size={10} className="text-green-500" />
+                                                    Synced with Event Schedule
+                                                </p>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Reason</label>
+                                                <textarea
+                                                    name="reason"
+                                                    rows="3"
+                                                    required
+                                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    placeholder="Why do you need OD?"
+                                                    value={formData.reason}
+                                                    onChange={handleChange}
+                                                ></textarea>
+                                            </div>
+
+                                            <button
+                                                type="submit"
+                                                disabled={submitting || eligibleCompetitions.length === 0}
+                                                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                            >
+                                                {submitting ? 'Sending...' : 'Submit Request'}
+                                            </button>
+                                        </form>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

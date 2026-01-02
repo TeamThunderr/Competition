@@ -7,6 +7,7 @@ const router = express.Router();
 const facultyController = require('../../controllers/faculty/faculty.controller');
 const verificationController = require('../../controllers/faculty/verification.controller');
 const facultyCompetitionController = require('../../controllers/faculty/competition.controller');
+const participationController = require('../../controllers/faculty/participation.controller');
 const authMiddleware = require('../../middleware/authMiddleware');
 const roleMiddleware = require('../../middleware/role.middleware');
 
@@ -24,7 +25,8 @@ router.get('/students/:studentId', facultyController.getStudentDetails);
 // Competition View (Read Only)
 router.get('/competitions', facultyCompetitionController.getAllCompetitions);
 router.get('/competition/:id', facultyCompetitionController.getCompetitionDetails);
-router.get('/competition/:id/students', facultyCompetitionController.getCompetitionStudents);
+router.get('/competition/:id/students', facultyCompetitionController.getCompetitionStudents); // Need to update this controller too?
+router.post('/competition/:competitionId/sync', participationController.syncCompetition);
 
 // Verification Routes
 router.get('/pending-verifications', verificationController.getPendingVerifications);

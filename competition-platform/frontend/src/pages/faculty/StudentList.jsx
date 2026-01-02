@@ -93,6 +93,7 @@ const StudentList = () => {
                     loading={loading}
                     onRowClick={(student) => navigate(`/faculty/students/${student.id}`)}
                     emptyMessage="No students found."
+                    role="FACULTY"
                 />
             </main>
         </div>

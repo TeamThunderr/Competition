@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Loader, User } from 'lucide-react';
+import { Search, User } from 'lucide-react';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 /**
  * StudentListTable Component
@@ -15,16 +16,18 @@ import { Search, Loader, User } from 'lucide-react';
  * @param {Boolean} loading - Loading state
  * @param {Function} onRowClick - Callback (student) => {}
  * @param {String} emptyMessage - Message to show when no students found
+ * @param {String} role - 'STUDENT', 'FACULTY', 'HOD' for customized loader
  */
 const StudentListTable = ({
     students = [],
     loading = false,
     onRowClick,
-    emptyMessage = "No students found."
+    emptyMessage = "No students found.",
+    role = 'STUDENT'
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
-    const filteredStudents = students.filter(student => {
+    const filteredStudents = (students || []).filter(student => {
         const term = searchTerm.toLowerCase();
         const name = (student.name || '').toLowerCase();
         // Handle both regNo (HOD) and rollNo (Faculty) keys
@@ -58,7 +61,7 @@ const StudentListTable = ({
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto min-h-[400px]">
                 <table className="w-full">
                     <thead className="bg-gray-50/50">
                         <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -72,11 +75,8 @@ const StudentListTable = ({
                     <tbody className="divide-y divide-gray-50 bg-white">
                         {loading ? (
                             <tr>
-                                <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
-                                    <div className="flex flex-col items-center justify-center">
-                                        <Loader className="animate-spin mb-2" size={24} />
-                                        <p>Loading students...</p>
-                                    </div>
+                                <td colSpan="5" className="px-6 py-12">
+                                    <RoleBasedLoader role={role} />
                                 </td>
                             </tr>
                         ) : sortedStudents.length === 0 ? (

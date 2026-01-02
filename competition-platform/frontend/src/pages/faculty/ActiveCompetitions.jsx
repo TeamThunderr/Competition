@@ -30,6 +30,7 @@ const ActiveCompetitions = () => {
             subtitle="View history of all competitions."
             loading={loading}
             showRegister={false}
+            role="FACULTY"
         />
     );
 };

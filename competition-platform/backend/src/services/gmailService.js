@@ -5,7 +5,7 @@ const supabase = require('../config/supabaseClient');
 const KEYWORDS = {
     REGISTERED: ['registered', 'registration successful', 'registration confirmed', 'registration is confirmed', 'thank you for registering', 'you have registered', 'successfully registered'],
     QUALIFIED: ['shortlisted', 'qualified', 'selected', 'congratulations', 'moved to next round', 'finalist'],
-    REJECTED: ['not selected', 'unfortunately', 'regret to inform', 'did not qualify', 'unsuccessful', 'rejected', 'disqualified','not registered','not qualified','not shortlisted','not finalist'],
+    REJECTED: ['not selected', 'unfortunately', 'regret to inform', 'did not qualify', 'unsuccessful', 'rejected', 'disqualified', 'not registered', 'not qualified', 'not shortlisted', 'not finalist'],
     ACTION_REQUIRED: ['submit', 'deadline', 'round 1', 'round 2', 'presentation', 'ppt submission', 'interview', 'evaluation']
 };
 
@@ -206,75 +206,131 @@ const processAndSaveEmails = async (accessToken, userId) => {
  * Targeted verification for a specific competition
  * Scans only for the specific competition title/organizer
  */
-const verifySpecificRegistration = async (accessToken, competitionTitle, organizerDomain = null) => {
+const verifySpecificRegistration = async (accessToken, hackathonName) => {
+    // Re-use sync logic but return boolean or specific format expected by existing controllers
     try {
-        console.log(`[GmailService] Verifying: ${competitionTitle} (Domain: ${organizerDomain || 'Any'})`);
+        const match = await syncStudentCompetition(accessToken, hackathonName, null, null);
+        return !!match;
+    } catch (e) {
+        console.error("Verification error:", e);
+        return false;
+    }
+};
+
+/**
+ * Targeted Sync for a specific competition for a student
+ * Scope: Faculty triggers this for a list of students.
+ * Limit: Fetch metadata/snippet only. Tighter query.
+ */
+const syncStudentCompetition = async (accessToken, competitionName, platform, lastSyncedAt, keywords = KEYWORDS) => {
+    try {
         if (!accessToken) throw new Error("AccessToken is missing");
 
         const auth = new google.auth.OAuth2();
         auth.setCredentials({ access_token: accessToken });
         const gmail = google.gmail({ version: 'v1', auth });
 
-        // Build precise query
-        // q: subject:(CodeVita) after:YYYY/MM/DD
-        const date = new Date();
-        date.setDate(date.getDate() - 90); // Look back 3 months
-        const dateQuery = `after:${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+        // 1. Build Query
+        // keywords: (registered OR shortlisted OR ...)
+        // from: if platform known
+        // after: lastSyncedAt
 
-        // Clean title for search
-        const safeTitle = competitionTitle.replace(/[^\w\s]/gi, '').split(' ')[0]; // Use first word or full title?
-        // Better: `subject:("${competitionTitle}")` might be too strict. 
-        // usage: subject:(TCS CodeVita)
+        const allKeywords = [
+            ...keywords.REGISTERED,
+            ...keywords.QUALIFIED,
+            ...keywords.REJECTED,
+            ...keywords.ACTION_REQUIRED
+        ];
 
-        let q = `subject:(${competitionTitle}) ${dateQuery}`;
-        if (organizerDomain) {
-            q += ` from:(${organizerDomain})`;
+        // Optimizing Query: "(keyword1 OR keyword2 ...) AND (CompetitionName)"
+        // Note: query length limit. If too many keywords, might need to split or be generic.
+        // Generic approach: "CompetitionName" AND "after:..."
+        // Then filter in code. This is safer for query length and Gmail limits.
+
+        // Handling Dates
+        let dateQuery = '';
+        if (lastSyncedAt) {
+            const date = new Date(lastSyncedAt);
+            if (!isNaN(date)) {
+                dateQuery = `after:${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+            }
         }
 
-        console.log(`[GmailService] Query: ${q}`);
+        // Fallback or "Ever" sync? 
+        // If lastSyncedAt is null, maybe look back 3 months (active competition window)
+        if (!dateQuery) {
+            const date = new Date();
+            date.setDate(date.getDate() - 90);
+            dateQuery = `after:${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+        }
 
+        // Platform Sender Filter (Optional but recommended)
+        let fromQuery = '';
+        if (platform) {
+            const p = platform.toLowerCase();
+            if (p.includes('devfolio')) fromQuery = 'from:(devfolio.co)';
+            else if (p.includes('unstop')) fromQuery = 'from:(unstop.com)';
+            else if (p.includes('hack2skill')) fromQuery = 'from:(hack2skill.com)';
+            // Add others as needed
+        }
+
+        const safeCompName = competitionName.split(/[^\w\s]/)[0]; // First CLEAN part of name
+
+        const q = `${safeCompName} ${fromQuery} ${dateQuery}`.trim();
+
+        // 2. Fetch Messages (Metadata only)
         const response = await gmail.users.messages.list({
             userId: 'me',
             q: q,
-            maxResults: 5 // We only need one valid proof
+            maxResults: 10 // We don't need many, just the latest relevant one
         });
 
         const messages = response.data.messages || [];
         if (messages.length === 0) return null;
 
-        // Check content of these messages
+        // 3. Process Snippets (No full body)
+        let bestMatch = null;
+        let highestConfidence = 0;
+
         for (const msg of messages) {
             try {
                 const msgDetails = await gmail.users.messages.get({
                     userId: 'me',
-                    id: msg.id
+                    id: msg.id,
+                    format: 'metadata', // Fetch headers + snippet only
+                    metadataHeaders: ['Subject', 'From', 'Date']
                 });
 
                 const emailData = parseEmail(msgDetails.data);
                 const fullText = `${emailData.subject} ${emailData.snippet}`;
 
-                // Reuse detection logic
+                // Use existing detection logic
                 const detection = detectHackathonStatus(fullText);
 
-                if (detection && (detection.status === 'REGISTERED' || detection.status === 'QUALIFIED')) {
-                    return {
+                if (detection && detection.confidence > highestConfidence) {
+                    highestConfidence = detection.confidence;
+                    bestMatch = {
                         ...emailData,
-                        matchStatus: detection.status
+                        status: detection.status,
+                        confidence: detection.confidence,
+                        matchedKeyword: detection.status // or specific keyword if we extracted it
                     };
                 }
-            } catch (err) {
-                console.warn(`Failed to inspect message ${msg.id}`);
+            } catch (e) {
+                console.warn(`[GmailSync] Error parsing msg ${msg.id}:`, e.message);
             }
         }
 
-        return null; // No valid verification found in the search results
+        return bestMatch;
+
     } catch (error) {
-        console.error('Gmail Verification Error:', error.message);
+        console.error('[GmailSync] Error:', error.message);
         throw error;
     }
 };
 
 module.exports = {
     processAndSaveEmails,
-    verifySpecificRegistration
+    verifySpecificRegistration,
+    syncStudentCompetition
 };

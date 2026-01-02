@@ -3,6 +3,7 @@ import StudentSidebar from './Sidebar';
 import { User, Mail, Hash, BookOpen, Calendar, Award, Trophy, Star, Users, GraduationCap, Edit, Check, X, Phone } from 'lucide-react';
 import { getCurrentUser } from '../../services/authService';
 import { api } from '../../services/api';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const Profile = () => {
     const [userData, setUserData] = useState(null);
@@ -41,7 +42,13 @@ const Profile = () => {
         }
     };
 
-    if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    if (loading) {
+        return (
+            <div className="flex bg-gray-50 min-h-screen items-center justify-center">
+                <RoleBasedLoader role="STUDENT" />
+            </div>
+        );
+    }
 
     if (!userData) return <div className="text-center p-8">Failed to load profile.</div>;
 

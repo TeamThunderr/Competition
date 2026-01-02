@@ -98,6 +98,7 @@ const StudentCompetitions = () => {
                 subtitle="Browse and register for upcoming events."
                 loading={loading}
                 showRegister={true} // Enable register buttons
+                role="STUDENT"
                 cardActions={{
                     onRegister: handleRegisterClick,
                     onRequestOD: handleRequestOD,

@@ -3,6 +3,7 @@ import Sidebar from './Sidebar';
 import { getFacultyDashboardStats } from '../../services/usersService';
 import { api } from '../../services/api';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const FacultyDashboard = () => {
     const [stats, setStats] = useState({
@@ -70,7 +71,7 @@ const FacultyDashboard = () => {
 
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <RoleBasedLoader role="FACULTY" />
                     </div>
                 ) : (
                     <>

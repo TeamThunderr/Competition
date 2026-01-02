@@ -31,6 +31,7 @@ const HodCompetitions = () => {
             subtitle="Discover top programming events."
             loading={loading}
             showRegister={false}
+            role="HOD"
         />
     );
 };
