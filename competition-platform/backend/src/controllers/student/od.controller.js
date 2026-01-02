@@ -36,7 +36,7 @@ const requestOD = async (req, res) => {
             .single();
 
         if (existing) {
-            return res.status(400).json({ error: 'OD Request already exists.' });
+            return res.status(409).json({ error: 'OD Request already exists.' });
         }
 
         // 3. Create Request

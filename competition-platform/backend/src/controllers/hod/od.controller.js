@@ -13,7 +13,7 @@ const getPendingODRequests = async (req, res) => {
             .from('od_requests')
             .select(`
                 *,
-                users!inner(full_name, registration_no, department_id, section),
+                users:users!od_requests_user_id_fkey!inner(full_name, registration_no, department_id, section),
                 competitions(title, event_date)
             `)
             .eq('status', 'PENDING')
@@ -32,7 +32,7 @@ const getPendingODRequests = async (req, res) => {
 // Approve/Reject OD
 const manageODRequest = async (req, res) => {
     try {
-        const { request_id, status } = req.body; // 'APPROVED' or 'REJECTED'
+        const { request_id, status, timeSlot, duration } = req.body; // 'APPROVED' or 'REJECTED'
         const hod_id = req.userId;
 
         if (!request_id || !['APPROVED', 'REJECTED'].includes(status)) {
@@ -44,7 +44,9 @@ const manageODRequest = async (req, res) => {
             .update({
                 status: status,
                 approved_by: hod_id,
-                approved_at: new Date()
+                approved_at: new Date(),
+                time_slot: timeSlot || 'Full Day',
+                approved_days: duration ? parseInt(duration) : 1
             })
             .eq('id', request_id)
             .select();

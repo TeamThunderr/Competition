@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../../services/authService';
 import { signInWithGoogle, supabase, signOut } from '../../services/supabaseClient';
+import { api } from '../../services/api';
 import { useEffect } from 'react';
 
 const Login = () => {
@@ -56,6 +57,27 @@ const Login = () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user?.email) {
                 console.log("Supabase session found:", session.user.email);
+
+                // --- NEW: Save Google Refresh Token if present ---
+                // "provider_refresh_token" is available in the session object directly after OAuth callback
+                const providerRefreshToken = session.provider_refresh_token;
+
+                if (providerRefreshToken) {
+                    console.log("Found Provider Refresh Token, saving to backend...");
+                    try {
+                        // Use the 'api' wrapper to ensure correct BASE_URL (http://localhost:5000)
+                        await api.post('/api/auth/save-token', {
+                            email: session.user.email,
+                            refreshToken: providerRefreshToken
+                        });
+                        console.log("Token saved successfully.");
+                    } catch (tokErr) {
+                        console.error("Failed to save google token:", tokErr);
+                        // Don't block login, just log error
+                    }
+                }
+                // -------------------------------------------------
+
                 // User is authenticated with Supabase (Google), now check with our backend
                 try {
                     setLoading(true);

@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { getStudentDetails } from '../../services/usersService';
+import { getHodStudentDetails } from '../../services/usersService';
 import StudentProfileView from '../common/StudentProfileView';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
-const StudentDetail = () => {
+const HodStudentDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [student, setStudent] = useState(null);
@@ -16,7 +16,7 @@ const StudentDetail = () => {
     useEffect(() => {
         const fetchDetails = async () => {
             try {
-                const data = await getStudentDetails(id);
+                const data = await getHodStudentDetails(id);
                 setStudent(data);
             } catch (err) {
                 console.error("Failed to fetch student details", err);
@@ -35,7 +35,7 @@ const StudentDetail = () => {
     if (loading) {
         return (
             <div className="flex bg-gray-50 min-h-screen items-center justify-center">
-                <RoleBasedLoader role="FACULTY" />
+                <RoleBasedLoader role="HOD" />
             </div>
         );
     }
@@ -50,10 +50,10 @@ const StudentDetail = () => {
                         {error}
                     </div>
                     <button
-                        onClick={() => navigate('/faculty/students')}
+                        onClick={() => navigate('/hod')}
                         className="mt-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
                     >
-                        <ArrowLeft size={20} /> Back to List
+                        <ArrowLeft size={20} /> Back to Dashboard
                     </button>
                 </main>
             </div>
@@ -70,11 +70,13 @@ const StudentDetail = () => {
                 {/* Header with Back Button */}
                 <div className="mb-8">
                     <button
-                        onClick={() => navigate('/faculty/students')}
+                        onClick={() => navigate('/hod')}
                         className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 transition-colors"
                     >
-                        <ArrowLeft size={18} /> Back to Student List
+                        <ArrowLeft size={18} /> Back to Dashboard
                     </button>
+
+                    {/* HOD Specific Filter/Context if needed in future */}
                 </div>
 
                 {/* Shared Profile View */}
@@ -84,4 +86,4 @@ const StudentDetail = () => {
     );
 };
 
-export default StudentDetail;
+export default HodStudentDetail;

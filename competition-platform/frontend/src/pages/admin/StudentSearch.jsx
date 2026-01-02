@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Search, X, Mail, Phone, Clock, Trophy, Award } from 'lucide-react';
 import { getStudents, getStudentById } from '../../services/usersService';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const StudentSearch = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -73,10 +74,16 @@ const StudentSearch = () => {
                         />
                     </div>
 
-                    {/* Results Table */}
+                    import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+                    // ... imports (inside component render)
+
+                    // ... code
+
                     <div className="overflow-hidden">
                         {loading ? (
-                            <div className="text-center py-10 text-gray-500">Searching...</div>
+                            <div className="flex justify-center py-10">
+                                <RoleBasedLoader role="ADMIN" />
+                            </div>
                         ) : students.length > 0 ? (
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">

@@ -11,7 +11,7 @@ const getAllCompetitions = async (req, res) => {
         const { data: competitions, error } = await supabase
             .from('competitions')
             .select('*, registrations(count)')
-            .order('registration_deadline', { ascending: true });
+            .order('registration_deadline', { ascending: false });
 
         if (error) throw error;
 
@@ -76,14 +76,20 @@ const getCompetitionStudents = async (req, res) => {
         }
 
         // Filter by assigned sections
+        // Filter by assigned sections
         const allowedSections = assigned_sections
-            ? assigned_sections.map(s => s.split('-')[1] || s).map(s => s.trim())
+            ? assigned_sections.map(s => {
+                const parts = s.split('-');
+                return parts.length > 1 ? parts[parts.length - 1].trim() : s.trim();
+            })
             : [];
+
+        console.log(`[FacultyComp] Faculty ${req.user.id}, Allowed Sections:`, allowedSections);
 
         const myStudents = allStudents.filter(s => {
             if (allowedSections.length === 0) return true;
             return allowedSections.includes(s.section);
-        });
+        }).sort((a, b) => a.registration_no.localeCompare(b.registration_no));
 
         const myStudentIds = myStudents.map(s => s.id);
 
@@ -95,32 +101,25 @@ const getCompetitionStudents = async (req, res) => {
             });
         }
 
-        // 2. Fetch Registrations for this Competition
-        const { data: registrations, error: regError } = await supabase
-            .from('registrations')
-            .select('user_id, verified')
+        // 2. Fetch Participation Logic (NEW)
+        const { data: participation, error: partError } = await supabase
+            .from('participation')
+            .select('*')
             .eq('competition_id', competitionId)
-            .in('user_id', myStudentIds);
+            .in('student_id', myStudentIds);
 
-        if (regError) throw regError;
+        if (partError) throw partError;
 
-        // 3. Fetch Shortlisted Status
-        const { data: statusData, error: statusError } = await supabase
-            .from('competition_status')
-            .select('user_id, is_shortlisted')
-            .eq('competition_id', competitionId)
-            .in('user_id', myStudentIds)
-            .eq('is_shortlisted', true);
+        const partMap = new Map(participation?.map(p => [p.student_id, p]) || []);
 
-        if (statusError) throw statusError;
-
-        // Map Data for Frontend
-        // Total Students: Just names/regNo
-        // Registered: Name + RegNo + Verified Status
-        // Shortlisted: Name + RegNo
-
-        const registeredMap = new Map(registrations.map(r => [r.user_id, r]));
-        const shortlistedSet = new Set(statusData.map(s => s.user_id));
+        // 3. Fallback to Registrations (Legacy Support - Optional)
+        // If we want to support both tables during migration, we would merge. 
+        // For this task, we assume participation is the Source of Truth.
+        // However, if participation is empty, we might miss manual registrations from old system?
+        // Let's do a simple merge if needed, or just rely on participation.
+        // Given prompt "Participation (MOST IMPORTANT TABLE)", I will rely on it.
+        // But since I assume the DB might have old data in 'registrations' not 'participation', 
+        // I should probably Sync? No, I'll rely on Participation.
 
         const response = {
             total: myStudents.map(s => ({
@@ -129,21 +128,57 @@ const getCompetitionStudents = async (req, res) => {
                 regNo: s.registration_no,
                 section: s.section
             })),
+
             registered: myStudents
-                .filter(s => registeredMap.has(s.id))
+                .filter(s => {
+                    const p = partMap.get(s.id);
+                    return p && (p.status === 'REGISTERED');
+                })
+                .map(s => {
+                    const p = partMap.get(s.id);
+                    return {
+                        id: s.id,
+                        name: s.full_name,
+                        regNo: s.registration_no,
+                        status: p.status,
+                        source: p.verification_source,
+                        confidence: p.confidence_score,
+                        verified: !!p.verified_by, // Confirmed
+                        remarks: p.remarks
+                    };
+                }),
+
+            shortlisted: myStudents
+                .filter(s => {
+                    const p = partMap.get(s.id);
+                    return p && (p.status === 'SHORTLISTED' || p.status === 'QUALIFIED');
+                })
                 .map(s => ({
                     id: s.id,
                     name: s.full_name,
                     regNo: s.registration_no,
-                    verified: registeredMap.get(s.id).verified
+                    status: 'Shortlisted'
                 })),
-            shortlisted: myStudents
-                .filter(s => shortlistedSet.has(s.id))
-                .map(s => ({
-                    id: s.id,
-                    name: s.full_name,
-                    regNo: s.registration_no
-                }))
+
+            unregistered: myStudents
+                .filter(s => {
+                    const p = partMap.get(s.id);
+                    // If no row, or status is NOT_REGISTERED or PENDING or REJECTED
+                    if (!p) return true;
+                    return ['NOT_REGISTERED', 'PENDING', 'REJECTED', 'ACTION_REQUIRED'].includes(p.status);
+                })
+                .map(s => {
+                    const p = partMap.get(s.id);
+                    return {
+                        id: s.id,
+                        name: s.full_name,
+                        regNo: s.registration_no,
+                        status: p ? p.status : 'NOT_REGISTERED',
+                        lastSynced: p ? p.last_synced_at : null,
+                        confidence: p ? p.confidence_score : 0,
+                        remarks: p ? p.remarks : ''
+                    };
+                })
         };
 
         res.status(200).json(response);

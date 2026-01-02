@@ -11,17 +11,20 @@ const checkRegistrationStatus = async (req, res) => {
         const { competition_id, provider_token } = req.body;
         const student_id = req.userId;
 
+        console.log(`[DEBUG] CheckStatus - ID: ${competition_id} (Type: ${typeof competition_id})`);
+
         if (!competition_id) return res.status(400).json({ error: 'Competition ID is required' });
 
         // 1. Get Competition Details
         const { data: competition, error: compError } = await supabase
             .from('competitions')
-            .select('title, organizer, keywords') // Assuming keywords column might exist, or just use title
+            .select('title, organizer')
             .eq('id', competition_id)
             .single();
 
         if (compError || !competition) {
-            return res.status(404).json({ error: 'Competition not found' });
+            console.error('[Registration] Competition Lookup Error:', compError);
+            return res.status(404).json({ error: 'Competition not found', details: compError });
         }
 
         // 2. Perform Targeted Gmail Verification
@@ -41,17 +44,16 @@ const checkRegistrationStatus = async (req, res) => {
         if (match) {
             console.log('[Registration] Verification Successful:', match.subject);
 
-            // 3. Update Database
+            // 3. Update Database (Registrations)
             const { data: registration, error: regError } = await supabase
                 .from('registrations')
                 .upsert({
                     user_id: student_id,
                     competition_id: competition_id,
-                    source: 'GMAIL',
-                    status: match.matchStatus, // 'REGISTERED' or 'QUALIFIED'
+                    source: 'AUTO_GMAIL',
+                    // status: match.matchStatus, // REMOVED: Column does not exist in registrations
                     verified: true,
-                    verified_by: 'SYSTEM',
-                    verified_at: new Date(),
+                    verified_by: null, // System verified
                     proof_url: 'Verified via Gmail: ' + match.subject
                 }, { onConflict: 'user_id, competition_id' })
                 .select()
@@ -60,6 +62,23 @@ const checkRegistrationStatus = async (req, res) => {
             if (regError) {
                 console.error('Registration Upsert Error:', regError);
                 return res.status(500).json({ error: 'Failed to update registration status' });
+            }
+
+            // 4. Handle Qualification Logic (if detected as Shortlisted/Qualified)
+            if (match.matchStatus === 'QUALIFIED') {
+                const { error: statusError } = await supabase
+                    .from('competition_status')
+                    .upsert({
+                        user_id: student_id,
+                        competition_id: competition_id,
+                        is_shortlisted: true,
+                        updated_at: new Date()
+                    }, { onConflict: 'user_id, competition_id' });
+
+                if (statusError) {
+                    console.error('Failed to update competition_status:', statusError);
+                    // Don't fail the whole request, just log it.
+                }
             }
 
             return res.status(200).json({

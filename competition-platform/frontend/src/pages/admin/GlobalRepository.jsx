@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { Search, ChevronDown, Filter } from 'lucide-react';
 import { api } from '../../services/api';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const GlobalRepository = () => {
     const [activeTab, setActiveTab] = useState('All');
@@ -237,7 +238,9 @@ const GlobalRepository = () => {
                             <tbody className="divide-y divide-gray-100">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="7" className="px-4 py-12 text-center text-gray-500">Loading...</td>
+                                        <td colSpan="8" className="px-4 py-12">
+                                            <RoleBasedLoader role="ADMIN" />
+                                        </td>
                                     </tr>
                                 ) : filteredCompetitions.length > 0 ? (
                                     filteredCompetitions.map((comp) => (

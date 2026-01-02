@@ -3,6 +3,7 @@ import Sidebar from './Sidebar';
 import { ArrowLeft, Clock, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const ActivityLogs = () => {
     const [logs, setLogs] = useState([]);
@@ -67,8 +68,15 @@ const ActivityLogs = () => {
                         {/* Placeholder for future filtering if needed */}
                     </div>
 
+                    import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+                    // ... imports
+
+                    // ... code
+
                     {loading ? (
-                        <div className="p-12 text-center text-gray-500">Loading logs...</div>
+                        <div className="flex justify-center p-12">
+                            <RoleBasedLoader role="ADMIN" />
+                        </div>
                     ) : error ? (
                         <div className="p-12 text-center text-red-500 flex flex-col items-center gap-2">
                             <AlertCircle size={24} />
