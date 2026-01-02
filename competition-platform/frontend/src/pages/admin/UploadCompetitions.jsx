@@ -9,10 +9,14 @@ const UploadCompetitions = () => {
     const [uploading, setUploading] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
+        organizer: '',
         platform: 'Unstop',
+        mode: 'Online',
         deadline: '',
+        event_date: '',
         link: '',
         description: '',
+        team_allowed: false,
         min_team_size: 1,
         max_team_size: 4
     });
@@ -75,8 +79,8 @@ const UploadCompetitions = () => {
     const handleSubmit = async () => {
         // Validation
         if (activeTab === 'manual') {
-            if (!formData.title || !formData.platform || !formData.deadline || !formData.link || !formData.description) {
-                alert('Please fill in all mandatory fields');
+            if (!formData.title || !formData.organizer || !formData.platform || !formData.deadline || !formData.link) {
+                alert('Please fill in all mandatory fields (Title, Organizer, Platform, Deadline, Link)');
                 return;
             }
         }
@@ -97,7 +101,8 @@ const UploadCompetitions = () => {
                 },
                 body: JSON.stringify({
                     ...formData,
-                    team_allowed: true,
+                    // Pass explicit values or let formData handle it
+                    team_allowed: formData.team_allowed,
                     min_team_size: formData.min_team_size,
                     max_team_size: formData.max_team_size
                 })
@@ -107,10 +112,14 @@ const UploadCompetitions = () => {
                 alert('Competition created successfully!');
                 setFormData({
                     title: '',
+                    organizer: '',
                     platform: 'Unstop',
+                    mode: 'Online',
                     deadline: '',
+                    event_date: '',
                     link: '',
                     description: '',
+                    team_allowed: false,
                     min_team_size: 1,
                     max_team_size: 4
                 });
@@ -226,30 +235,110 @@ const UploadCompetitions = () => {
 
                         <div className="grid grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Deadline <span className="text-red-500">*</span></label>
-                                <div className="relative">
-                                    <input
-                                        type="date"
-                                        name="deadline"
-                                        required
-                                        value={formData.deadline}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">More Info Link <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Organizer <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
-                                    name="link"
+                                    name="organizer"
                                     required
-                                    value={formData.link}
+                                    value={formData.organizer}
                                     onChange={handleInputChange}
                                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                    placeholder="https://"
+                                    placeholder="e.g. Google, MLH"
                                 />
                             </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Mode <span className="text-red-500">*</span></label>
+                                <select
+                                    name="mode"
+                                    required
+                                    value={formData.mode}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white"
+                                >
+                                    <option>Online</option>
+                                    <option>Offline</option>
+                                    <option>Hybrid</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">One Registration Deadline <span className="text-red-500">*</span></label>
+                                <input
+                                    type="date"
+                                    name="deadline"
+                                    required
+                                    value={formData.deadline}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Main Event Date</label>
+                                <input
+                                    type="date"
+                                    name="event_date"
+                                    value={formData.event_date}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">More Info Link <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                name="link"
+                                required
+                                value={formData.link}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                placeholder="https://"
+                            />
+                        </div>
+
+                        {/* Team Settings */}
+                        <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                            <div className="flex items-center gap-2 mb-4">
+                                <input
+                                    type="checkbox"
+                                    name="team_allowed"
+                                    id="team_allowed"
+                                    checked={formData.team_allowed}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, team_allowed: e.target.checked }))}
+                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <label htmlFor="team_allowed" className="text-sm font-medium text-gray-700">Allow Team Participation</label>
+                            </div>
+
+                            {formData.team_allowed && (
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Min Team Size</label>
+                                        <input
+                                            type="number"
+                                            name="min_team_size"
+                                            min="1"
+                                            value={formData.min_team_size}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Max Team Size</label>
+                                        <input
+                                            type="number"
+                                            name="max_team_size"
+                                            min="1"
+                                            value={formData.max_team_size}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="mb-8">

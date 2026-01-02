@@ -229,6 +229,7 @@ const GlobalRepository = () => {
                                     <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Competition Name</th>
                                     <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Platform</th>
                                     <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
+                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Event Date</th>
                                     <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Participating Depts</th>
                                     <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Registrations</th>
                                     <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Qualified</th>
@@ -238,7 +239,7 @@ const GlobalRepository = () => {
                             <tbody className="divide-y divide-gray-100">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="8" className="px-4 py-12">
+                                        <td colSpan="9" className="px-4 py-12">
                                             <RoleBasedLoader role="ADMIN" />
                                         </td>
                                     </tr>
@@ -255,6 +256,9 @@ const GlobalRepository = () => {
                                             </td>
                                             <td className="px-4 py-4 text-sm text-gray-600">{comp.platform}</td>
                                             <td className="px-4 py-4 text-sm text-gray-600">{new Date(comp.registration_deadline).toLocaleDateString()}</td>
+                                            <td className="px-4 py-4 text-sm text-gray-600">
+                                                {comp.event_date ? new Date(comp.event_date).toLocaleDateString() : 'TBA'}
+                                            </td>
                                             <td className="px-4 py-4 text-sm text-gray-600">
                                                 {Array.isArray(comp.departments)
                                                     ? comp.departments.join(', ')
@@ -274,7 +278,7 @@ const GlobalRepository = () => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="7" className="px-4 py-12 text-center text-gray-500 text-sm">
+                                        <td colSpan="9" className="px-4 py-12 text-center text-gray-500 text-sm">
                                             No competitions found.
                                         </td>
                                     </tr>

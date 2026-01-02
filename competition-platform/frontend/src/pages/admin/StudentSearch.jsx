@@ -74,10 +74,7 @@ const StudentSearch = () => {
                         />
                     </div>
 
-                    import RoleBasedLoader from '../../components/common/RoleBasedLoader';
-                    // ... imports (inside component render)
 
-                    // ... code
 
                     <div className="overflow-hidden">
                         {loading ? (

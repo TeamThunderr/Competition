@@ -27,7 +27,22 @@ const getAllCompetitions = async (req, res) => {
 // Create a new competition (Public Mode: Any user with x-user-id can create)
 const createCompetition = async (req, res) => {
     try {
-        const { title, description, platform, team_allowed, min_team_size, max_team_size } = req.body;
+        const {
+            title,
+            description,
+            platform,
+            organization, // Mapping frontend 'organizer' to this? No, schema says 'organizer'
+            organizer,
+            link, // Schema says external_link
+            external_link,
+            deadline, // Schema says registration_deadline
+            registration_deadline,
+            event_date,
+            mode,
+            team_allowed,
+            min_team_size,
+            max_team_size
+        } = req.body;
         const created_by = req.userId; // Retrieved from authMiddleware (x-user-id header)
 
         if (!title) {
@@ -41,6 +56,11 @@ const createCompetition = async (req, res) => {
                     title,
                     description,
                     platform,
+                    organizer: organizer || organization,
+                    external_link: external_link || link,
+                    registration_deadline: registration_deadline || deadline,
+                    event_date,
+                    mode,
                     team_allowed,
                     min_team_size,
                     max_team_size,
