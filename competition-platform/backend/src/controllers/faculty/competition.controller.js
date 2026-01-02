@@ -76,9 +76,15 @@ const getCompetitionStudents = async (req, res) => {
         }
 
         // Filter by assigned sections
+        // Filter by assigned sections
         const allowedSections = assigned_sections
-            ? assigned_sections.map(s => s.split('-')[1] || s).map(s => s.trim())
+            ? assigned_sections.map(s => {
+                const parts = s.split('-');
+                return parts.length > 1 ? parts[parts.length - 1].trim() : s.trim();
+            })
             : [];
+
+        console.log(`[FacultyComp] Faculty ${req.user.id}, Allowed Sections:`, allowedSections);
 
         const myStudents = allStudents.filter(s => {
             if (allowedSections.length === 0) return true;

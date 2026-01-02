@@ -60,6 +60,28 @@ export const getHODCompetitionStats = async (competitionId) => {
     return response.data || response;
 };
 
+export const syncActiveCompetitions = async () => {
+    const response = await api.post('/api/faculty/competitions/sync-active', {});
+    return response.data || response;
+};
+
+export const downloadParticipationReport = async () => {
+    try {
+        const response = await api.get('/api/faculty/competitions/export-report', {
+            responseType: 'blob'
+        });
+        const url = window.URL.createObjectURL(new Blob([response]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Participation_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (e) {
+        throw e;
+    }
+};
+
 // Admin Student Search APIs
 export const getStudents = async (filters = {}) => {
     const queryParams = new URLSearchParams(filters).toString();
@@ -167,5 +189,7 @@ export default {
     getDepartmentFaculty,
     downloadWinnersReport,
     getStudentCompetitions,
-    requestOD
+    requestOD,
+    syncActiveCompetitions,
+    downloadParticipationReport
 };

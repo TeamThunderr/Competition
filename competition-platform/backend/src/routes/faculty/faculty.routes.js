@@ -27,6 +27,8 @@ router.get('/competitions', facultyCompetitionController.getAllCompetitions);
 router.get('/competition/:id', facultyCompetitionController.getCompetitionDetails);
 router.get('/competition/:id/students', facultyCompetitionController.getCompetitionStudents); // Need to update this controller too?
 router.post('/competition/:competitionId/sync', participationController.syncCompetition);
+router.post('/competitions/sync-active', participationController.syncAllCompetitions);
+router.get('/competitions/export-report', participationController.exportParticipationStats);
 
 // Verification Routes
 router.get('/pending-verifications', verificationController.getPendingVerifications);

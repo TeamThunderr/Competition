@@ -2,6 +2,10 @@
 -- Purpose: Unified Participation table for Faculty-Driven Gmail Sync
 
 -- Create Enum Types if they don't exist (handling potential conflicts if I run this multiple times in dev)
+
+-- 1. Ensure users table has refresh token for Sync
+ALTER TABLE users ADD COLUMN IF NOT EXISTS google_refresh_token TEXT;
+
 DO $$ BEGIN
     CREATE TYPE participation_status AS ENUM ('NOT_REGISTERED', 'PENDING', 'REGISTERED', 'SHORTLISTED', 'REJECTED');
 EXCEPTION
