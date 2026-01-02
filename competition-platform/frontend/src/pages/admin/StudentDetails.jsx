@@ -1,201 +1,215 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { ArrowLeft, Mail, Phone, Clock, Trophy, Award, MapPin, Calendar, BookOpen } from 'lucide-react';
+import { ArrowLeft, Award, CheckCircle, Trophy, User, Clock, AlertCircle, Phone } from 'lucide-react';
 import { getStudentById } from '../../services/usersService';
 
 const StudentDetails = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [student, setStudent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchStudentDetails = async () => {
+        const fetchDetails = async () => {
             try {
+                // Using Admin service to get details (which now returns rich data matching Faculty view)
                 const data = await getStudentById(id);
                 setStudent(data);
             } catch (err) {
                 console.error("Failed to fetch student details", err);
-                setError("Failed to load student details.");
+                const msg = err.response?.data?.message || err.message || "Failed to load student details.";
+                setError(msg);
             } finally {
                 setLoading(false);
             }
         };
 
         if (id) {
-            fetchStudentDetails();
+            fetchDetails();
         }
     }, [id]);
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex">
+            <div className="flex bg-gray-50 min-h-screen">
                 <Sidebar />
-                <div className="flex-1 ml-64 p-8 flex items-center justify-center">
-                    <div className="text-gray-500">Loading student profile...</div>
-                </div>
+                <main className="flex-1 ml-64 p-8 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </main>
             </div>
         );
     }
 
-    if (error || !student) {
+    if (error) {
         return (
-            <div className="min-h-screen bg-gray-50 flex">
+            <div className="flex bg-gray-50 min-h-screen">
                 <Sidebar />
-                <div className="flex-1 ml-64 p-8 flex flex-col items-center justify-center">
-                    <div className="text-red-500 mb-4">{error || "Student not found"}</div>
-                    <Link to="/admin/search" className="text-blue-600 hover:underline">Return to Search</Link>
-                </div>
+                <main className="flex-1 ml-64 p-8">
+                    <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-2">
+                        <AlertCircle size={20} />
+                        {error}
+                    </div>
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="mt-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                    >
+                        <ArrowLeft size={20} /> Back to Search
+                    </button>
+                </main>
             </div>
         );
     }
+
+    if (!student) return null;
+
+    const { profile, stats, competitions } = student;
+
+    // Determine Activity Status
+    const isActive = stats.registered > 0;
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
             <Sidebar />
-            <div className="flex-1 ml-64 p-8 font-sans">
-                {/* Header */}
-                <div className="mb-8 relative">
-                    <Link to="/admin/search" className="absolute left-0 top-0 inline-flex items-center text-gray-600 hover:text-blue-600 transition-colors">
-                        <ArrowLeft size={20} className="mr-2" />
-                        Back to Search
-                    </Link>
-                    <div className="text-center pt-8">
-                        <h1 className="text-2xl font-bold text-gray-900">Student Profile</h1>
-                        <p className="text-gray-500 mt-1">Detailed academic and participation record.</p>
-                    </div>
-                </div>
 
-                {/* Profile Card */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
-                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-8 text-white">
-                        <div className="flex items-center gap-6">
-                            <div className="h-24 w-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white/30 shadow-inner">
-                                {student.full_name?.charAt(0)}
-                            </div>
+            <main className="flex-1 ml-64 p-8">
+                {/* Header with Back Button */}
+                <div className="mb-8">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 transition-colors"
+                    >
+                        <ArrowLeft size={18} /> Back to Search
+                    </button>
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                             <div>
-                                <h2 className="text-3xl font-bold mb-1">{student.full_name}</h2>
-                                <p className="text-blue-100 text-lg font-mono">{student.registration_no}</p>
-                                <div className="flex items-center gap-4 mt-4 text-sm text-blue-50">
-                                    <span className="flex items-center gap-1 bg-white/10 px-3 py-1 rounded-full">
-                                        <Mail size={14} /> {student.email}
+                                <div className="flex items-center gap-3">
+                                    <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border ${isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                                        {isActive ? 'Active' : 'Inactive'}
                                     </span>
-                                    {student.phone_number && (
-                                        <span className="flex items-center gap-1 bg-white/10 px-3 py-1 rounded-full">
-                                            <Phone size={14} /> {student.phone_number}
-                                        </span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-gray-500 mt-3 text-sm">
+                                    <span className="flex items-center gap-1.5"><User size={16} className="text-gray-400" /> {profile.rollNo}</span>
+                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span>{profile.department} - Section {profile.section}</span>
+                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span>{profile.email}</span>
+                                    {profile.phoneNumber && profile.phoneNumber !== 'N/A' && (
+                                        <>
+                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                            <a href={`tel:${profile.phoneNumber}`} className="flex items-center gap-1.5 hover:text-blue-600 transition-colors">
+                                                <Phone size={14} />
+                                                {profile.phoneNumber}
+                                            </a>
+                                        </>
                                     )}
+                                    {profile.batch && (
+                                        <>
+                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-100 font-medium">
+                                                Batch {profile.batch}
+                                            </span>
+                                        </>
+                                    )}
+                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span className="flex items-center gap-1.5 font-medium text-gray-700">
+                                        <Award size={16} className="text-amber-500" />
+                                        CGPA: {profile.cgpa}
+                                    </span>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="p-8">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {/* Academic Info */}
-                            <div className="space-y-6">
-                                <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2">Academic Information</h3>
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                                            <BookOpen size={20} />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Department</p>
-                                            <p className="font-medium text-gray-900">{student.departments?.name || 'N/A'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
-                                            <Users size={20} />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Section</p>
-                                            <p className="font-medium text-gray-900">{student.section || 'N/A'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">
-                                            <Clock size={20} />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Admission Year</p>
-                                            <p className="font-medium text-gray-900">{student.admission_year || 'N/A'}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Performance Stats */}
-                            <div className="space-y-6">
-                                <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2">Performance Metrics</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-gray-50 p-4 rounded-xl text-center">
-                                        <div className="text-3xl font-bold text-gray-900 mb-1">{student.cgpa || 'N/A'}</div>
-                                        <div className="text-xs font-semibold text-gray-500 uppercase">CGPA</div>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-xl text-center">
-                                        <div className="text-3xl font-bold text-gray-900 mb-1">{student.attendance ? `${student.attendance}%` : 'N/A'}</div>
-                                        <div className="text-xs font-semibold text-gray-500 uppercase">Attendance</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Achievements */}
-                            <div className="space-y-6">
-                                <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2">Competition Stats</h3>
-                                <div className="space-y-4">
-                                    <div className="bg-blue-50 p-4 rounded-xl flex items-center gap-4 border border-blue-100">
-                                        <div className="p-3 bg-white rounded-full text-blue-600 shadow-sm">
-                                            <Award size={24} />
-                                        </div>
-                                        <div>
-                                            <div className="text-2xl font-bold text-blue-900">{student.stats?.participated || 0}</div>
-                                            <div className="text-xs text-blue-600 font-bold uppercase">Participations</div>
-                                        </div>
-                                    </div>
-                                    <div className="bg-amber-50 p-4 rounded-xl flex items-center gap-4 border border-amber-100">
-                                        <div className="p-3 bg-white rounded-full text-amber-600 shadow-sm">
-                                            <Trophy size={24} />
-                                        </div>
-                                        <div>
-                                            <div className="text-2xl font-bold text-amber-900">{student.stats?.won || 0}</div>
-                                            <div className="text-xs text-amber-600 font-bold uppercase">Victories</div>
-                                        </div>
-                                    </div>
+                                <div className="flex items-center gap-2 text-blue-600 mt-4 text-sm font-medium bg-blue-50/50 px-3 py-2 rounded-lg border border-blue-100 w-fit">
+                                    <User size={14} />
+                                    <span>Class Advisor: {profile.classAdvisor || 'Not Assigned'}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-3 mb-2 text-blue-600">
+                            <Clock size={20} />
+                            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500">Registered</h3>
+                        </div>
+                        <p className="text-3xl font-bold text-gray-900">{stats.registered}</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-3 mb-2 text-purple-600">
+                            <CheckCircle size={20} />
+                            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500">Qualified</h3>
+                        </div>
+                        <p className="text-3xl font-bold text-gray-900">{stats.qualified}</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-3 mb-2 text-amber-500">
+                            <Trophy size={20} />
+                            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500">Won</h3>
+                        </div>
+                        <p className="text-3xl font-bold text-gray-900">{stats.won}</p>
+                    </div>
+                </div>
+
+                {/* Competition History */}
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-gray-50">
+                        <h2 className="text-xl font-bold text-gray-900">Competition History</h2>
+                    </div>
+
+                    {competitions.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50/50">
+                                    <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-4">Competition</th>
+                                        <th className="px-6 py-4">Platform</th>
+                                        <th className="px-6 py-4">Registered At</th>
+                                        <th className="px-6 py-4">Verification</th>
+                                        <th className="px-6 py-4">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {competitions.map((comp, index) => (
+                                        <tr key={index} className="hover:bg-gray-50/50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <span className="font-semibold text-gray-900 block">{comp.competitionName}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">{comp.platform}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">{new Date(comp.registeredAt).toLocaleDateString()}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`flex items-center gap-1 text-sm font-medium ${comp.verificationStatus === 'Verified' ? 'text-green-600' : 'text-amber-600'}`}>
+                                                    {comp.verificationStatus === 'Verified' ? <CheckCircle size={14} /> : <Clock size={14} />}
+                                                    {comp.verificationStatus}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${comp.status === 'Won' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                    comp.status === 'Qualified' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                                        'bg-gray-50 text-gray-600 border-gray-200'
+                                                    }`}>
+                                                    {comp.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="p-12 text-center text-gray-500">
+                            <Award size={48} className="mx-auto text-gray-300 mb-4" />
+                            <p className="text-lg font-medium text-gray-900">No competitions found</p>
+                            <p className="text-gray-400">This student hasn't participated in any competitions yet.</p>
+                        </div>
+                    )}
+                </div>
+            </main>
         </div>
     );
 };
-
-// Start - Helper Icon Component (Users is used but not imported in the top list above correctly, fixing import)
-function Users({ size, className }) {
-    return (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={className}
-        >
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-        </svg>
-    );
-}
-// End - Helper Icon Component
 
 export default StudentDetails;

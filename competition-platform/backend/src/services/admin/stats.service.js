@@ -1,7 +1,7 @@
 const supabase = require('../../config/supabaseClient');
 
 const getDepartmentStats = async () => {
-    console.log('[StatsService] Fetching department stats (Manual Join Mode)...');
+    console.log('[StatsService] Fetching department stats (Enhanced Analysis Mode)...');
 
     // 1. Fetch ALL registrations
     const { data: registrations, error: regError } = await supabase
@@ -13,12 +13,7 @@ const getDepartmentStats = async () => {
         throw new Error(regError.message);
     }
 
-    if (registrations.length === 0) {
-        return [];
-    }
-
-    // 2. Fetch ALL Departments for Mapping
-    // We do this to ensure we can map department_id to a name even if the FK on users is missing/broken.
+    // 2. Fetch ALL Departments
     const { data: allDepartments, error: deptError } = await supabase
         .from('departments')
         .select('id, name');
@@ -26,85 +21,138 @@ const getDepartmentStats = async () => {
     const deptMap = {};
     if (!deptError && allDepartments) {
         allDepartments.forEach(d => { deptMap[d.id] = d.name; });
-    } else {
-        console.warn('[StatsService] Failed to fetch departments:', deptError);
     }
 
-    // 3. Extract User IDs
-    const userIds = [...new Set(registrations.map(r => r.user_id))];
-
-    // 4. Fetch Users (Plain)
-    // Select * to ensure we don't miss fields due to casing or schema changes
-    const { data: users, error: userError } = await supabase
+    // 3. Fetch ALL Users (to calculate total strength per dept)
+    const { data: allUsers, error: userError } = await supabase
         .from('users')
-        .select('*')
-        .in('id', userIds);
+        .select('id, department_id, full_name, email, section, role');
 
-    if (userError) {
-        console.error('[StatsService] User Fetch Error:', userError);
-        throw new Error(userError.message);
-    }
+    if (userError) throw new Error(userError.message);
 
-    // Map Users for easy lookup
-    const userMap = {};
-    users.forEach(u => { userMap[u.id] = u; });
+    // Filter only students for accurate strength calculation
+    const studentUsers = allUsers.filter(u => u.role === 'STUDENT');
 
-    // 5. Aggregate Data
+    // 4. Fetch Competition Status (for Winners/Shortlisted)
+    const { data: statusData, error: statusError } = await supabase
+        .from('competition_status')
+        .select('user_id, is_winner, is_shortlisted');
+
+    if (statusError) throw new Error(statusError.message);
+
+    // --- AGGREGATION ---
+
+    // A. Calculate Total Strength per Department
+    const deptStrength = {};
+    const userMap = {}; // Helper for lookups
+
+    studentUsers.forEach(u => {
+        userMap[u.id] = u;
+        const dId = u.department_id || 'unknown';
+        if (!deptStrength[dId]) deptStrength[dId] = 0;
+        deptStrength[dId]++;
+    });
+
+    // B. Map Registrations to Departments
     const stats = {};
 
+    // Initialize stats for all known departments (even if 0 registrations)
+    if (allDepartments) {
+        allDepartments.forEach(d => {
+            stats[d.id] = {
+                department_id: d.id,
+                department_name: d.name,
+                total_students: deptStrength[d.id] || 0,
+                unique_participants: new Set(),
+                total_registrations: 0,
+                verified_registrations: 0,
+                winners: 0,
+                shortlisted: 0,
+                sections: {}
+            };
+        });
+    }
+
+
+
+    // Process Registrations
     registrations.forEach(reg => {
         const user = userMap[reg.user_id];
-
-        if (!user) {
-            console.warn(`[StatsService] Orphaned Registration: ${reg.id} (User ID: ${reg.user_id})`);
-            return;
-        }
+        if (!user) return; // Skip if user not found (e.g. deleted user)
 
         const deptId = user.department_id || 'unknown';
-        // Use the manual deptMap first, fallback to 'Unknown'
-        const deptName = deptMap[deptId] || `Unknown Department (${deptId})`;
-        const section = user.section || 'N/A';
 
+        // Safety check if dept wasn't in list
         if (!stats[deptId]) {
             stats[deptId] = {
                 department_id: deptId,
-                department_name: deptName,
+                department_name: deptMap[deptId] || (deptId === 'unknown' ? 'Unknown Department' : `Unknown (${deptId})`),
+                total_students: deptStrength[deptId] || 0,
+                unique_participants: new Set(),
                 total_registrations: 0,
                 verified_registrations: 0,
+                winners: 0,
+                shortlisted: 0,
                 sections: {}
             };
         }
 
-        stats[deptId].total_registrations++;
-        if (reg.verified) {
-            stats[deptId].verified_registrations++;
-        }
+        const s = stats[deptId];
+        s.total_registrations++;
+        s.unique_participants.add(user.id);
 
-        if (!stats[deptId].sections[section]) {
-            stats[deptId].sections[section] = {
-                name: section,
-                count: 0,
-                students: []
-            };
-        }
+        if (reg.verified) s.verified_registrations++;
 
-        stats[deptId].sections[section].count++;
-        stats[deptId].sections[section].students.push({
-            student_id: user.id,
-            full_name: user.full_name,
-            email: user.email,
-            competition_id: reg.competition_id,
-            verified: reg.verified || false
-        });
+        // Section breakdown
+        const section = user.section || 'N/A';
+        if (!s.sections[section]) {
+            s.sections[section] = { name: section, count: 0 };
+        }
+        s.sections[section].count++;
+        // Student details removed to prevent drill-down and reduce payload size
+
     });
 
-    const result = Object.values(stats).map(dept => ({
-        ...dept,
-        sections: Object.values(dept.sections)
-    }));
+    // Process Winners/Shortlisted
+    statusData.forEach(st => {
+        const user = userMap[st.user_id];
+        if (!user) return;
+        const deptId = user.department_id || 'unknown';
+        if (stats[deptId]) {
+            if (st.is_winner) stats[deptId].winners++;
+            if (st.is_shortlisted) stats[deptId].shortlisted++;
+        }
+    });
 
-    console.log('[StatsService] Aggregated Result:', JSON.stringify(result, null, 2));
-    return result;
+    // Final Calculations & Format
+    const result = Object.values(stats).map(dept => {
+        const uniqueCount = dept.unique_participants.size;
+
+        // Participation Rate: Active Students / Total Students
+        let participationRate = 0;
+        if (dept.total_students > 0) {
+            participationRate = (uniqueCount / dept.total_students) * 100;
+        }
+
+        // Success Rate: Winners / Unique Participants
+        let successRate = 0;
+        if (uniqueCount > 0) {
+            successRate = (dept.winners / uniqueCount) * 100;
+        }
+
+        return {
+            ...dept,
+            unique_participants: uniqueCount, // Convert Set to number
+            participation_rate: parseFloat(participationRate.toFixed(1)),
+            success_rate: parseFloat(successRate.toFixed(1)),
+            sections: Object.values(dept.sections)
+        };
+    });
+
+    // Filter: Only show departments that have at least one registration
+    const activeDepartments = result.filter(dept => dept.total_registrations > 0);
+
+    return activeDepartments.sort((a, b) => b.participation_rate - a.participation_rate);
 };
 
 const getCompetitionStats = async (competitionId) => {
@@ -148,7 +196,7 @@ const getCompetitionStats = async (competitionId) => {
     // 4. Fetch Users & Departments
     const { data: users, error: userError } = await supabase
         .from('users')
-        .select('id, department_id')
+        .select('*')
         .in('id', uniqueUserIds);
 
     if (userError) {
@@ -212,9 +260,62 @@ const getCompetitionStats = async (competitionId) => {
         }
     });
 
+    // 6. Detailed Participants List
+    const participants = registrations.map(reg => {
+        const user = userMap[reg.user_id];
+        if (!user) return null;
+
+        const deptName = user.department_id ? (deptMap[user.department_id] || 'Unknown') : 'Unknown';
+
+        // Calculate Batch (Graduation Year)
+        let batch = 'Unknown';
+        if (user.admission_year) {
+            batch = (user.admission_year + 4).toString();
+        } else if (user.registration_no) {
+            const regNo = user.registration_no;
+            const prefix = regNo.substring(0, 2);
+            const yearSuffix = parseInt(prefix, 10);
+            if (!isNaN(yearSuffix) && yearSuffix > 10 && yearSuffix < 99) {
+                batch = (2000 + yearSuffix + 4).toString();
+            }
+        }
+
+        // Find status if exists
+        const statusEntry = statuses.find(s => s.user_id === user.id);
+        let statusLabel = 'Registered';
+        if (statusEntry?.is_winner) statusLabel = 'Winner';
+        else if (statusEntry?.is_shortlisted) statusLabel = 'Shortlisted';
+
+        return {
+            id: user.id,
+            full_name: user.full_name || 'Unknown User',
+            registration_no: user.registration_no || 'N/A',
+            email: user.email || 'N/A',
+            department: deptName,
+            section: user.section || 'N/A',
+            batch: batch,
+            status: statusLabel,
+            verified: reg.verified
+        };
+    }).filter(p => p !== null);
+
+    // 7. Meta Data for Dropdowns (Master Lists)
+    // Departments are already fetched in #4
+    const allDepartments = departments ? departments.map(d => d.name).sort() : [];
+
+    // Calculate academic years (Batches) - Last 4 years + next year
+    const currentYear = new Date().getFullYear();
+    const batches = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2, currentYear - 3];
+
     const result = {
         overall,
-        departments: Object.values(stats)
+        departments: Object.values(stats),
+        participants,
+        meta: {
+            departments: allDepartments,
+            batches: batches,
+            sections: ['A', 'B', 'C', 'D'] // Standard sections as they aren't in a separate table usually
+        }
     };
 
     console.log('[StatsService] Stats aggregation complete');

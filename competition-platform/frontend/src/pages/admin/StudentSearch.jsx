@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Search, X, Mail, Phone, Clock, Trophy, Award } from 'lucide-react';
 import { getStudents, getStudentById } from '../../services/usersService';
 
 const StudentSearch = () => {
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
+    // Initialize from URL param 'q' or empty string
+    const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
@@ -13,15 +16,20 @@ const StudentSearch = () => {
     // Debounce search
     useEffect(() => {
         const timer = setTimeout(() => {
+            // Update URL query param to persist search state
             if (searchTerm.trim() !== '') {
+                setSearchParams({ q: searchTerm });
                 handleSearch();
             } else {
+                setSearchParams({});
                 setStudents([]);
             }
         }, 500);
 
         return () => clearTimeout(timer);
     }, [searchTerm]);
+
+    const navigate = useNavigate();
 
     const handleSearch = async () => {
         setLoading(true);
@@ -37,8 +45,7 @@ const StudentSearch = () => {
     };
 
     const handleStudentClick = (studentId) => {
-        // Navigate to the details page instead of opening a modal
-        window.location.href = `/admin/student/${studentId}`;
+        navigate(`/admin/student/${studentId}`);
     };
 
     return (
@@ -62,7 +69,7 @@ const StudentSearch = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
 
                             className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
-                            placeholder="Search by Name or Roll Number..."
+                            placeholder="Search by Name, Roll Number or Email..."
                         />
                     </div>
 
@@ -78,12 +85,15 @@ const StudentSearch = () => {
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reg No</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
-                                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {students.map((student) => (
-                                        <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                                        <tr
+                                            key={student.id}
+                                            onClick={() => handleStudentClick(student.id)}
+                                            className="hover:bg-gray-50 transition-colors cursor-pointer"
+                                        >
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center">
                                                     <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xs">
@@ -97,14 +107,6 @@ const StudentSearch = () => {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.registration_no}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.departments?.name || '-'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">{student.section || '-'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <button
-                                                    onClick={() => handleStudentClick(student.id)}
-                                                    className="text-blue-600 hover:text-blue-900"
-                                                >
-                                                    View Details
-                                                </button>
-                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
