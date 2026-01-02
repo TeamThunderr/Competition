@@ -26,12 +26,14 @@ const ActiveCompetitions = () => {
         fetchCompetitions();
     }, []);
 
-    const filteredCompetitions = competitions.filter(comp => {
-        if (!comp) return false;
-        const searchLower = searchQuery.toLowerCase();
-        return (comp.title || '').toLowerCase().includes(searchLower) ||
-            (comp.platform || '').toLowerCase().includes(searchLower);
-    });
+    const filteredCompetitions = competitions
+        .filter(comp => {
+            if (!comp) return false;
+            const searchLower = searchQuery.toLowerCase();
+            return (comp.title || '').toLowerCase().includes(searchLower) ||
+                (comp.platform || '').toLowerCase().includes(searchLower);
+        })
+        .sort((a, b) => (b.id || 0) - (a.id || 0));
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
