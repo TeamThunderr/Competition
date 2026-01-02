@@ -33,22 +33,20 @@ const syncSingleStudent = async (student, competition, lastSyncedAt, gmailServic
             lastSyncedAt
         );
 
-        if (match) {
-            let dbStatus = match.status; // REGISTERED, QUALIFIED, REJECTED
-            if (dbStatus === 'QUALIFIED') dbStatus = 'SHORTLISTED';
-            if (dbStatus === 'ACTION_REQUIRED') dbStatus = 'PENDING';
+        if (match && match.suggested_status !== 'NOT_FOUND') {
+            let suggested = match.suggested_status; // REGISTERED, SHORTLISTED, REJECTED
 
-            // Map detected status to metadata
+            // Map detected status
             const upsertData = {
                 student_id: student.id,
                 competition_id: competition.id,
-                status: 'PENDING', // Always PENDING until manual verify
+                status: 'PENDING', // Always PENDING as "Assistive"
                 verification_source: 'AUTO_GMAIL',
-                gmail_message_id: match.id,
-                matched_keyword: match.matchedKeyword,
+                gmail_message_id: match.gmail_message_id,
+                matched_keyword: match.matched_keyword,
                 confidence_score: match.confidence,
-                last_synced_at: new Date().toISOString(),
-                remarks: `Detected ${match.status} via Gmail`
+                last_synced_at: match.detected_at, // Use service timestamp
+                remarks: `Gmail Suggestion: ${suggested} (Confidence: ${match.confidence}%)`
             };
 
             return { status: 'detected', upsertData };
@@ -108,12 +106,17 @@ const syncAllCompetitions = async (req, res) => {
             return res.status(500).json({ error: 'Database Error: Competitions' });
         }
 
+        console.log(`[SyncAll] Found ${competitions?.length || 0} active competitions.`);
+
         let totalStats = { processed: 0, detected: 0, errors: 0 };
 
         // 2. Iterate and Sync each
         for (const comp of competitions) {
+            console.log(`[SyncAll] Processing Comp: ${comp.title}`);
             try {
                 const compStats = await performBatchSync(comp, department_id, assigned_sections);
+                console.log(`[SyncAll] Stats for ${comp.title}:`, compStats);
+
                 totalStats.processed += compStats.processed;
                 totalStats.detected += compStats.detected;
                 totalStats.errors += compStats.errors;
@@ -122,6 +125,7 @@ const syncAllCompetitions = async (req, res) => {
             }
         }
 
+        console.log('[SyncAll] Completed. Total Stats:', totalStats);
         res.status(200).json({ message: 'Sync All completed', stats: totalStats });
 
     } catch (err) {
@@ -215,10 +219,18 @@ async function performBatchSync(competition, departmentId, assignedVersion) {
         return parts.length > 1 ? parts[parts.length - 1].trim() : s.trim();
     });
 
+    console.log(`[BatchSync] Raw Sections: ${assignedVersion}, Parsed: ${facultySectionsParsed}`);
+    console.log(`[BatchSync] Total Students in Dept: ${students.length}`);
+
     const targetStudents = students.filter(s => {
         const sSec = s.section ? s.section.trim().toUpperCase() : '';
+        // Debug sample
+        // if (Math.random() < 0.01) console.log(`[BatchSync] Checking User ${s.email} Sec: ${sSec} vs ${facultySectionsParsed}`);
         return facultySectionsParsed.includes(sSec);
     });
+
+    console.log(`[BatchSync] Target Students after Section Filter: ${targetStudents.length}`);
+
 
     const { data: existingRows, error: partError } = await supabase
         .from('participation')
@@ -240,11 +252,12 @@ async function performBatchSync(competition, departmentId, assignedVersion) {
     });
 
     const stats = { processed: 0, detected: 0, errors: 0 };
+    console.log(`[BatchSync] candidates to sync: ${studentsToSync.length}`);
 
     for (const student of studentsToSync) {
         try {
             if (!student.google_refresh_token) {
-                // No token, skip silently
+                console.log(`[BatchSync] Skipping ${student.email} - Missing Refresh Token`);
                 continue;
             }
 
