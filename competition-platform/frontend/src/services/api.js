@@ -44,7 +44,16 @@ async function request(endpoint, options = {}) {
         // 5. Handle Non-200 Responses
         if (!response.ok) {
             const errorBody = await response.json().catch(() => ({}));
-            throw new Error(errorBody.error || errorBody.message || `API Error: ${response.status}`);
+
+            // Create a smarter error object
+            const error = new Error(errorBody.error || errorBody.message || `API Error: ${response.status}`);
+            error.status = response.status;
+            error.response = {
+                status: response.status,
+                data: errorBody
+            };
+
+            throw error;
         }
 
         // 6. Return Data based on Type

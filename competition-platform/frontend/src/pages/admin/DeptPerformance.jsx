@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { api } from '../../services/api';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const DeptPerformance = () => {
     const [stats, setStats] = useState([]);
@@ -43,7 +44,9 @@ const DeptPerformance = () => {
                 </div>
 
                 {loading ? (
-                    <div>Loading...</div>
+                    <div className="flex justify-center p-12">
+                        <RoleBasedLoader role="ADMIN" />
+                    </div>
                 ) : (
                     <>
                         {/* Chart Section */}

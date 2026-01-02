@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { getHodStudentDetails } from '../../services/usersService';
 import StudentProfileView from '../common/StudentProfileView';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const HodStudentDetail = () => {
     const { id } = useParams();
@@ -33,11 +34,8 @@ const HodStudentDetail = () => {
 
     if (loading) {
         return (
-            <div className="flex bg-gray-50 min-h-screen">
-                <Sidebar />
-                <main className="flex-1 ml-64 p-8 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                </main>
+            <div className="flex bg-gray-50 min-h-screen items-center justify-center">
+                <RoleBasedLoader role="HOD" />
             </div>
         );
     }

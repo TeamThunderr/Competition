@@ -1,8 +1,6 @@
 import React from 'react';
-import { LayoutDashboard, Users, LogOut, CheckCircle } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { logoutUser } from '../../services/authService';
-import logo from '../../assets/logo.png';
+import { LayoutDashboard, Users, CheckCircle } from 'lucide-react';
+import SharedSidebar from '../common/SharedSidebar';
 
 const Sidebar = ({ isOpen, onClose }) => {
     const navigate = useNavigate();

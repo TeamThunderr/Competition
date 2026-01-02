@@ -3,8 +3,10 @@ import Sidebar from './Sidebar';
 import { Link } from 'react-router-dom';
 import { Upload } from 'lucide-react';
 import { api } from '../../services/api';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const AdminDashboard = () => {
+    const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         activeCompetitions: 0,
         totalParticipation: "0",
@@ -84,11 +86,21 @@ const AdminDashboard = () => {
 
             } catch (err) {
                 console.error("Fetch Stats Error:", err);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchStats();
     }, []);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <RoleBasedLoader role="ADMIN" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 flex">

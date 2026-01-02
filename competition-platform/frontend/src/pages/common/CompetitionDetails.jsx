@@ -3,9 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Users, ExternalLink, ArrowLeft, Globe, Clock, MessageSquare, Layers } from 'lucide-react';
 import { getCurrentUser } from '../../services/authService';
 import { getCompetitionStudents, getHODCompetitionStats } from '../../services/usersService';
+import { api } from '../../services/api';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const CompetitionDetails = () => {
     const { id } = useParams();
+    // ... (rest of imports/setup)
+
+    // ...
+
     const navigate = useNavigate();
     const [competition, setCompetition] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -39,7 +45,13 @@ const CompetitionDetails = () => {
         fetchDetails();
     }, [id, isFaculty, isHOD]);
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Loading details...</div>;
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <RoleBasedLoader role={isHOD ? 'HOD' : isFaculty ? 'FACULTY' : 'STUDENT'} />
+            </div>
+        );
+    }
     if (!competition) return <div className="p-8 text-center text-red-500">Competition not found</div>;
 
     return (
@@ -89,13 +101,52 @@ const CompetitionDetails = () => {
             </div>
 
             {/* Content Section: Conditionally Render based on Role */}
+            {/* Content Section: Conditionally Render based on Role */}
             {isFaculty || isHOD ? (
                 // FACULTY/HOD VIEW (3 Column Layout)
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                     {/* Event Info (Left Side - Small) */}
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:col-span-1 h-fit">
                         <h2 className="font-bold text-gray-900 mb-4">Event Information</h2>
-                        <div className="space-y-4 text-sm">
+
+                        {/* FACULTY ACTIONS */}
+                        {isFaculty && (
+                            <div className="mb-6 space-y-3">
+                                <button
+                                    onClick={async () => {
+                                        if (confirm(`Start Gmail Sync for ${competition.title}? This may take a moment.`)) {
+                                            setLoading(true); // Reuse main loader or local
+                                            try {
+                                                await api.post(`/api/faculty/competition/${id}/sync`, {});
+                                                alert("Sync Completed! Refreshing data...");
+                                                // Refresh Data
+                                                const students = await getCompetitionStudents(id);
+                                                setStatsData(students);
+                                            } catch (e) {
+                                                console.error(e);
+                                                alert("Sync failed: " + (e.message || "Unknown error"));
+                                            } finally {
+                                                setLoading(false);
+                                            }
+                                        }
+                                    }}
+                                    className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm"
+                                >
+                                    🔄 Sync Competition
+                                </button>
+
+                                <button
+                                    className="w-full bg-white border border-gray-300 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm"
+                                    onClick={() => alert("Download CSV Feature Implementation needed")}
+                                >
+                                    📥 Download List
+                                </button>
+                            </div>
+                        )}
+
+                        <div className="space-y-4 text-sm mt-4 pt-4 border-t border-gray-100">
+                            {/* ... Existing Event Info ... */}
+                            {/* Re-rendering existing info to ensure it's kept */}
                             <div className="flex justify-between py-2 border-b border-gray-50">
                                 <span className="text-gray-500 flex items-center gap-2">
                                     <Clock size={16} /> Registration Ends
@@ -137,23 +188,24 @@ const CompetitionDetails = () => {
 
                     {/* Stats Columns (Right Side - Wide) */}
                     <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* Column 1: Total Sections (HOD) OR Total Students (Faculty) */}
+                        {/* Column 1: Custom Logic for Unregistered */}
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                             {(() => {
-                                // Logic to filter out registered students from total list
-                                const unregisteredStudents = isHOD ? [] : (statsData.total || []).filter(student =>
-                                    !statsData.registered?.some(reg => reg.id === student.id)
+                                // Use backend 'unregistered' list if available, else derive
+                                const unregisteredStudents = isHOD ? [] : (
+                                    statsData.unregistered ||
+                                    (statsData.total || []).filter(student => !statsData.registered?.some(reg => reg.id === student.id))
                                 );
 
                                 return (
                                     <>
                                         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                                             <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                            {isHOD ? `Total Sections In Dept` : `Unregistered Students (${unregisteredStudents.length})`}
+                                            {isHOD ? `Total Sections In Dept` : `Unregistered / Pending (${unregisteredStudents.length})`}
                                         </h3>
                                         <div className="h-96 overflow-y-auto pr-2 space-y-2">
                                             {isHOD ? (
-                                                // HOD: List Sections Grouped by Year
+                                                /* HOD View Logic (Kept Same) */
                                                 statsData.total_sections?.length > 0 ? (
                                                     statsData.total_sections.map((group, gIdx) => (
                                                         <div key={gIdx} className="mb-3">
@@ -180,9 +232,7 @@ const CompetitionDetails = () => {
                                                             </details>
                                                         </div>
                                                     ))
-                                                ) : (
-                                                    <div className="text-sm text-gray-400 text-center py-4">No sections found</div>
-                                                )
+                                                ) : <div className="text-sm text-gray-400 text-center py-4">No sections found</div>
                                             ) : (
                                                 // Faculty: List Unregistered Students
                                                 unregisteredStudents.length > 0 ? (
@@ -190,6 +240,12 @@ const CompetitionDetails = () => {
                                                         <div key={student.id} className="text-sm p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                                                             <div className="font-medium text-gray-900">{student.name}</div>
                                                             <div className="text-xs text-gray-500">{student.regNo}</div>
+                                                            {/* Show Status if available (Pending, Rejected) */}
+                                                            {student.status && student.status !== 'NOT_REGISTERED' && (
+                                                                <div className="mt-1 text-[10px] text-gray-500">
+                                                                    Status: {student.status}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ))
                                                 ) : (
@@ -210,15 +266,26 @@ const CompetitionDetails = () => {
                             </h3>
                             <div className="h-96 overflow-y-auto pr-2 space-y-2">
                                 {statsData.registered?.map(student => (
-                                    <div key={student.id} className="text-sm p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                    <div key={student.id} className={`text-sm p-3 rounded-lg border ${student.confidence > 0 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
                                         <div className="font-medium text-gray-900">{student.name}</div>
-                                        <div className="flex justify-between items-center mt-1">
-                                            <span className="text-xs text-blue-600">{student.regNo} {student.section && `(${student.section})`}</span>
-                                            {student.verified ?
-                                                <span className="text-[10px] bg-green-200 text-green-800 px-1.5 py-0.5 rounded">Verified</span> :
-                                                <span className="text-[10px] bg-yellow-200 text-yellow-800 px-1.5 py-0.5 rounded">Pending</span>
-                                            }
+                                        <div className="flex justify-between items-center mt-1 flex-wrap gap-1">
+                                            <span className="text-xs text-blue-600">{student.regNo}</span>
+
+                                            {student.verified ? (
+                                                <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded border border-green-200">
+                                                    Manual Verified
+                                                </span>
+                                            ) : (student.confidence > 0 ? (
+                                                <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded border border-purple-200" title={`Confidence: ${student.confidence}%`}>
+                                                    Auto-Detected ({student.confidence}%)
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200">
+                                                    Pending
+                                                </span>
+                                            ))}
                                         </div>
+                                        {student.remarks && <div className="text-[10px] text-gray-400 mt-1 italic">{student.remarks}</div>}
                                     </div>
                                 ))}
                                 {(!statsData.registered || statsData.registered.length === 0) && <div className="text-sm text-gray-400 text-center py-4">No registrations yet</div>}
