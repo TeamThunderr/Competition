@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import HodSidebar from './Sidebar';
-import { Search, Mail, Phone, Users, BookOpen } from 'lucide-react';
+import { Search, Mail, Phone, Users, BookOpen, Menu } from 'lucide-react';
 import { getDepartmentFaculty } from '../../services/usersService';
+import logo from '../../assets/logo.png';
 
 const HodFaculty = () => {
     const [faculty, setFaculty] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
         const fetchFaculty = async () => {
@@ -29,9 +31,21 @@ const HodFaculty = () => {
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans">
-            <HodSidebar />
+            <HodSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-            <div className="flex-1 ml-64 p-8">
+            <div className="flex-1 ml-0 md:ml-64 p-4 md:p-8">
+                {/* Mobile Header with Menu Button */}
+                <div className="md:hidden flex items-center justify-between mb-6">
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    >
+                        <Menu size={24} />
+                    </button>
+                    <img src={logo} alt="Logo" className="h-8 object-contain mix-blend-multiply" />
+                    <div className="w-10"></div>
+                </div>
+
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div>
@@ -39,7 +53,7 @@ const HodFaculty = () => {
                         <p className="text-gray-500 mt-1">Manage and view department faculty details</p>
                     </div>
 
-                    <div className="relative">
+                    <div className="relative w-full md:w-auto">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                         <input
                             type="text"

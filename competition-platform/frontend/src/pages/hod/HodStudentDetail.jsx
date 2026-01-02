@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { ArrowLeft, Award, CheckCircle, ExternalLink, Trophy, User, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Award, CheckCircle, ExternalLink, Trophy, User, Clock, AlertCircle, Menu } from 'lucide-react';
 import { getHodStudentDetails } from '../../services/usersService';
+import logo from '../../assets/logo.png';
 
 const HodStudentDetail = () => {
     const { id } = useParams();
@@ -10,6 +11,7 @@ const HodStudentDetail = () => {
     const [student, setStudent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -33,9 +35,20 @@ const HodStudentDetail = () => {
     if (loading) {
         return (
             <div className="flex bg-gray-50 min-h-screen">
-                <Sidebar />
-                <main className="flex-1 ml-64 p-8 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+                <main className="flex-1 ml-0 md:ml-64 p-4 md:p-8 flex flex-col items-center justify-center">
+                    {/* Mobile Header with Menu Button */}
+                    <div className="md:hidden flex items-center justify-between w-full mb-6 absolute top-4 left-4 right-4">
+                        <button
+                            onClick={() => setIsSidebarOpen(true)}
+                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                        >
+                            <Menu size={24} />
+                        </button>
+                        <img src={logo} alt="Logo" className="h-8 object-contain mix-blend-multiply" />
+                        <div className="w-10"></div>
+                    </div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mt-16 md:mt-0"></div>
                 </main>
             </div>
         );
@@ -44,8 +57,19 @@ const HodStudentDetail = () => {
     if (error) {
         return (
             <div className="flex bg-gray-50 min-h-screen">
-                <Sidebar />
-                <main className="flex-1 ml-64 p-8">
+                <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+                <main className="flex-1 ml-0 md:ml-64 p-4 md:p-8">
+                    {/* Mobile Header with Menu Button */}
+                    <div className="md:hidden flex items-center justify-between mb-6">
+                        <button
+                            onClick={() => setIsSidebarOpen(true)}
+                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                        >
+                            <Menu size={24} />
+                        </button>
+                        <img src={logo} alt="Logo" className="h-8 object-contain mix-blend-multiply" />
+                        <div className="w-10"></div>
+                    </div>
                     <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-2">
                         <AlertCircle size={20} />
                         {error}
@@ -70,9 +94,20 @@ const HodStudentDetail = () => {
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
-            <Sidebar />
+            <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-            <main className="flex-1 ml-64 p-8">
+            <main className="flex-1 ml-0 md:ml-64 p-4 md:p-8">
+                {/* Mobile Header with Menu Button */}
+                <div className="md:hidden flex items-center justify-between mb-6">
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    >
+                        <Menu size={24} />
+                    </button>
+                    <img src={logo} alt="Logo" className="h-8 object-contain" />
+                    <div className="w-10"></div>
+                </div>
                 {/* Header with Back Button */}
                 <div className="mb-8">
                     <button
@@ -81,15 +116,14 @@ const HodStudentDetail = () => {
                     >
                         <ArrowLeft size={18} /> Back to Dashboard
                     </button>
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
-                            <div className="flex items-center gap-4 text-gray-500 mt-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-gray-500 mt-2 text-sm">
                                 <span className="flex items-center gap-1"><User size={16} /> {profile.rollNo}</span>
-                                <span>|</span>
+                                <span className="hidden sm:inline">|</span>
                                 <span>{profile.department} - Section {profile.section}</span>
-                                <span>|</span>
-                                <span>|</span>
+                                <span className="hidden sm:inline">|</span>
                                 <span>{profile.email}</span>
                             </div>
                             <div className="flex items-center gap-2 text-blue-600 mt-2 text-sm font-medium">
@@ -97,7 +131,7 @@ const HodStudentDetail = () => {
                                 <span>Class Advisor: {profile.classAdvisor || 'Not Assigned'}</span>
                             </div>
                         </div>
-                        <div className={`px-4 py-1 rounded-full text-sm font-medium border ${isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                        <div className={`px-4 py-1 rounded-full text-sm font-medium border text-center self-start ${isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
                             {isActive ? 'Active Student' : 'Inactive'}
                         </div>
                     </div>

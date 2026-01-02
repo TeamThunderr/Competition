@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import HodSidebar from './Sidebar';
-import { ChevronDown, CheckCircle, User, FileText, Users, Award, FileDown, BarChart3, TrendingUp, Calendar, ChevronRight } from 'lucide-react';
+import { ChevronDown, CheckCircle, User, FileText, Users, Award, FileDown, BarChart3, TrendingUp, Calendar, ChevronRight, Menu, BookOpen } from 'lucide-react';
 import { getDepartmentUsers, downloadWinnersReport } from '../../services/usersService';
 import { api } from '../../services/api';
 
 import { useNavigate } from 'react-router-dom';
+import logo from '../../assets/logo.png';
 
 const HodDashboard = () => {
     const navigate = useNavigate();
     const [selectedSection, setSelectedSection] = useState('All Sections');
     const [activeTab, setActiveTab] = useState('2nd'); // 2nd, 3rd, 4th
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // Feature State
     const [users, setUsers] = useState([]);
@@ -173,12 +175,24 @@ const HodDashboard = () => {
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans">
-            <HodSidebar />
+            <HodSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-            <div className="flex-1 ml-64 p-8">
+            <div className="flex-1 ml-0 md:ml-64 p-4 md:p-8 overflow-x-hidden">
+                {/* Mobile Header with Menu Button */}
+                <div className="md:hidden flex items-center justify-between mb-6">
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    >
+                        <Menu size={24} />
+                    </button>
+                    <img src={logo} alt="Logo" className="h-8 object-contain mix-blend-multiply" /> {/* Optional mobile logo */}
+                    <div className="w-10"></div> {/* Spacer for centering if needed */}
+                </div>
                 {/* Header with Download Button */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                    <div className="flex items-center gap-4"> {/* Added a flex container for title and button */}
+                {/* Header with Download Button */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">
                                 {activeTab} Year Dashboard
@@ -191,21 +205,21 @@ const HodDashboard = () => {
                         </div>
                         <button
                             onClick={handleDownloadReport}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm h-10" // Added h-10 for alignment
+                            className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm h-10 w-full sm:w-auto"
                         >
                             <FileDown size={18} />
                             <span>Winners Report</span>
                         </button>
                     </div>
 
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
                         {/* Year Tabs */}
-                        <div className="flex bg-white p-1 rounded-lg border border-gray-200 shadow-sm h-10 items-center">
+                        <div className="flex bg-white p-1 rounded-lg border border-gray-200 shadow-sm h-10 items-center justify-center sm:justify-start w-full sm:w-auto overflow-x-auto">
                             {['2nd', '3rd', '4th'].map((tab) => (
                                 <button
                                     key={tab}
                                     onClick={() => { setActiveTab(tab); setSelectedSection('All Sections'); }}
-                                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === tab
+                                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab
                                         ? 'bg-blue-50 text-blue-700 shadow-sm'
                                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                                         }`}
@@ -215,12 +229,12 @@ const HodDashboard = () => {
                             ))}
                         </div>
 
-                        <div className="relative">
+                        <div className="relative w-full sm:w-auto">
                             <button
                                 onClick={toggleDropdown}
-                                className="bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm text-gray-700 flex items-center space-x-2 shadow-sm hover:bg-gray-50 min-w-[200px] justify-between h-10"
+                                className="bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm text-gray-700 flex items-center justify-between space-x-2 shadow-sm hover:bg-gray-50 w-full sm:w-[200px] h-10"
                             >
-                                <span>{selectedSection === 'All Sections' ? 'All Sections' : selectedSection}</span>
+                                <span className="truncate">{selectedSection === 'All Sections' ? 'All Sections' : selectedSection}</span>
                                 <ChevronDown size={16} />
                             </button>
 
@@ -283,7 +297,49 @@ const HodDashboard = () => {
                         {
                             selectedSection === 'All Sections' ? (
                                 <div className="overflow-x-auto">
-                                    <table className="w-full">
+                                    {/* Mobile Card View */}
+                                    <div className="md:hidden space-y-4">
+                                        {filteredSectionData.map((row, index) => (
+                                            <div
+                                                key={index}
+                                                onClick={() => handleSectionSelect(row.section)}
+                                                className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
+                                            >
+                                                <div className="flex justify-between items-start mb-3 border-b border-gray-100 pb-3">
+                                                    <div>
+                                                        <h3 className="text-lg font-bold text-gray-900">{row.section}</h3>
+                                                        <p className="text-xs text-gray-500">{row.batch}</p>
+                                                    </div>
+                                                    <div className={`px-2 py-1 rounded-md text-xs font-medium ${row.pending > 0 ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                        {row.pending} OD Pending
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
+                                                    <BookOpen size={16} className="text-blue-500" />
+                                                    <span>{row.classAdvisor || 'Not Assigned'}</span>
+                                                </div>
+
+                                                <div className="grid grid-cols-3 gap-2 text-center bg-gray-50 rounded-lg p-2">
+                                                    <div>
+                                                        <div className="text-xs text-gray-500 uppercase">Total</div>
+                                                        <div className="font-bold text-gray-900">{row.totalStudents}</div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs text-gray-500 uppercase">Reg</div>
+                                                        <div className="font-bold text-blue-600">{row.registered}</div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs text-gray-500 uppercase">Qual</div>
+                                                        <div className="font-bold text-green-600">{row.qualified}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Desktop Table View */}
+                                    <table className="w-full hidden md:table">
                                         <thead>
                                             <tr className="text-left">
                                                 <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/12">Section</th>

@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import HodSidebar from './Sidebar';
-import { Search, ChevronDown, Calendar, Globe, Code } from 'lucide-react';
+import { Search, ChevronDown, Calendar, Globe, Code, Menu } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 import { api } from '../../services/api';
+import logo from '../../assets/logo.png';
 
 const HodCompetitions = () => {
     const [filter, setFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -51,19 +53,31 @@ const HodCompetitions = () => {
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans">
-            <HodSidebar />
+            <HodSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-            <div className="flex-1 ml-64 p-8">
+            <div className="flex-1 ml-0 md:ml-64 p-4 md:p-8">
+                {/* Mobile Header with Menu Button */}
+                <div className="md:hidden flex items-center justify-between mb-6">
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    >
+                        <Menu size={24} />
+                    </button>
+                    <img src={logo} alt="Logo" className="h-8 object-contain mix-blend-multiply" />
+                    <div className="w-10"></div>
+                </div>
+
                 {/* Header & Controls */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 space-y-4 md:space-y-0">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">Upcoming Competitions</h1>
                         <p className="text-gray-500 mt-1">Discover and register for top programming events</p>
                     </div>
 
-                    <div className="flex items-center space-x-3 w-full md:w-auto">
+                    <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
                         {/* Search Bar */}
-                        <div className="relative flex-1 md:w-64">
+                        <div className="relative flex-1 sm:w-64">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                             <input
                                 type="text"
@@ -75,17 +89,17 @@ const HodCompetitions = () => {
                         </div>
 
                         {/* Filter Dropdown */}
-                        <div className="relative">
+                        <div className="relative sm:w-auto">
                             <button
                                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                className="flex items-center justify-between w-32 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                className="flex items-center justify-between w-full sm:w-32 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                             >
                                 <span>{filter}</span>
                                 <ChevronDown size={16} className={`text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                             </button>
 
                             {isDropdownOpen && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
+                                <div className="absolute right-0 mt-2 w-full sm:w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
                                     {filters.map((f) => (
                                         <button
                                             key={f}

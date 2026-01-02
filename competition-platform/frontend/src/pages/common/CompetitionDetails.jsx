@@ -55,18 +55,18 @@ const CompetitionDetails = () => {
 
             {/* Header Card */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 mb-6">
-                <div className="flex justify-between items-start">
-                    <div className="flex gap-6">
-                        <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-2xl font-bold">
+                <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full md:w-auto">
+                        <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xl md:text-2xl font-bold flex-shrink-0">
                             {competition.platform?.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900 mb-2">{competition.title}</h1>
-                            <div className="flex items-center gap-3">
-                                <span className={`px-3 py-1 bg-${isHOD ? 'purple' : 'green'}-100 text-${isHOD ? 'purple' : 'green'}-700 rounded-full text-xs font-semibold`}>
+                            <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-2 break-words">{competition.title}</h1>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className={`px-3 py-1 bg-${isHOD ? 'purple' : 'green'}-100 text-${isHOD ? 'purple' : 'green'}-700 rounded-full text-xs font-semibold whitespace-nowrap`}>
                                     {isHOD ? "DEPARTMENT VIEW" : isFaculty ? "MENTOR VIEW" : "DETAILS VIEW"}
                                 </span>
-                                <span className="text-gray-500 text-sm flex items-center gap-1">
+                                <span className="text-gray-500 text-sm flex items-center gap-1 whitespace-nowrap">
                                     <Globe size={14} />
                                     {competition.platform}
                                 </span>
@@ -79,7 +79,7 @@ const CompetitionDetails = () => {
                             href={competition.external_link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+                            className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 mt-4 md:mt-0"
                         >
                             <ExternalLink size={18} />
                             Open Website

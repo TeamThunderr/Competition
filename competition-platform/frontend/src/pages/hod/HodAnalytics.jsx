@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import HodSidebar from './Sidebar';
 import {
     Users, Award, BookOpen, UserCheck, AlertCircle,
-    BarChart2, PieChart, TrendingUp
+    BarChart2, PieChart, TrendingUp, Menu
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     Cell, Legend
 } from 'recharts';
 import { getDashboardAnalysis } from '../../services/usersService';
+import logo from '../../assets/logo.png';
 
 const Card = ({ title, value, subtext, icon: Icon, color }) => (
     <div className={`bg-white p-6 rounded-xl border border-gray-100 shadow-sm border-l-4 ${color}`}>
@@ -26,6 +27,7 @@ const Card = ({ title, value, subtext, icon: Icon, color }) => (
 const HodAnalytics = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('Overview'); // Overview, 2nd, 3rd, 4th
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [data, setData] = useState({
         summary: { totalStudents: 0, totalFaculty: 0, totalCompetitions: 0, verifiedSubmissions: 0 },
         batchStats: [],
@@ -80,9 +82,21 @@ const HodAnalytics = () => {
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans">
-            <HodSidebar />
+            <HodSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-            <div className="flex-1 ml-64 p-8">
+            <div className="flex-1 ml-0 md:ml-64 p-4 md:p-8 overflow-x-hidden">
+                {/* Mobile Header with Menu Button */}
+                <div className="md:hidden flex items-center justify-between mb-6">
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    >
+                        <Menu size={24} />
+                    </button>
+                    <img src={logo} alt="Logo" className="h-8 object-contain mix-blend-multiply" />
+                    <div className="w-10"></div>
+                </div>
+
                 {/* Header & Tabs */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div>
@@ -97,19 +111,21 @@ const HodAnalytics = () => {
                     </div>
 
                     {/* Simplified Tabs */}
-                    <div className="flex bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
-                        {['Overview', '2nd', '3rd', '4th'].map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === tab
-                                    ? 'bg-blue-50 text-blue-700 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                                    }`}
-                            >
-                                {tab === 'Overview' ? 'Overview' : `${tab} Year`}
-                            </button>
-                        ))}
+                    <div className="flex bg-white p-1 rounded-lg border border-gray-200 shadow-sm w-full md:w-auto overflow-x-auto">
+                        <div className="flex space-x-1 min-w-full md:min-w-0">
+                            {['Overview', '2nd', '3rd', '4th'].map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-1 md:flex-none ${activeTab === tab
+                                        ? 'bg-blue-50 text-blue-700 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    {tab === 'Overview' ? 'Overview' : `${tab} Year`}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
@@ -153,22 +169,29 @@ const HodAnalytics = () => {
                                 {activeTab === 'Overview' ? 'Batch Distribution' : 'Batch Performance'}
                             </h3>
                         </div>
-                        <div style={{ width: '100%', height: 300, minWidth: 0, minHeight: 0 }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart
-                                    data={activeTab === 'Overview' ? data.batchStats : filteredOverview}
-                                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                                >
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                                    <XAxis dataKey={activeTab === 'Overview' ? "name" : "batch"} axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#F3F4F6' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey={activeTab === 'Overview' ? "students" : "total"} name="Count" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={40} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                        <div className="w-full h-[300px] min-h-[300px]">
+                            {/* Render chart only if data exists to prevent dimension errors */}
+                            {(activeTab === 'Overview' ? data.batchStats : filteredOverview).length > 0 ? (
+                                <ResponsiveContainer width="99%" height="100%">
+                                    <BarChart
+                                        data={activeTab === 'Overview' ? data.batchStats : filteredOverview}
+                                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                        <XAxis dataKey={activeTab === 'Overview' ? "name" : "batch"} axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
+                                        <Tooltip
+                                            cursor={{ fill: '#F3F4F6' }}
+                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                        />
+                                        <Bar dataKey={activeTab === 'Overview' ? "students" : "total"} name="Count" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={40} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="flex h-full items-center justify-center text-gray-400 text-sm">
+                                    No chart data available for this view
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -220,10 +243,10 @@ const HodAnalytics = () => {
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase">
-                                    <th className="pb-3">Batch / Year</th>
-                                    <th className="pb-3 text-center">Total Participations</th>
-                                    <th className="pb-3 text-center text-green-600">Verified</th>
-                                    <th className="pb-3 text-center text-yellow-600">Pending</th>
+                                    <th className="pb-3 pl-2">Batch / Year</th>
+                                    <th className="pb-3 text-center px-2">Total Participations</th>
+                                    <th className="pb-3 text-center text-green-600 px-4">Verified</th>
+                                    <th className="pb-3 text-center text-yellow-600 px-2">Pending</th>
                                 </tr>
                             </thead>
                             <tbody className="text-sm divide-y divide-gray-50">
