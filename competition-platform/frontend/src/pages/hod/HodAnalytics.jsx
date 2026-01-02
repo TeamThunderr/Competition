@@ -9,7 +9,7 @@ import {
     Cell, Legend
 } from 'recharts';
 import { getDashboardAnalysis } from '../../services/usersService';
-import logo from '../../assets/logo.png';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const Card = ({ title, value, subtext, icon: Icon, color }) => (
     <div className={`bg-white p-6 rounded-xl border border-gray-100 shadow-sm border-l-4 ${color}`}>
@@ -78,7 +78,13 @@ const HodAnalytics = () => {
     const currentStats = getStatsForTab();
     const filteredOverview = getTabContent();
 
-    if (loading) return <div className="flex min-h-screen items-center justify-center text-gray-500">Loading Dashboard...</div>;
+    if (loading) {
+        return (
+            <div className="flex bg-gray-50 min-h-screen items-center justify-center">
+                <RoleBasedLoader role="HOD" />
+            </div>
+        );
+    }
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans">

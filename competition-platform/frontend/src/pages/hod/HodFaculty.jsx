@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import HodSidebar from './Sidebar';
 import { Search, Mail, Phone, Users, BookOpen, Menu } from 'lucide-react';
 import { getDepartmentFaculty } from '../../services/usersService';
-import logo from '../../assets/logo.png';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const HodFaculty = () => {
     const [faculty, setFaculty] = useState([]);
@@ -67,7 +67,7 @@ const HodFaculty = () => {
 
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <RoleBasedLoader role="HOD" />
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { ArrowLeft, Award, CheckCircle, ExternalLink, Trophy, User, Clock, AlertCircle, Menu } from 'lucide-react';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { getHodStudentDetails } from '../../services/usersService';
-import logo from '../../assets/logo.png';
+import StudentProfileView from '../common/StudentProfileView';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const HodStudentDetail = () => {
     const { id } = useParams();
@@ -34,22 +35,8 @@ const HodStudentDetail = () => {
 
     if (loading) {
         return (
-            <div className="flex bg-gray-50 min-h-screen">
-                <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-                <main className="flex-1 ml-0 md:ml-64 p-4 md:p-8 flex flex-col items-center justify-center">
-                    {/* Mobile Header with Menu Button */}
-                    <div className="md:hidden flex items-center justify-between w-full mb-6 absolute top-4 left-4 right-4">
-                        <button
-                            onClick={() => setIsSidebarOpen(true)}
-                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                        >
-                            <Menu size={24} />
-                        </button>
-                        <img src={logo} alt="Logo" className="h-8 object-contain mix-blend-multiply" />
-                        <div className="w-10"></div>
-                    </div>
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mt-16 md:mt-0"></div>
-                </main>
+            <div className="flex bg-gray-50 min-h-screen items-center justify-center">
+                <RoleBasedLoader role="HOD" />
             </div>
         );
     }
@@ -87,11 +74,6 @@ const HodStudentDetail = () => {
 
     if (!student) return null;
 
-    const { profile, stats, competitions } = student;
-
-    // Determine Activity Status (Simple logic: if registered recently or has > 0 registrations)
-    const isActive = stats.registered > 0; // Can be enhanced with date check
-
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
@@ -116,105 +98,12 @@ const HodStudentDetail = () => {
                     >
                         <ArrowLeft size={18} /> Back to Dashboard
                     </button>
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-gray-500 mt-2 text-sm">
-                                <span className="flex items-center gap-1"><User size={16} /> {profile.rollNo}</span>
-                                <span className="hidden sm:inline">|</span>
-                                <span>{profile.department} - Section {profile.section}</span>
-                                <span className="hidden sm:inline">|</span>
-                                <span>{profile.email}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-blue-600 mt-2 text-sm font-medium">
-                                <User size={14} />
-                                <span>Class Advisor: {profile.classAdvisor || 'Not Assigned'}</span>
-                            </div>
-                        </div>
-                        <div className={`px-4 py-1 rounded-full text-sm font-medium border text-center self-start ${isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
-                            {isActive ? 'Active Student' : 'Inactive'}
-                        </div>
-                    </div>
+
+                    {/* HOD Specific Filter/Context if needed in future */}
                 </div>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-3 mb-2 text-blue-600">
-                            <Clock size={20} />
-                            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500">Registered</h3>
-                        </div>
-                        <p className="text-3xl font-bold text-gray-900">{stats.registered}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-3 mb-2 text-purple-600">
-                            <CheckCircle size={20} />
-                            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500">Qualified</h3>
-                        </div>
-                        <p className="text-3xl font-bold text-gray-900">{stats.qualified}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-3 mb-2 text-amber-500">
-                            <Trophy size={20} />
-                            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500">Won</h3>
-                        </div>
-                        <p className="text-3xl font-bold text-gray-900">{stats.won}</p>
-                    </div>
-                </div>
-
-                {/* Competition History */}
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-6 border-b border-gray-50">
-                        <h2 className="text-xl font-bold text-gray-900">Competition History</h2>
-                    </div>
-
-                    {competitions.length > 0 ? (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50/50">
-                                    <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                        <th className="px-6 py-4">Competition</th>
-                                        <th className="px-6 py-4">Platform</th>
-                                        <th className="px-6 py-4">Registered At</th>
-                                        <th className="px-6 py-4">Verification</th>
-                                        <th className="px-6 py-4">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {competitions.map((comp, index) => (
-                                        <tr key={index} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <span className="font-semibold text-gray-900 block">{comp.competitionName}</span>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">{comp.platform}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">{new Date(comp.registeredAt).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4">
-                                                <span className={`flex items-center gap-1 text-sm font-medium ${comp.verificationStatus === 'Verified' ? 'text-green-600' : 'text-amber-600'}`}>
-                                                    {comp.verificationStatus === 'Verified' ? <CheckCircle size={14} /> : <Clock size={14} />}
-                                                    {comp.verificationStatus}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${comp.status === 'Won' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                                    comp.status === 'Qualified' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                                        'bg-gray-50 text-gray-600 border-gray-200'
-                                                    }`}>
-                                                    {comp.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <div className="p-12 text-center text-gray-500">
-                            <Award size={48} className="mx-auto text-gray-300 mb-4" />
-                            <p className="text-lg font-medium text-gray-900">No competitions found</p>
-                            <p className="text-gray-400">This student hasn't participated in any competitions yet.</p>
-                        </div>
-                    )}
-                </div>
+                {/* Shared Profile View */}
+                <StudentProfileView student={student} />
             </main>
         </div>
     );

@@ -18,6 +18,14 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
         }
     };
 
+    const getDaysLeft = (deadline) => {
+        const diffTime = new Date(deadline) - new Date();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 ? diffDays : 0;
+    };
+
+    const daysLeft = getDaysLeft(competition.registration_deadline);
+
     const renderAction = () => {
         // If showRegister is false (Faculty/HOD), do not show any actionable buttons (actions are for students)
         if (!showRegister) {
@@ -124,9 +132,19 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
             )}
 
             {!my_status?.is_winner && !isClosed && (
-                <div className="absolute top-0 right-0 bg-green-100 text-green-600 text-xs font-bold px-3 py-1 rounded-bl-lg shadow-sm border-l border-b border-green-200 z-10">
-                    OPEN
-                </div>
+                <>
+                    {/* Days Left Badge (Top Left) */}
+                    {showRegister && daysLeft > 0 && (
+                        <div className={`absolute top-0 left-0 text-xs font-bold px-3 py-1 rounded-br-lg shadow-sm border-r border-b z-10 ${daysLeft <= 3 ? 'bg-red-100 text-red-600 border-red-200' : 'bg-blue-100 text-blue-600 border-blue-200'}`}>
+                            {daysLeft} days left
+                        </div>
+                    )}
+
+                    {/* Open Status Badge (Top Right) */}
+                    <div className="absolute top-0 right-0 bg-green-100 text-green-600 text-xs font-bold px-3 py-1 rounded-bl-lg shadow-sm border-l border-b border-green-200 z-10">
+                        OPEN
+                    </div>
+                </>
             )}
 
             <div className="flex justify-between items-start mb-4">
@@ -134,6 +152,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
                     <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-full">
                         {competition.platform || 'Unknown Platform'}
                     </span>
+
                     <h3 className="text-lg font-semibold text-gray-900 mt-2">{competition.title || 'Untitled Competition'}</h3>
                 </div>
 
@@ -176,20 +195,30 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
             <div className="flex gap-3 flex-col sm:flex-row">
                 <Link
                     to={`/competitions/${competition.id}`}
-                    className="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors text-center"
+                    className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors text-center flex items-center justify-center"
                 >
                     View Info
                 </Link>
 
                 {/* Show Registration Count for Faculty/HOD */}
+                {/* Show Registration Count for Faculty/HOD */}
                 {!showRegister && (
-                    <div className="flex items-center text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100" title="Total Registrations">
-                        <Users className="w-4 h-4 mr-2" />
-                        <span className="font-medium">
-                            {competition.registrations && competition.registrations[0]
-                                ? competition.registrations[0].count
-                                : 0}
-                        </span>
+                    <div className="flex gap-2">
+                        <div className="flex items-center text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100" title="Total Registrations">
+                            <Users className="w-4 h-4 mr-2" />
+                            <span className="font-medium">
+                                {competition.registrations && competition.registrations[0]
+                                    ? competition.registrations[0].count
+                                    : 0}
+                            </span>
+                        </div>
+                        {!isClosed && (
+                            <div className={`flex items-center text-sm px-3 py-2 rounded-lg border ${daysLeft <= 3 ? 'bg-red-50 text-red-600 border-red-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`} title="Days Left">
+                                <span className="font-medium">
+                                    {daysLeft} days left
+                                </span>
+                            </div>
+                        )}
                     </div>
                 )}
 

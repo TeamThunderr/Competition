@@ -3,6 +3,7 @@ import Sidebar from './Sidebar';
 import { getFacultyDashboardStats } from '../../services/usersService';
 import { api } from '../../services/api';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const FacultyDashboard = () => {
     const [stats, setStats] = useState({
@@ -70,7 +71,7 @@ const FacultyDashboard = () => {
 
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <RoleBasedLoader role="FACULTY" />
                     </div>
                 ) : (
                     <>
@@ -87,20 +88,63 @@ const FacultyDashboard = () => {
 
                         {/* Active Competitions Section */}
                         <div>
-                            <div className="mb-6">
-                                <h2 className="text-xl font-bold text-gray-900">Active Competitions</h2>
-                                <p className="text-gray-500 mt-1">Ongoing and upcoming events available for students.</p>
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900">Active Competitions</h2>
+                                    <p className="text-gray-500 mt-1">Ongoing and upcoming events available for students.</p>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={async () => {
+                                            if (confirm("Sync ALL active competitions? This scans Gmail for all eligible students. It might take a minute.")) {
+                                                setLoading(true);
+                                                try {
+                                                    const { syncActiveCompetitions, getFacultyDashboardStats } = await import('../../services/usersService');
+                                                    const res = await syncActiveCompetitions();
+                                                    alert(`Sync Complete! Processed: ${res.stats?.processed}, Detected: ${res.stats?.detected}`);
+
+                                                    // Refresh Stats
+                                                    const newStats = await getFacultyDashboardStats();
+                                                    setStats(newStats);
+                                                } catch (e) {
+                                                    console.error(e);
+                                                    alert("Sync Failed: " + (e.message || "Unknown Error"));
+                                                } finally {
+                                                    setLoading(false);
+                                                }
+                                            }
+                                        }}
+                                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                                    >
+                                        🔄 Sync Comp
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                const { downloadParticipationReport } = await import('../../services/usersService');
+                                                await downloadParticipationReport();
+                                            } catch (e) {
+                                                alert("Download failed");
+                                            }
+                                        }}
+                                        className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+                                    >
+                                        📥 Download
+                                    </button>
+                                </div>
                             </div>
 
                             {competitions.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {competitions.map(comp => (
-                                        <CompetitionCard
-                                            key={comp.id}
-                                            competition={comp}
-                                            showRegister={false}
-                                        />
-                                    ))}
+                                    {competitions
+                                        .filter(comp => new Date(comp.registration_deadline) >= new Date())
+                                        .map(comp => (
+                                            <CompetitionCard
+                                                key={comp.id}
+                                                competition={comp}
+                                                showRegister={false}
+                                            />
+                                        ))}
                                 </div>
                             ) : (
                                 <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">

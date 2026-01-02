@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { ArrowLeft, Mail, Phone, Clock, Trophy, Award, MapPin, Calendar, BookOpen } from 'lucide-react';
 import { getStudentById } from '../../services/usersService';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const StudentDetails = () => {
     const { id } = useParams();
@@ -30,11 +31,8 @@ const StudentDetails = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex">
-                <Sidebar />
-                <div className="flex-1 ml-64 p-8 flex items-center justify-center">
-                    <div className="text-gray-500">Loading student profile...</div>
-                </div>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <RoleBasedLoader role="ADMIN" />
             </div>
         );
     }

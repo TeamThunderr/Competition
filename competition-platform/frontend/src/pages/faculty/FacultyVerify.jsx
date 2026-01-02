@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
-import { CheckCircle, XCircle, ExternalLink, Loader } from 'lucide-react';
+import { CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 import { getPendingVerifications, verifyRegistration } from '../../services/usersService';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const FacultyVerify = () => {
     const [pending, setPending] = useState([]);
@@ -52,7 +53,7 @@ const FacultyVerify = () => {
 
                 {loading ? (
                     <div className="flex justify-center p-12">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                        <RoleBasedLoader role="FACULTY" />
                     </div>
                 ) : pending.length === 0 ? (
                     <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
@@ -117,7 +118,7 @@ const FacultyVerify = () => {
                                         disabled={actionLoading === item.id}
                                         className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                                     >
-                                        {actionLoading === item.id ? <Loader className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+                                        {actionLoading === item.id ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : <CheckCircle size={16} />}
                                         Approve
                                     </button>
                                     <button

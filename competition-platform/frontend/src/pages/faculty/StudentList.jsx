@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { Upload, Search, FileSpreadsheet, X, Loader } from 'lucide-react';
+import { Upload, FileSpreadsheet, X } from 'lucide-react';
 import { getMyStudents } from '../../services/usersService';
+import StudentListTable from '../common/StudentListTable';
 
 const StudentList = () => {
     const navigate = useNavigate();
     const [isUploadMode, setIsUploadMode] = useState(false);
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         const fetchStudents = async () => {
@@ -35,11 +35,6 @@ const StudentList = () => {
 
         fetchStudents();
     }, []);
-
-    const filteredStudents = students.filter(student =>
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.rollNo.toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
     return (
         <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
@@ -93,74 +88,13 @@ const StudentList = () => {
                 )}
 
                 {/* Students List Section */}
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                    {/* Controls */}
-                    <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-                        <div className="relative w-72">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input
-                                type="text"
-                                placeholder="Search by name or roll no..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                            />
-                        </div>
-                        <div className="text-sm text-gray-500 font-medium">
-                            Total: {filteredStudents.length} Students
-                        </div>
-                    </div>
-
-                    {/* Table */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50/50">
-                                <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                    <th className="px-6 py-4">S.No</th>
-                                    <th className="px-6 py-4">Roll Number</th>
-                                    <th className="px-6 py-4">Name</th>
-                                    <th className="px-6 py-4">Section</th>
-                                    <th className="px-6 py-4">Email</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
-                                            <div className="flex flex-col items-center justify-center">
-                                                <Loader className="animate-spin mb-2" size={24} />
-                                                <p>Loading students...</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : filteredStudents.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
-                                            No students found.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredStudents
-                                        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
-                                        .map((student, index) => (
-                                            <tr
-                                                key={index}
-                                                onClick={() => navigate(`/faculty/students/${student.id}`)}
-                                                className="hover:bg-gray-50/50 transition-colors cursor-pointer"
-                                            >
-                                                <td className="px-6 py-4 text-sm text-gray-500 font-medium">{index + 1}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-600 font-medium">{student.rollNo}</td>
-                                                <td className="px-6 py-4">
-                                                    <span className="font-semibold text-gray-900">{student.name}</span>
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-500">{student.section}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-500">{student.email}</td>
-                                            </tr>
-                                        )))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <StudentListTable
+                    students={students}
+                    loading={loading}
+                    onRowClick={(student) => navigate(`/faculty/students/${student.id}`)}
+                    emptyMessage="No students found."
+                    role="FACULTY"
+                />
             </main>
         </div>
     );

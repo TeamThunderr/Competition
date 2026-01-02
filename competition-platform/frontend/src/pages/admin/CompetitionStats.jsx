@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { ArrowLeft, Trophy, Users, CheckCircle } from 'lucide-react';
 import { api } from '../../services/api';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const CompetitionStats = () => {
     const { id } = useParams();
@@ -36,11 +37,8 @@ const CompetitionStats = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex">
-                <Sidebar />
-                <div className="flex-1 ml-64 p-8 flex items-center justify-center">
-                    <div className="text-gray-500">Loading statistics...</div>
-                </div>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <RoleBasedLoader role="ADMIN" />
             </div>
         );
     }
