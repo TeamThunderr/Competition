@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import HodSidebar from './Sidebar';
+import HodLayout from './HodLayout';
 import { ChevronDown, CheckCircle, User, FileText, Users, Award, FileDown, BarChart3, TrendingUp, Calendar, ChevronRight, Menu, BookOpen } from 'lucide-react';
 import { getDepartmentUsers, downloadWinnersReport } from '../../services/usersService';
 import { api } from '../../services/api';
 import StudentListTable from '../common/StudentListTable';
 import { useNavigate } from 'react-router-dom';
-import logo from '../../assets/logo.png';
+
 
 const HodDashboard = () => {
     const navigate = useNavigate();
     const [selectedSection, setSelectedSection] = useState('All Sections');
     const [activeTab, setActiveTab] = useState('2nd'); // 2nd, 3rd, 4th
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
 
     // Feature State
     const [users, setUsers] = useState([]);
@@ -174,245 +174,229 @@ const HodDashboard = () => {
     };
 
     return (
-        <div className="flex bg-gray-50 min-h-screen font-sans">
-            <HodSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-
-            <div className="flex-1 ml-0 md:ml-64 p-4 md:p-8 overflow-x-hidden">
-                {/* Mobile Header with Menu Button */}
-                <div className="md:hidden flex items-center justify-between mb-6">
+        <HodLayout>
+            {/* Header with Download Button */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">
+                            {activeTab} Year Dashboard
+                        </h1>
+                        <p className="text-gray-500 mt-1">
+                            {selectedSection === 'All Sections'
+                                ? `Overview of ${activeTab} Year Sections`
+                                : `Detailed View: ${selectedSection}`}
+                        </p>
+                    </div>
                     <button
-                        onClick={() => setIsSidebarOpen(true)}
-                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                        onClick={handleDownloadReport}
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm h-10 w-full sm:w-auto"
                     >
-                        <Menu size={24} />
+                        <FileDown size={18} />
+                        <span>Winners Report</span>
                     </button>
-                    <img src={logo} alt="Logo" className="h-8 object-contain mix-blend-multiply" /> {/* Optional mobile logo */}
-                    <div className="w-10"></div> {/* Spacer for centering if needed */}
                 </div>
-                {/* Header with Download Button */}
-                {/* Header with Download Button */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">
-                                {activeTab} Year Dashboard
-                            </h1>
-                            <p className="text-gray-500 mt-1">
-                                {selectedSection === 'All Sections'
-                                    ? `Overview of ${activeTab} Year Sections`
-                                    : `Detailed View: ${selectedSection}`}
-                            </p>
-                        </div>
-                        <button
-                            onClick={handleDownloadReport}
-                            className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm h-10 w-full sm:w-auto"
-                        >
-                            <FileDown size={18} />
-                            <span>Winners Report</span>
-                        </button>
-                    </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-                        {/* Year Tabs */}
-                        <div className="flex bg-white p-1 rounded-lg border border-gray-200 shadow-sm h-10 items-center justify-center sm:justify-start w-full sm:w-auto overflow-x-auto">
-                            {['2nd', '3rd', '4th'].map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => { setActiveTab(tab); setSelectedSection('All Sections'); }}
-                                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab
-                                        ? 'bg-blue-50 text-blue-700 shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                                        }`}
-                                >
-                                    {tab} Year
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="relative w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                    {/* Year Tabs */}
+                    <div className="flex bg-white p-1 rounded-lg border border-gray-200 shadow-sm h-10 items-center justify-center sm:justify-start w-full sm:w-auto overflow-x-auto">
+                        {['2nd', '3rd', '4th'].map((tab) => (
                             <button
-                                onClick={toggleDropdown}
-                                className="bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm text-gray-700 flex items-center justify-between space-x-2 shadow-sm hover:bg-gray-50 w-full sm:w-[200px] h-10"
+                                key={tab}
+                                onClick={() => { setActiveTab(tab); setSelectedSection('All Sections'); }}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab
+                                    ? 'bg-blue-50 text-blue-700 shadow-sm'
+                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                                    }`}
                             >
-                                <span className="truncate">{selectedSection === 'All Sections' ? 'All Sections' : selectedSection}</span>
-                                <ChevronDown size={16} />
+                                {tab} Year
                             </button>
-
-                            {isDropdownOpen && (
-                                <div className="absolute right-0 mt-2 w-full bg-white border border-gray-100 rounded-lg shadow-lg z-10 py-1 max-h-60 overflow-y-auto">
-                                    <button
-                                        onClick={() => handleSectionSelect('All Sections')}
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                    >
-                                        All Sections
-                                    </button>
-                                    {sections.map((section) => (
-                                        <button
-                                            key={section}
-                                            onClick={() => handleSectionSelect(section)}
-                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                        >
-                                            {section}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        ))}
                     </div>
-                </div>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    {currentStats.map((stat, index) => (
-                        <div key={index} className={`bg-white p-6 rounded-xl shadow-sm border border-gray-100 ${stat.borderLeft}`}>
-                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{stat.label}</h3>
-                            <div className="text-3xl font-bold text-gray-900 mb-2">{stat.value}</div>
-                            <p className="text-xs text-gray-400">{stat.subtext}</p>
-                        </div>
-                    ))}
-                </div>
+                    <div className="relative w-full sm:w-auto">
+                        <button
+                            onClick={toggleDropdown}
+                            className="bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm text-gray-700 flex items-center justify-between space-x-2 shadow-sm hover:bg-gray-50 w-full sm:w-[200px] h-10"
+                        >
+                            <span className="truncate">{selectedSection === 'All Sections' ? 'All Sections' : selectedSection}</span>
+                            <ChevronDown size={16} />
+                        </button>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Main Content Area (Table or Student List) */}
-                    <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                                <h2 className="text-lg font-bold text-gray-900 mb-1">
-                                    {selectedSection === 'All Sections' ? 'Section-wise Performance' : `${selectedSection} Student List`}
-                                </h2>
-                                <p className="text-sm text-gray-500">
-                                    {selectedSection === 'All Sections' ? 'Participation & qualification overview' : 'Detailed performance report'}
-                                </p>
-                            </div>
-                            {selectedSection !== 'All Sections' && (
+                        {isDropdownOpen && (
+                            <div className="absolute right-0 mt-2 w-full bg-white border border-gray-100 rounded-lg shadow-lg z-10 py-1 max-h-60 overflow-y-auto">
                                 <button
                                     onClick={() => handleSectionSelect('All Sections')}
-                                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                 >
-                                    Back to Batch Overview
+                                    All Sections
                                 </button>
-                            )}
+                                {sections.map((section) => (
+                                    <button
+                                        key={section}
+                                        onClick={() => handleSectionSelect(section)}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    >
+                                        {section}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {currentStats.map((stat, index) => (
+                    <div key={index} className={`bg-white p-6 rounded-xl shadow-sm border border-gray-100 ${stat.borderLeft}`}>
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{stat.label}</h3>
+                        <div className="text-3xl font-bold text-gray-900 mb-2">{stat.value}</div>
+                        <p className="text-xs text-gray-400">{stat.subtext}</p>
+                    </div>
+                ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Main Content Area (Table or Student List) */}
+                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900 mb-1">
+                                {selectedSection === 'All Sections' ? 'Section-wise Performance' : `${selectedSection} Student List`}
+                            </h2>
+                            <p className="text-sm text-gray-500">
+                                {selectedSection === 'All Sections' ? 'Participation & qualification overview' : 'Detailed performance report'}
+                            </p>
                         </div>
+                        {selectedSection !== 'All Sections' && (
+                            <button
+                                onClick={() => handleSectionSelect('All Sections')}
+                                className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                            >
+                                Back to Batch Overview
+                            </button>
+                        )}
+                    </div>
 
-                        {
-                            selectedSection === 'All Sections' ? (
-                                <div className="overflow-x-auto">
-                                    {/* Mobile Card View */}
-                                    <div className="md:hidden space-y-4">
-                                        {filteredSectionData.map((row, index) => (
-                                            <div
-                                                key={index}
-                                                onClick={() => handleSectionSelect(row.section)}
-                                                className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
-                                            >
-                                                <div className="flex justify-between items-start mb-3 border-b border-gray-100 pb-3">
-                                                    <div>
-                                                        <h3 className="text-lg font-bold text-gray-900">{row.section}</h3>
-                                                        <p className="text-xs text-gray-500">{row.batch}</p>
-                                                    </div>
-                                                    <div className={`px-2 py-1 rounded-md text-xs font-medium ${row.pending > 0 ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
-                                                        {row.pending} OD Pending
-                                                    </div>
+                    {
+                        selectedSection === 'All Sections' ? (
+                            <div className="overflow-x-auto">
+                                {/* Mobile Card View */}
+                                <div className="md:hidden space-y-4">
+                                    {filteredSectionData.map((row, index) => (
+                                        <div
+                                            key={index}
+                                            onClick={() => handleSectionSelect(row.section)}
+                                            className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
+                                        >
+                                            <div className="flex justify-between items-start mb-3 border-b border-gray-100 pb-3">
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-gray-900">{row.section}</h3>
+                                                    <p className="text-xs text-gray-500">{row.batch}</p>
                                                 </div>
-
-                                                <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
-                                                    <BookOpen size={16} className="text-blue-500" />
-                                                    <span>{row.classAdvisor || 'Not Assigned'}</span>
-                                                </div>
-
-                                                <div className="grid grid-cols-3 gap-2 text-center bg-gray-50 rounded-lg p-2">
-                                                    <div>
-                                                        <div className="text-xs text-gray-500 uppercase">Total</div>
-                                                        <div className="font-bold text-gray-900">{row.totalStudents}</div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-xs text-gray-500 uppercase">Reg</div>
-                                                        <div className="font-bold text-blue-600">{row.registered}</div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-xs text-gray-500 uppercase">Qual</div>
-                                                        <div className="font-bold text-green-600">{row.qualified}</div>
-                                                    </div>
+                                                <div className={`px-2 py-1 rounded-md text-xs font-medium ${row.pending > 0 ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                    {row.pending} OD Pending
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
 
-                                    {/* Desktop Table View */}
-                                    <table className="w-full hidden md:table">
-                                        <thead>
-                                            <tr className="text-left">
-                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/12">Section</th>
-                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-2/12">Faculty</th>
-                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-2/12">Batch</th>
-                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total Students</th>
-                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Registered</th>
-                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Qualified</th>
-                                                <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">OD Pending</th>
+                                            <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
+                                                <BookOpen size={16} className="text-blue-500" />
+                                                <span>{row.classAdvisor || 'Not Assigned'}</span>
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-2 text-center bg-gray-50 rounded-lg p-2">
+                                                <div>
+                                                    <div className="text-xs text-gray-500 uppercase">Total</div>
+                                                    <div className="font-bold text-gray-900">{row.totalStudents}</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-xs text-gray-500 uppercase">Reg</div>
+                                                    <div className="font-bold text-blue-600">{row.registered}</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-xs text-gray-500 uppercase">Qual</div>
+                                                    <div className="font-bold text-green-600">{row.qualified}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Desktop Table View */}
+                                <table className="w-full hidden md:table">
+                                    <thead>
+                                        <tr className="text-left">
+                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/12">Section</th>
+                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-2/12">Faculty</th>
+                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-2/12">Batch</th>
+                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total Students</th>
+                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Registered</th>
+                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Qualified</th>
+                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">OD Pending</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {filteredSectionData.map((row, index) => (
+                                            <tr
+                                                key={index}
+                                                className="group hover:bg-gray-50 transition-colors cursor-pointer"
+                                                onClick={() => handleSectionSelect(row.section)}
+                                            >
+                                                <td className="py-4 text-sm font-semibold text-gray-900">{row.section}</td>
+                                                <td className="py-4 text-sm text-gray-600">{row.classAdvisor || 'Not Assigned'}</td>
+                                                <td className="py-4 text-sm text-gray-500">{row.batch}</td>
+                                                <td className="py-4 text-sm font-medium text-gray-900 text-center">{row.totalStudents}</td>
+                                                <td className="py-4 text-sm text-blue-600 font-medium text-center">{row.registered}</td>
+                                                <td className="py-4 text-sm text-green-600 font-medium text-center">{row.qualified}</td>
+                                                <td className={`py-4 text-sm font-medium text-center ${row.pending > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                                                    {row.pending}
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-50">
-                                            {filteredSectionData.map((row, index) => (
-                                                <tr
-                                                    key={index}
-                                                    className="group hover:bg-gray-50 transition-colors cursor-pointer"
-                                                    onClick={() => handleSectionSelect(row.section)}
-                                                >
-                                                    <td className="py-4 text-sm font-semibold text-gray-900">{row.section}</td>
-                                                    <td className="py-4 text-sm text-gray-600">{row.classAdvisor || 'Not Assigned'}</td>
-                                                    <td className="py-4 text-sm text-gray-500">{row.batch}</td>
-                                                    <td className="py-4 text-sm font-medium text-gray-900 text-center">{row.totalStudents}</td>
-                                                    <td className="py-4 text-sm text-blue-600 font-medium text-center">{row.registered}</td>
-                                                    <td className="py-4 text-sm text-green-600 font-medium text-center">{row.qualified}</td>
-                                                    <td className={`py-4 text-sm font-medium text-center ${row.pending > 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                                                        {row.pending}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <StudentListTable
-                                        students={studentList}
-                                        loading={loading}
-                                        onRowClick={(student) => navigate(`/hod/students/${student.id}`)}
-                                        emptyMessage="No students found in this section."
-                                        role="HOD"
-                                    />
-                                </div>
-                            )
-                        }
-                    </div >
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <StudentListTable
+                                    students={studentList}
+                                    loading={loading}
+                                    onRowClick={(student) => navigate(`/hod/students/${student.id}`)}
+                                    emptyMessage="No students found in this section."
+                                    role="HOD"
+                                />
+                            </div>
+                        )
+                    }
+                </div >
 
-                    {/* OD Actions Card */}
-                    < div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit" >
-                        <div className="flex justify-between items-start mb-4">
-                            <h2 className="text-lg font-bold text-gray-900">OD Actions</h2>
-                            <span className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                            </span>
-                        </div>
+                {/* OD Actions Card */}
+                < div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit" >
+                    <div className="flex justify-between items-start mb-4">
+                        <h2 className="text-lg font-bold text-gray-900">OD Actions</h2>
+                        <span className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                    </div>
 
-                        <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-                            You have <span className="font-bold text-gray-900">
-                                {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0)} pending OD {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0) === 1 ? 'request' : 'requests'}
-                            </span> that require {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0) === 1 ? 'validation' : 'validation'} against email evidence.
-                        </p>
+                    <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                        You have <span className="font-bold text-gray-900">
+                            {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0)} pending OD {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0) === 1 ? 'request' : 'requests'}
+                        </span> that require {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0) === 1 ? 'validation' : 'validation'} against email evidence.
+                    </p>
 
-                        <button
-                            onClick={() => navigate('/hod/approvals')}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-                        >
-                            <CheckCircle size={18} />
-                            <span>Review OD Requests</span>
-                        </button>
-                    </div >
+                    <button
+                        onClick={() => navigate('/hod/approvals')}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                    >
+                        <CheckCircle size={18} />
+                        <span>Review OD Requests</span>
+                    </button>
                 </div >
             </div >
-        </div >
+        </HodLayout>
     );
 };
 
