@@ -2,8 +2,9 @@ const { google } = require('googleapis');
 const supabase = require('../config/supabaseClient');
 
 // Keywords per status
+// Keywords per status
 const KEYWORDS = {
-    REGISTERED: ['registered', 'registration successful', 'registration confirmed', 'registration is confirmed', 'thank you for registering', 'you have registered', 'successfully registered'],
+    REGISTERED: ['registration successful', 'registration confirmed', 'registration is confirmed', 'thank you for registering', 'you have registered', 'successfully registered'],
     QUALIFIED: ['shortlisted', 'qualified', 'selected', 'congratulations', 'moved to next round', 'finalist'],
     REJECTED: ['not selected', 'unfortunately', 'regret to inform', 'did not qualify', 'unsuccessful', 'rejected', 'disqualified', 'not registered', 'not qualified', 'not shortlisted', 'not finalist'],
     ACTION_REQUIRED: ['submit', 'deadline', 'round 1', 'round 2', 'presentation', 'ppt submission', 'interview', 'evaluation']
@@ -83,22 +84,20 @@ const parseEmail = (emailData) => {
  */
 const detectHackathonStatus = (text) => {
     const lowerText = text.toLowerCase();
-    let detectedStatus = null;
-    let maxPriority = 0; // 4: Qualified, 3: Registered, 2: Rejected, 1: Action
 
     // Check Qualified (Highest Priority)
     if (KEYWORDS.QUALIFIED.some(k => lowerText.includes(k))) {
         return { status: 'QUALIFIED', confidence: 90 };
     }
 
+    // Check Rejected (Priority over Registered to catch "not registered")
+    if (KEYWORDS.REJECTED.some(k => lowerText.includes(k))) {
+        return { status: 'REJECTED', confidence: 70 };
+    }
+
     // Check Registered
     if (KEYWORDS.REGISTERED.some(k => lowerText.includes(k))) {
         return { status: 'REGISTERED', confidence: 80 };
-    }
-
-    // Check Rejected
-    if (KEYWORDS.REJECTED.some(k => lowerText.includes(k))) {
-        return { status: 'REJECTED', confidence: 70 };
     }
 
     // Check Action Required
@@ -156,10 +155,12 @@ const extractHackathonName = (subject, sender) => {
     return finalName.trim();
 };
 
+const { updateRegistrationFromGmail } = require('./gmailToRegistration.service');
+
 /**
  * Main Logic to Process and Save
  */
-const processAndSaveEmails = async (accessToken, userId) => {
+const processAndSaveEmails = async (accessToken, userId, competitionId) => {
     const emails = await fetchRecentEmails(accessToken);
     const detectedList = [];
 
@@ -187,6 +188,19 @@ const processAndSaveEmails = async (accessToken, userId) => {
             };
 
             detectedList.push(record);
+
+            // CRITICAL: Update Registrations Table if competitionId is provided
+            if (competitionId) {
+                // If this email matches the context, we update. 
+                // Logic: Does this email belong to the competitionId? 
+                // Since we don't know the competition name for certain, we rely on the context passed from Frontend.
+                // Assuming the user clicked "Verify" for THIS competition, we accept the detection.
+                await updateRegistrationFromGmail({
+                    userId,
+                    competitionId,
+                    detectedStatus: detection.status
+                });
+            }
         }
     }
 
@@ -274,9 +288,37 @@ const syncStudentCompetition = async (accessToken, competitionName, platform, la
             // Add others as needed
         }
 
-        const safeCompName = competitionName.split(/[^\w\s]/)[0]; // First CLEAN part of name
+        // Fix: Allow hyphens in the name and don't split by them immediately.
+        // Replace ONLY special chars that confuse search (brackets, parens, quotes)
+        let safeCompName = competitionName.replace(/[\[\]\(\)\"\'\{\}]/g, ' ').trim();
 
-        const q = `${safeCompName} ${fromQuery} ${dateQuery}`.trim();
+        // If it looks like "TN-IMPACT ...", we want "TN-IMPACT"
+        // Let's just take the first few words to be safe, but keep them together.
+        // Or simpler: Just quote the first meaningful chunk.
+
+        // Revised Strategy:
+        // 1. Remove special chars
+        // 2. Take the longest word or the first 3 words?
+        // Let's try to keep the first main part including hyphens.
+        // e.g. "TN-IMPACT - TANCAM" -> "TN-IMPACT"
+
+        const parts = safeCompName.split(/\s+[-–—]\s+|\s*[:|]\s*/); // Split by " - " (hyphen/en-dash/em-dash) or ":" or "|"
+        if (parts.length > 0) {
+            safeCompName = parts[0].trim();
+        }
+
+        // If the resulting name is too short (like "TN"), it's dangerous.
+        if (safeCompName.length < 3) {
+            // Try to use the whole name or more context? 
+            // Or just fail to avoid false positives.
+            console.warn(`[GmailSync] Skipping sync for '${competitionName}' - Name too short for safe search.`);
+            return null;
+        }
+
+        // Quote it for exact phrase match if possible
+        // STRICTER: Must include "registered" or "successful" or "confirmed" to even be fetched.
+        // This avoids fetching random "Announcing TN-IMPACT" emails.
+        const q = `"${safeCompName}" (registered OR successful OR confirmed OR selected OR shortlisted) ${fromQuery} ${dateQuery}`.trim();
 
         // 2. Fetch Messages (Metadata only)
         const response = await gmail.users.messages.list({

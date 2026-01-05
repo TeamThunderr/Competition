@@ -2,7 +2,7 @@ const gmailService = require('../../services/gmailService');
 
 const scanInbox = async (req, res) => {
     try {
-        const { provider_token } = req.body;
+        const { provider_token, competitionId } = req.body;
         // In a real app we would get user ID from session/middleware.
         // Here we might need to look it up or trust the frontend to send the email/user.
         // Assuming the authMiddleware populates req.user
@@ -17,7 +17,7 @@ const scanInbox = async (req, res) => {
 
         console.log(`Starting Gmail Scan for user ${req.user.email}...`);
 
-        const results = await gmailService.processAndSaveEmails(provider_token, req.user.id);
+        const results = await gmailService.processAndSaveEmails(provider_token, req.user.id, competitionId);
 
         return res.status(200).json({
             message: 'Scan complete',

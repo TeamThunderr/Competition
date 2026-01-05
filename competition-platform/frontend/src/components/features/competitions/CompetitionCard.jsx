@@ -4,7 +4,12 @@ import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
 
 const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, showRegister = true }) => {
     const { my_registration, my_status, my_od } = competition;
-    const isClosed = new Date(competition.registration_deadline) < new Date();
+
+    // Fix: Set deadline time to end of day (23:59:59) so it includes today
+    const deadlineDate = new Date(competition.registration_deadline);
+    deadlineDate.setHours(23, 59, 59, 999);
+
+    const isClosed = deadlineDate < new Date();
     const [isVerifying, setIsVerifying] = React.useState(false);
 
     const handleVerifyClick = async () => {
@@ -19,12 +24,12 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
     };
 
     const getDaysLeft = (deadline) => {
-        const diffTime = new Date(deadline) - new Date();
+        const diffTime = deadline - new Date();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays > 0 ? diffDays : 0;
     };
 
-    const daysLeft = getDaysLeft(competition.registration_deadline);
+    const daysLeft = getDaysLeft(deadlineDate);
 
     const renderAction = () => {
         // If showRegister is false (Faculty/HOD), do not show any actionable buttons (actions are for students)
@@ -109,7 +114,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
             return (
                 <div className="flex-1 bg-green-50 text-green-700 py-2 px-4 rounded-lg text-sm font-medium text-center flex items-center justify-center gap-2">
                     <Trophy className="w-4 h-4" />
-                    Registered & Verified
+                    Registered
                 </div>
             );
         }
