@@ -49,85 +49,82 @@ const ActivityLogs = () => {
     return (
         <div className="min-h-screen bg-gray-50 flex">
             <Sidebar />
-            <div className="flex-1 ml-64 p-8">
-                {/* Header */}
-                <div className="mb-8 relative">
-                    <Link to="/admin" className="absolute left-0 top-0 inline-flex items-center text-gray-600 hover:text-blue-600 transition-colors">
-                        <ArrowLeft size={20} className="mr-2" />
-                        Back to Dashboard
-                    </Link>
-                    <div className="text-center pt-8">
-                        <h1 className="text-2xl font-bold text-gray-900">System Activity Logs</h1>
-                        <p className="text-gray-500 mt-1">Full history of system actions and uploads.</p>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                        <div className="font-semibold text-gray-700">Total Activities: {logs.length}</div>
-                        {/* Placeholder for future filtering if needed */}
+            <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
+                <div className="w-[95%] mx-auto">
+                    {/* Header */}
+                    <div className="mb-8 relative text-center">
+                        <Link to="/admin" className="absolute left-0 top-0 inline-flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+                            <ArrowLeft size={20} className="mr-2" />
+                            Back to Dashboard
+                        </Link>
+                        <div className="text-center pt-8">
+                            <h1 className="text-2xl font-bold text-gray-900">System Activity Logs</h1>
+                            <p className="text-gray-500 mt-1">Full history of system actions and uploads.</p>
+                        </div>
                     </div>
 
-                    import RoleBasedLoader from '../../components/common/RoleBasedLoader';
-                    // ... imports
-
-                    // ... code
-
-                    {loading ? (
-                        <div className="flex justify-center p-12">
-                            <RoleBasedLoader role="ADMIN" />
+                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <div className="font-semibold text-gray-700">Total Activities: {logs.length}</div>
+                            {/* Placeholder for future filtering if needed */}
                         </div>
-                    ) : error ? (
-                        <div className="p-12 text-center text-red-500 flex flex-col items-center gap-2">
-                            <AlertCircle size={24} />
-                            {error}
-                        </div>
-                    ) : logs.length === 0 ? (
-                        <div className="p-12 text-center text-gray-500">No activity logs found.</div>
-                    ) : (
-                        <div className="divide-y divide-gray-100">
-                            {logs.map((log) => (
-                                <Link
-                                    to={`/competitions/${log.id}`}
-                                    key={log.id}
-                                    className="p-6 hover:bg-gray-50 transition-colors flex items-center justify-between group block"
-                                >
-                                    <div className="flex items-start gap-4">
-                                        <div className="mt-1 p-2 bg-blue-100 text-blue-600 rounded-lg group-hover:bg-blue-200 transition-colors">
-                                            <Clock size={20} />
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-3 mb-1">
-                                                <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                                    {log.title}
-                                                </h3>
-                                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${log.status === 'Success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                                    }`}>
-                                                    {log.status === 'Success' ? 'Upload Success' : 'Failed'}
-                                                </span>
+
+                        {loading ? (
+                            <div className="flex justify-center p-12">
+                                <RoleBasedLoader role="ADMIN" />
+                            </div>
+                        ) : error ? (
+                            <div className="p-12 text-center text-red-500 flex flex-col items-center gap-2">
+                                <AlertCircle size={24} />
+                                {error}
+                            </div>
+                        ) : logs.length === 0 ? (
+                            <div className="p-12 text-center text-gray-500">No activity logs found.</div>
+                        ) : (
+                            <div className="divide-y divide-gray-100">
+                                {logs.map((log) => (
+                                    <Link
+                                        to={`/competitions/${log.id}`}
+                                        key={log.id}
+                                        className="p-6 hover:bg-gray-50 transition-colors flex items-center justify-between group block"
+                                    >
+                                        <div className="flex items-start gap-4">
+                                            <div className="mt-1 p-2 bg-blue-100 text-blue-600 rounded-lg group-hover:bg-blue-200 transition-colors">
+                                                <Clock size={20} />
                                             </div>
-
-                                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                                                <div className="flex items-center gap-1">
-                                                    <span>By:</span>
-                                                    <span className="font-medium text-gray-700">{log.user}</span>
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                        {log.title}
+                                                    </h3>
+                                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${log.status === 'Success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                                        }`}>
+                                                        {log.status === 'Success' ? 'Upload Success' : 'Failed'}
+                                                    </span>
                                                 </div>
-                                                <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                                                <div>{new Date(log.timestamp).toLocaleDateString()}</div>
-                                                <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                                                <div>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+
+                                                <div className="flex items-center gap-4 text-sm text-gray-500">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>By:</span>
+                                                        <span className="font-medium text-gray-700">{log.user}</span>
+                                                    </div>
+                                                    <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+                                                    <div>{new Date(log.timestamp).toLocaleDateString()}</div>
+                                                    <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+                                                    <div>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-sm font-medium mr-2">View Details</span>
-                                        &rarr;
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
+                                        <div className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span className="text-sm font-medium mr-2">View Details</span>
+                                            &rarr;
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

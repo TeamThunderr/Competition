@@ -113,3 +113,6 @@ ALTER TABLE users ADD COLUMN phone_number TEXT;
 UPDATE users 
 SET phone_number = '98765' || substring(registration_no from 5) 
 WHERE role = 'STUDENT';
+
+-- Department Filter Support
+ALTER TABLE competitions ADD COLUMN departments text[] DEFAULT ARRAY['All'];

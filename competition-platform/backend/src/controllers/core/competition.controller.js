@@ -41,7 +41,8 @@ const createCompetition = async (req, res) => {
             mode,
             team_allowed,
             min_team_size,
-            max_team_size
+            max_team_size,
+            departments = ['All'] // Default to All if missing
         } = req.body;
         const created_by = req.userId; // Retrieved from authMiddleware (x-user-id header)
 
@@ -58,12 +59,13 @@ const createCompetition = async (req, res) => {
                     platform,
                     organizer: organizer || organization,
                     external_link: external_link || link,
-                    registration_deadline: registration_deadline || deadline,
-                    event_date,
+                    registration_deadline: (registration_deadline || deadline) || null,
+                    event_date: event_date || null,
                     mode,
                     team_allowed,
                     min_team_size,
                     max_team_size,
+                    departments, // Store departments
                     created_by
                 }
             ])

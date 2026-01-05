@@ -14,6 +14,8 @@ async function check() {
             console.log(`[${r.department_name}] (ID: ${r.department_id})`);
             console.log(`   - Students: ${r.total_students}`);
             console.log(`   - Registrations: ${r.total_registrations}`);
+            console.log(`   - Shortlisted: ${r.shortlisted}`);
+            console.log(`   - Winners: ${r.winners}`);
             console.log(`   - Participation Rate: ${r.participation_rate}%`);
             // Check for recursive structures or large payloads
             const sectionKeys = r.sections ? r.sections.map(s => s.name) : [];

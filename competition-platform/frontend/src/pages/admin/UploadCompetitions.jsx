@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import Sidebar from './Sidebar';
 import { Upload, FileText } from 'lucide-react';
 
-
 const UploadCompetitions = () => {
     const [activeTab, setActiveTab] = useState('excel');
     const fileInputRef = useRef(null);
@@ -18,7 +17,8 @@ const UploadCompetitions = () => {
         description: '',
         team_allowed: false,
         min_team_size: 1,
-        max_team_size: 4
+        max_team_size: 4,
+        departments: [] // Store selected departments
     });
 
     const handleInputChange = (e) => {
@@ -27,6 +27,25 @@ const UploadCompetitions = () => {
             ...prev,
             [name]: value
         }));
+    };
+
+    const toggleDepartment = (dept) => {
+        setFormData(prev => {
+            const current = prev.departments || [];
+            if (dept === 'All') {
+                return { ...prev, departments: ['All'] };
+            }
+
+            let newDepts = current.filter(d => d !== 'All');
+
+            if (newDepts.includes(dept)) {
+                newDepts = newDepts.filter(d => d !== dept);
+            } else {
+                newDepts.push(dept);
+            }
+
+            return { ...prev, departments: newDepts };
+        });
     };
 
     const handleFileSelect = () => {
@@ -83,6 +102,10 @@ const UploadCompetitions = () => {
                 alert('Please fill in all mandatory fields (Title, Organizer, Platform, Deadline, Link)');
                 return;
             }
+            if (!formData.departments || formData.departments.length === 0) {
+                alert('Please select at least one target department (or "All Departments")');
+                return;
+            }
         }
 
         try {
@@ -104,7 +127,8 @@ const UploadCompetitions = () => {
                     // Pass explicit values or let formData handle it
                     team_allowed: formData.team_allowed,
                     min_team_size: formData.min_team_size,
-                    max_team_size: formData.max_team_size
+                    max_team_size: formData.max_team_size,
+                    departments: formData.departments // Send array directly
                 })
             });
 
@@ -121,7 +145,8 @@ const UploadCompetitions = () => {
                     description: '',
                     team_allowed: false,
                     min_team_size: 1,
-                    max_team_size: 4
+                    max_team_size: 4,
+                    departments: []
                 });
             } else {
                 const error = await response.json();
@@ -136,236 +161,257 @@ const UploadCompetitions = () => {
     return (
         <div className="min-h-screen bg-gray-50 flex">
             <Sidebar />
-            <div className="flex-1 ml-64 p-8">
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Upload Competitions</h1>
-                    <p className="text-gray-500 mt-1">Add new events to the global system via Excel or manual entry.</p>
-                </div>
-
-                {/* Tabs */}
-                <div className="border-b border-gray-200 mb-6">
-                    <nav className="-mb-px flex space-x-8">
-                        <button
-                            onClick={() => setActiveTab('excel')}
-                            className={`${activeTab === 'excel'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-                        >
-                            Excel / CSV Upload
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('manual')}
-                            className={`${activeTab === 'manual'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-                        >
-                            Manual Entry
-                        </button>
-                    </nav>
-                </div>
-
-                {/* Content */}
-                {activeTab === 'excel' && (
-                    <div className="bg-white p-12 rounded-xl border border-gray-100 shadow-sm text-center">
-                        <div
-                            className="border-2 border-dashed border-gray-300 rounded-lg p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
-                            onClick={handleFileSelect}
-                        >
-                            <input
-                                type="file"
-                                accept=".xlsx, .xls, .csv"
-                                className="hidden"
-                                ref={fileInputRef}
-                                onChange={handleFileUpload}
-                            />
-                            <div className="h-12 w-12 text-gray-400 mb-4">
-                                <FileText className="w-full h-full" />
-                            </div>
-                            <h3 className="text-lg font-medium text-gray-900">Drag and drop Excel file here</h3>
-                            <p className="text-gray-500 text-sm mt-1 mb-6">or click to browse from computer</p>
-                            <button className="bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition-colors pointer-events-none">
-                                Select File
-                            </button>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-6">
-                            Supported columns: Name, Deadline, Platform, Description, Link
-                        </p>
+            <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
+                <div className="w-[95%] mx-auto">
+                    <div className="mb-8 text-center">
+                        <h1 className="text-2xl font-bold text-gray-900">Upload Competitions</h1>
+                        <p className="text-gray-500 mt-1">Add new events to the global system via Excel or manual entry.</p>
                     </div>
-                )}
 
-                {activeTab === 'manual' && (
-                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                        <div className="grid grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Competition Name <span className="text-red-500">*</span></label>
-                                <input
-                                    type="text"
-                                    name="title"
-                                    required
-                                    value={formData.title}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                    placeholder="e.g. HackTheFuture 2025"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Platform <span className="text-red-500">*</span></label>
-                                <div className="relative">
-                                    <select
-                                        name="platform"
-                                        required
-                                        value={formData.platform}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none bg-white"
-                                    >
-                                        <option>Unstop</option>
-                                        <option>Devfolio</option>
-                                        <option>Devpost</option>
-                                        <option>Hack2skill</option>
-                                        <option>Others</option>
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-400">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Organizer <span className="text-red-500">*</span></label>
-                                <input
-                                    type="text"
-                                    name="organizer"
-                                    required
-                                    value={formData.organizer}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                    placeholder="e.g. Google, MLH"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Mode <span className="text-red-500">*</span></label>
-                                <select
-                                    name="mode"
-                                    required
-                                    value={formData.mode}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white"
-                                >
-                                    <option>Online</option>
-                                    <option>Offline</option>
-                                    <option>Hybrid</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">One Registration Deadline <span className="text-red-500">*</span></label>
-                                <input
-                                    type="date"
-                                    name="deadline"
-                                    required
-                                    value={formData.deadline}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Main Event Date</label>
-                                <input
-                                    type="date"
-                                    name="event_date"
-                                    value={formData.event_date}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">More Info Link <span className="text-red-500">*</span></label>
-                            <input
-                                type="text"
-                                name="link"
-                                required
-                                value={formData.link}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                placeholder="https://"
-                            />
-                        </div>
-
-                        {/* Team Settings */}
-                        <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                            <div className="flex items-center gap-2 mb-4">
-                                <input
-                                    type="checkbox"
-                                    name="team_allowed"
-                                    id="team_allowed"
-                                    checked={formData.team_allowed}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, team_allowed: e.target.checked }))}
-                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <label htmlFor="team_allowed" className="text-sm font-medium text-gray-700">Allow Team Participation</label>
-                            </div>
-
-                            {formData.team_allowed && (
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">Min Team Size</label>
-                                        <input
-                                            type="number"
-                                            name="min_team_size"
-                                            min="1"
-                                            value={formData.min_team_size}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">Max Team Size</label>
-                                        <input
-                                            type="number"
-                                            name="max_team_size"
-                                            min="1"
-                                            value={formData.max_team_size}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="mb-8">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Description <span className="text-red-500">*</span></label>
-                            <textarea
-                                name="description"
-                                required
-                                value={formData.description}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm h-32 resize-none"
-                                placeholder="Event details..."
-                            ></textarea>
-                        </div>
-
-                        <div className="flex justify-end gap-3">
-                            <button className="px-6 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-                                Cancel
+                    {/* Tabs */}
+                    <div className="border-b border-gray-200 mb-6">
+                        <nav className="-mb-px flex space-x-8">
+                            <button
+                                onClick={() => setActiveTab('excel')}
+                                className={`${activeTab === 'excel'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                            >
+                                Excel / CSV Upload
                             </button>
                             <button
-                                onClick={handleSubmit}
-                                className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                                onClick={() => setActiveTab('manual')}
+                                className={`${activeTab === 'manual'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                             >
-                                Add Competition
+                                Manual Entry
                             </button>
-                        </div>
+                        </nav>
                     </div>
-                )}
+
+                    {/* Content */}
+                    {activeTab === 'excel' && (
+                        <div className="bg-white p-12 rounded-xl border border-gray-100 shadow-sm text-center">
+                            <div
+                                className="border-2 border-dashed border-gray-300 rounded-lg p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={handleFileSelect}
+                            >
+                                <input
+                                    type="file"
+                                    accept=".xlsx, .xls, .csv"
+                                    className="hidden"
+                                    ref={fileInputRef}
+                                    onChange={handleFileUpload}
+                                />
+                                <div className="h-12 w-12 text-gray-400 mb-4">
+                                    <FileText className="w-full h-full" />
+                                </div>
+                                <h3 className="text-lg font-medium text-gray-900">Drag and drop Excel file here</h3>
+                                <p className="text-gray-500 text-sm mt-1 mb-6">or click to browse from computer</p>
+                                <button className="bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition-colors pointer-events-none">
+                                    Select File
+                                </button>
+                            </div>
+                            <p className="text-xs text-gray-400 mt-6">
+                                Supported columns: Name, Deadline, Platform, Description, Link
+                            </p>
+                        </div>
+                    )}
+
+                    {activeTab === 'manual' && (
+                        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                            <div className="grid grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Competition Name <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="text"
+                                        name="title"
+                                        required
+                                        value={formData.title}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                        placeholder="e.g. HackTheFuture 2025"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Platform <span className="text-red-500">*</span></label>
+                                    <div className="relative">
+                                        <select
+                                            name="platform"
+                                            required
+                                            value={formData.platform}
+                                            onChange={handleInputChange}
+                                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none bg-white"
+                                        >
+                                            <option>Unstop</option>
+                                            <option>Devfolio</option>
+                                            <option>Devpost</option>
+                                            <option>Hack2skill</option>
+                                            <option>Others</option>
+                                        </select>
+                                        <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-400">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Organizer <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="text"
+                                        name="organizer"
+                                        required
+                                        value={formData.organizer}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                        placeholder="e.g. Google, MLH"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Mode <span className="text-red-500">*</span></label>
+                                    <select
+                                        name="mode"
+                                        required
+                                        value={formData.mode}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white"
+                                    >
+                                        <option>Online</option>
+                                        <option>Offline</option>
+                                        <option>Hybrid</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Target Departments <span className="text-red-500">*</span></label>
+                                <div className="flex flex-wrap gap-2">
+                                    {['All', 'CSE', 'AIDS', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'].map(dept => (
+                                        <button
+                                            key={dept}
+                                            onClick={() => toggleDepartment(dept)}
+                                            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${(formData.departments || []).includes(dept)
+                                                    ? 'bg-blue-600 text-white border-blue-600'
+                                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            {dept === 'All' ? 'All Departments' : dept}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">Select "All Departments" for college-wide events.</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">One Registration Deadline <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="date"
+                                        name="deadline"
+                                        required
+                                        value={formData.deadline}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Main Event Date</label>
+                                    <input
+                                        type="date"
+                                        name="event_date"
+                                        value={formData.event_date}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">More Info Link <span className="text-red-500">*</span></label>
+                                <input
+                                    type="text"
+                                    name="link"
+                                    required
+                                    value={formData.link}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                    placeholder="https://"
+                                />
+                            </div>
+
+                            {/* Team Settings */}
+                            <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <input
+                                        type="checkbox"
+                                        name="team_allowed"
+                                        id="team_allowed"
+                                        checked={formData.team_allowed}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, team_allowed: e.target.checked }))}
+                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    />
+                                    <label htmlFor="team_allowed" className="text-sm font-medium text-gray-700">Allow Team Participation</label>
+                                </div>
+
+                                {formData.team_allowed && (
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">Min Team Size</label>
+                                            <input
+                                                type="number"
+                                                name="min_team_size"
+                                                min="1"
+                                                value={formData.min_team_size}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">Max Team Size</label>
+                                            <input
+                                                type="number"
+                                                name="max_team_size"
+                                                min="1"
+                                                value={formData.max_team_size}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mb-8">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Description <span className="text-red-500">*</span></label>
+                                <textarea
+                                    name="description"
+                                    required
+                                    value={formData.description}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm h-32 resize-none"
+                                    placeholder="Event details..."
+                                ></textarea>
+                            </div>
+
+                            <div className="flex justify-end gap-3">
+                                <button className="px-6 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSubmit}
+                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                                >
+                                    Add Competition
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
