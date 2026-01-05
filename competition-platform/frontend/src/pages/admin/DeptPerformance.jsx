@@ -39,8 +39,8 @@ const DeptPerformance = () => {
             <Sidebar />
             <div className="flex-1 ml-64 p-8">
                 <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Department Performance</h1>
-                    <p className="text-gray-500 mt-1">Cross-department analytics and leaderboard.</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Active Department Performance</h1>
+                    <p className="text-gray-500 mt-1">Analytics for departments with active registrations.</p>
                 </div>
 
                 {loading ? (
@@ -75,71 +75,37 @@ const DeptPerformance = () => {
                                         </div>
                                     </div>
                                 )) : (
-                                    <div className="text-center text-gray-400">No stats available</div>
+                                    <div className="text-center text-gray-400 py-8">No active departments found (0 registrations)</div>
                                 )}
                             </div>
                         </div>
 
                         {/* Table Section */}
                         <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm">
-                            <h2 className="text-base font-bold text-gray-900 mb-6">Detailed Drill-down (Click row to view students)</h2>
+                            <h2 className="text-base font-bold text-gray-900 mb-6">Detailed Department Stats</h2>
                             <table className="w-full text-left text-sm text-gray-500">
                                 <thead>
                                     <tr className="text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
                                         <th className="pb-3 pl-4">Department</th>
-                                        <th className="pb-3">Section</th>
-                                        <th className="pb-3">Count</th>
-                                        <th className="pb-3">Action</th>
+                                        <th className="pb-3">Sections Active</th>
+                                        <th className="pb-3">Total Participating</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {stats.map(dept => (
-                                        dept.sections.map(sec => (
-                                            <React.Fragment key={`${dept.department_id}-${sec.name}`}>
-                                                <tr
-                                                    className="border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer transition-colors"
-                                                    onClick={() => setExpandedSection(expandedSection === `${dept.department_id}-${sec.name}` ? null : `${dept.department_id}-${sec.name}`)}
-                                                >
-                                                    <td className="py-4 pl-4 font-medium text-gray-900">{dept.department_name}</td>
-                                                    <td className="py-4">{sec.name}</td>
-                                                    <td className="py-4 font-bold text-blue-600">{sec.count}</td>
-                                                    <td className="py-4 text-xs text-blue-500 underline">
-                                                        {expandedSection === `${dept.department_id}-${sec.name}` ? 'Hide' : 'View Students'}
-                                                    </td>
-                                                </tr>
-                                                {/* Expanded Detail Row */}
-                                                {expandedSection === `${dept.department_id}-${sec.name}` && (
-                                                    <tr>
-                                                        <td colSpan="4" className="bg-gray-50 p-4 rounded-lg">
-                                                            <div className="pl-4 border-l-2 border-blue-500">
-                                                                <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase">Registered Students in {sec.name}</h4>
-                                                                {sec.students && sec.students.length > 0 ? (
-                                                                    <ul className="space-y-2">
-                                                                        {sec.students.map((stud, idx) => (
-                                                                            <li key={idx} className="flex items-center gap-2 text-sm text-gray-600">
-                                                                                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
-                                                                                    {stud.full_name ? stud.full_name.charAt(0) : 'U'}
-                                                                                </span>
-                                                                                <span className="font-medium">{stud.full_name || 'Unknown Name'}</span>
-                                                                                <span className="text-gray-400 text-xs">({stud.email})</span>
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
-                                                                ) : (
-                                                                    <p className="text-gray-400 italic font-light">No student details available.</p>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </React.Fragment>
-                                        ))
+                                        <React.Fragment key={dept.department_id}>
+                                            <tr className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                                                <td className="py-4 pl-4 font-medium text-gray-900">{dept.department_name}</td>
+                                                <td className="py-4">
+                                                    {dept.sections && dept.sections.length > 0
+                                                        ? dept.sections.map(s => `${s.name} (${s.count})`).join(', ')
+                                                        : <span className="text-gray-400">None</span>
+                                                    }
+                                                </td>
+                                                <td className="py-4 font-bold text-blue-600">{dept.total_registrations}</td>
+                                            </tr>
+                                        </React.Fragment>
                                     ))}
-                                    {stats.length === 0 && (
-                                        <tr>
-                                            <td colSpan="4" className="py-6 text-center">No data available</td>
-                                        </tr>
-                                    )}
                                 </tbody>
                             </table>
                         </div>

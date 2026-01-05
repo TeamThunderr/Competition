@@ -223,35 +223,42 @@ const GlobalRepository = () => {
 
                     {/* Table */}
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left whitespace-nowrap">
+                        <table className="w-full text-left">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100">
                                     <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Competition Name</th>
                                     <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Platform</th>
                                     <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
+                                    <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Event Date</th>
                                     <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Participating Depts</th>
                                     <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Registrations</th>
                                     <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Qualified</th>
                                     <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="8" className="px-4 py-12">
+                                        <td colSpan="9" className="px-4 py-12">
                                             <RoleBasedLoader role="ADMIN" />
                                         </td>
                                     </tr>
                                 ) : filteredCompetitions.length > 0 ? (
                                     filteredCompetitions.map((comp) => (
-                                        <tr key={comp.id} className="hover:bg-gray-50 transition-colors">
+                                        <tr
+                                            key={comp.id}
+                                            className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                                            onClick={() => handleViewStats(comp)}
+                                        >
                                             <td className="px-4 py-4">
-                                                <div className="font-medium text-gray-900 truncate max-w-[200px]" title={comp.title}>{comp.title || 'Untitled'}</div>
+                                                <div className="font-medium text-gray-900 truncate max-w-[200px] group-hover:text-blue-600 transition-colors" title={comp.title}>{comp.title || 'Untitled'}</div>
                                                 <div className="text-xs text-gray-500">{comp.organizer}</div>
                                             </td>
                                             <td className="px-4 py-4 text-sm text-gray-600">{comp.platform}</td>
                                             <td className="px-4 py-4 text-sm text-gray-600">{new Date(comp.registration_deadline).toLocaleDateString()}</td>
+                                            <td className="px-4 py-4 text-sm text-gray-600">
+                                                {comp.event_date ? new Date(comp.event_date).toLocaleDateString() : 'TBA'}
+                                            </td>
                                             <td className="px-4 py-4 text-sm text-gray-600">
                                                 {Array.isArray(comp.departments)
                                                     ? comp.departments.join(', ')
@@ -267,19 +274,11 @@ const GlobalRepository = () => {
                                                     {getStatus(comp.registration_deadline)}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-4 text-center">
-                                                <button
-                                                    onClick={() => handleViewStats(comp)}
-                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                                >
-                                                    View
-                                                </button>
-                                            </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="8" className="px-4 py-12 text-center text-gray-500 text-sm">
+                                        <td colSpan="9" className="px-4 py-12 text-center text-gray-500 text-sm">
                                             No competitions found.
                                         </td>
                                     </tr>

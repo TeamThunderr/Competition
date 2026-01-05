@@ -32,11 +32,11 @@ exports.getStudents = async (req, res) => {
             query = query.eq('section', section);
         }
 
-        // Search by Name or Roll Number
+        // Search by Name or Roll Number or Email
         if (search) {
             // content-type: application/json
-            // Using 'ilike' for case-insensitive partial match on both fields
-            query = query.or(`full_name.ilike.%${search}%,registration_no.ilike.%${search}%`);
+            // Using 'ilike' for case-insensitive partial match
+            query = query.or(`full_name.ilike.%${search}%,registration_no.ilike.%${search}%,email.ilike.%${search}%`);
         }
 
         // Default constraints (ordering)
@@ -62,38 +62,106 @@ exports.getStudentDetails = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const { data, error } = await supabase
+        // 1. Fetch Student Basic Info
+        const { data: student, error: studentError } = await supabase
             .from('users')
-            .select(`
-                *,
-                departments ( name )
-            `)
+            .select('id, full_name, registration_no, email, phone_number, department_id, section, cgpa, departments(name)')
             .eq('id', id)
             .single();
 
-        if (error) throw error;
+        if (studentError || !student) {
+            return res.status(404).json({ success: false, message: 'Student not found' });
+        }
 
-        // Fetch user stats
-        const { count: participatedCount, error: participatedError } = await supabase
+        // 2. Fetch Registrations & Competitions
+        const { data: registrations, error: regError } = await supabase
             .from('registrations')
-            .select('*', { count: 'exact', head: true })
+            .select(`
+                id,
+                registered_at,
+                verified,
+                competitions (
+                    id,
+                    title,
+                    platform,
+                    registration_deadline
+                )
+            `)
             .eq('user_id', id);
 
-        const { count: wonCount, error: wonError } = await supabase
-            .from('competition_status')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', id)
-            .eq('is_winner', true);
+        if (regError) throw regError;
 
-        if (participatedError) console.error("Error fetching participation count:", participatedError);
-        if (wonError) console.error("Error fetching won count:", wonError);
+        // 3. Fetch Status (Qualified/Won)
+        const { data: statuses, error: statusError } = await supabase
+            .from('competition_status')
+            .select('*')
+            .eq('user_id', id);
+
+        if (statusError) throw statusError;
+
+        // 4. Aggregate Data & Calculate Stats
+        const competitionDetails = registrations.map(reg => {
+            const statusEntry = statuses?.find(s => s.competition_id === reg.competitions.id);
+
+            let status = 'Registered';
+            const isVerified = reg.verified;
+
+            if (statusEntry?.is_shortlisted) status = 'Qualified';
+            if (statusEntry?.is_winner) status = 'Won';
+
+            return {
+                id: reg.competitions.id,
+                competitionName: reg.competitions.title,
+                platform: reg.competitions.platform || 'N/A',
+                regType: 'Individual',
+                status: status,
+                verificationStatus: isVerified ? 'Verified' : 'Pending',
+                registeredAt: reg.registered_at
+            };
+        });
+
+        // Calculate Batch (Heuristic based on Regno)
+        let batchLabel = 'N/A';
+        if (student.registration_no) {
+            const regNo = student.registration_no;
+            let yearShort = null;
+            const prefix = regNo.substring(0, 2);
+            const mid = regNo.length >= 6 ? regNo.substring(4, 6) : null;
+
+            if (parseInt(prefix) >= 15 && parseInt(prefix) <= 40) {
+                yearShort = prefix;
+            } else if (mid && parseInt(mid) >= 15 && parseInt(mid) <= 40) {
+                yearShort = mid;
+            }
+
+            if (yearShort) {
+                const startYear = 2000 + parseInt(yearShort, 10);
+                const endYear = startYear + 4;
+                batchLabel = `${startYear}-${endYear}`;
+            }
+        }
+
+        // Stats
+        const stats = {
+            registered: registrations.length,
+            qualified: statuses?.filter(s => s.is_shortlisted).length || 0,
+            won: statuses?.filter(s => s.is_winner).length || 0,
+        };
 
         const enrichedData = {
-            ...data,
-            stats: {
-                participated: participatedCount || 0,
-                won: wonCount || 0
-            }
+            profile: {
+                id: student.id,
+                name: student.full_name,
+                rollNo: student.registration_no,
+                email: student.email,
+                department: student.departments?.name || 'N/A',
+                section: student.section,
+                batch: batchLabel,
+                cgpa: student.cgpa || 'N/A',
+                phoneNumber: student.phone_number || 'N/A'
+            },
+            stats,
+            competitions: competitionDetails
         };
 
         res.status(200).json({ success: true, data: enrichedData });

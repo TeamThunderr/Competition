@@ -59,16 +59,20 @@ const AdminDashboard = () => {
 
                     activeCount = activeComps.length;
 
-                    // Activity Feed
-                    activities = comps.slice(0, 5).map(c => ({
+                    // Activity Feed - Sort by created_at DESC to get true latest
+                    const sortedByNewest = [...comps].sort((a, b) =>
+                        new Date(b.created_at || 0) - new Date(a.created_at || 0)
+                    );
+
+                    activities = sortedByNewest.slice(0, 5).map(c => ({
                         action: "Competition added",
                         target: c.title,
                         user: "System",
                         time: c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'
                     }));
 
-                    if (comps.length > 0) {
-                        lastDate = comps[0]?.created_at ? new Date(comps[0].created_at).toLocaleDateString() : "Just now";
+                    if (sortedByNewest.length > 0) {
+                        lastDate = sortedByNewest[0]?.created_at ? new Date(sortedByNewest[0].created_at).toLocaleDateString() : "Just now";
                     }
                 }
 

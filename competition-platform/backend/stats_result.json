@@ -1,0 +1,24 @@
+{
+  "db_departments": [
+    "CSE",
+    "AIDS"
+  ],
+  "db_count": 2,
+  "service_count": 2,
+  "service_data": [
+    {
+      "name": "CSE",
+      "students": 0,
+      "registrations": 0,
+      "sections_count": 0,
+      "has_student_details": false
+    },
+    {
+      "name": "AIDS",
+      "students": 0,
+      "registrations": 0,
+      "sections_count": 0,
+      "has_student_details": false
+    }
+  ]
+}
