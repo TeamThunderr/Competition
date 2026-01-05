@@ -45,6 +45,15 @@ async function request(endpoint, options = {}) {
         if (!response.ok) {
             const errorBody = await response.json().catch(() => ({}));
 
+            // Auto-Logout if User ID is invalid (Stale State)
+            if (response.status === 404 && errorBody.message === "User ID provided in header not found in database") {
+                console.warn("[API] User ID invalid. Logging out...");
+                localStorage.removeItem('user');
+                localStorage.removeItem('role');
+                window.location.href = '/login';
+                return null; // Stop propagation
+            }
+
             // Create a smarter error object
             const error = new Error(errorBody.error || errorBody.message || `API Error: ${response.status}`);
             error.status = response.status;

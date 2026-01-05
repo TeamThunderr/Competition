@@ -22,14 +22,7 @@ const ActiveCompetitions = () => {
         fetchCompetitions();
     }, []);
 
-    const filteredCompetitions = competitions
-        .filter(comp => {
-            if (!comp) return false;
-            const searchLower = searchQuery.toLowerCase();
-            return (comp.title || '').toLowerCase().includes(searchLower) ||
-                (comp.platform || '').toLowerCase().includes(searchLower);
-        })
-        .sort((a, b) => (b.id || 0) - (a.id || 0));
+
 
     return (
         <CompetitionListView
