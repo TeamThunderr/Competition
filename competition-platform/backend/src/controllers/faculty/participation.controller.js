@@ -28,8 +28,7 @@ const syncSingleStudent = async (student, competition, lastSyncedAt, gmailServic
 
         const match = await gmailService.syncStudentCompetition(
             accessToken,
-            competition.title,
-            competition.platform,
+            competition,
             lastSyncedAt
         );
 
@@ -45,8 +44,8 @@ const syncSingleStudent = async (student, competition, lastSyncedAt, gmailServic
                 gmail_message_id: match.gmail_message_id,
                 matched_keyword: match.matched_keyword,
                 confidence_score: match.confidence,
-                last_synced_at: match.detected_at, // Use service timestamp
-                remarks: `Gmail Suggestion: ${suggested} (Confidence: ${match.confidence}%)`
+                last_synced_at: match.detected_at,
+                remarks: `[${match.confidence_level}] Match: ${suggested}. Breakdown: ${match.match_breakdown?.join(', ')}`
             };
 
             return { status: 'detected', upsertData };
@@ -273,13 +272,16 @@ async function performBatchSync(competition, departmentId, assignedVersion) {
                 await supabase.from('participation').upsert(result.upsertData, { onConflict: 'student_id, competition_id' });
                 stats.detected++;
             } else if (result.status === 'no_match') {
-                // Update last_synced_at
-                await supabase.from('participation').upsert({
-                    student_id: student.id,
-                    competition_id: competition.id,
-                    status: row ? row.status : 'NOT_REGISTERED',
-                    last_synced_at: result.lastSyncedAt
-                }, { onConflict: 'student_id, competition_id' });
+                // Only update last_synced_at if record ALREADY exists
+                if (row) {
+                    await supabase.from('participation').upsert({
+                        student_id: student.id,
+                        competition_id: competition.id,
+                        status: row.status, // Keep existing status
+                        last_synced_at: result.lastSyncedAt
+                    }, { onConflict: 'student_id, competition_id' });
+                }
+                // Else: Do nothing. Don't create "NOT_REGISTERED" ghosts.
             } else if (result.status === 'error') {
                 stats.errors++;
             }

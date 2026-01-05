@@ -195,16 +195,20 @@ const getDashboardStats = async (req, res) => {
         // 1. Total Students
         const totalStudents = myStudentIds.length;
 
-        // 2. Comp Registered (Unique user-competition pairs)
-        console.log('[FacultyDebug] Fetching registration stats...');
-        const { count: registeredCount, error: regError } = await supabase
-            .from('registrations')
-            .select('id', { count: 'exact', head: true })
-            .in('user_id', myStudentIds);
+        // 2. Comp Registered
+        let participationCount = 0;
+        try {
+            // Simplified query: No HEAD, just fetch IDs to count
+            const { data: pData, error: pError } = await supabase
+                .from('participation')
+                .select('id')
+                .in('student_id', myStudentIds)
+                .in('status', ['REGISTERED', 'PENDING']);
 
-        if (regError) {
-            console.error('[FacultyDebug] Registration stats error:', regError);
-            throw regError;
+            if (pError) throw pError;
+            participationCount = pData.length;
+        } catch (err) {
+            console.error('[Faculty] Participation stats FAILED:', err.message);
         }
 
         // 3. Comp Qualified
@@ -269,7 +273,7 @@ const getDashboardStats = async (req, res) => {
 
         const stats = {
             total_students: totalStudents,
-            comp_registered: registeredCount || 0,
+            comp_registered: participationCount || 0,
             comp_qualified: qualifiedCount || 0,
             od_requests: odCount || 0,
             section_label: assigned_sections?.join(', ') || 'N/A',

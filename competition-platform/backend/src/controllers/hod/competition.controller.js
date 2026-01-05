@@ -10,7 +10,7 @@ const getAllCompetitions = async (req, res) => {
         console.log("HOD Controller - Fetching competitions");
         const { data: competitions, error } = await supabase
             .from('competitions')
-            .select('*, registrations(count)')
+            .select('*, registrations(count), participation(count)')
             .order('registration_deadline', { ascending: true });
 
         if (error) {
@@ -20,7 +20,22 @@ const getAllCompetitions = async (req, res) => {
 
         console.log('HOD Competitions Sample:', competitions.length > 0 ? JSON.stringify(competitions[0]) : 'No data');
 
-        res.status(200).json(competitions);
+        // Aggregate counts (Manual Registrations + Auto-Synced Participation)
+        const enrichedCompetitions = competitions.map(comp => {
+            const manualCount = comp.registrations && comp.registrations[0] ? comp.registrations[0].count : 0;
+            const autoCount = comp.participation && comp.participation[0] ? comp.participation[0].count : 0;
+            const totalCount = manualCount + autoCount;
+
+            // Hack: Override registrations count for frontend compatibility
+            return {
+                ...comp,
+                registrations: [{ count: totalCount }], // Mocked structure
+                manual_count: manualCount,
+                auto_count: autoCount
+            };
+        });
+
+        res.status(200).json(enrichedCompetitions);
     } catch (err) {
         console.error('Error fetching competitions (HOD):', err);
         res.status(500).json({ error: 'Internal Server Error' });

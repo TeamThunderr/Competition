@@ -142,30 +142,18 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
         auth.setCredentials({ access_token: accessToken });
         const gmail = google.gmail({ version: 'v1', auth });
 
-        // 1. Construct Broad Query (Candidates)
-        // Use tokens to find potential emails. 
-        // e.g. "Space Hackathon" -> "Space" OR "Hackathon" (too broad?)
-        // Better: "Space Hackathon" (Phrase) OR (Title AND Platform)
-
+        // 1. Construct Broad Query
+        // Strategy: "TitleTokens" OR "Platform"
         const titleTokens = tokenize(competition.title);
-        // Take top 2 significant tokens if likely unique, or just the whole specific phrase if short
-        // For safety, let's query the specific phrase AND platform if available.
+        const mainTerms = titleTokens.slice(0, 2).join(' '); // e.g., "techsprint 2026"
 
-        let queryParts = [];
-
-        const cleanTitle = competition.title.replace(/[^a-zA-Z0-9 ]/g, '').trim();
-        queryParts.push(`"${cleanTitle}"`);
+        let queryString = `"${mainTerms}"`;
 
         if (competition.platform) {
-            queryParts.push(competition.platform);
+            queryString = `(${queryString}) OR "${competition.platform}"`;
         }
 
-        if (lastSyncedAt) {
-            const afterProp = Math.floor(new Date(lastSyncedAt).getTime() / 1000);
-            if (!isNaN(afterProp)) queryParts.push(`after:${afterProp}`);
-        }
-
-        const queryString = queryParts.join(' ');
+        console.log(`[GmailDebug] Query: [${queryString}] for Comp: ${competition.title}`);
 
         // 2. Fetch Candidates
         const response = await gmail.users.messages.list({
@@ -175,6 +163,8 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
         });
 
         const messages = response.data.messages || [];
+        console.log(`[GmailDebug] Messages found: ${messages.length}`);
+
         if (messages.length === 0) {
             return { suggested_status: 'NOT_FOUND', confidence: 0 };
         }
@@ -201,8 +191,6 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
 
             const analysis = calculateMatchScore(emailData, competition);
 
-            console.log(`[GmailRefactor] Msg ${msg.id} Score: ${analysis.score} (${analysis.breakdown.join(', ')})`);
-
             if (analysis.score > bestScore) {
                 bestScore = analysis.score;
                 bestMatch = {
@@ -211,6 +199,10 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
                     matched_keyword: analysis.detected_status
                 };
             }
+        }
+
+        if (bestMatch) {
+            console.log(`[GmailDebug] Best Match for ${competition.title}: Score ${bestScore} | Breakdown: ${bestMatch.breakdown.join(', ')}`);
         }
 
         // 4. Final Decision
