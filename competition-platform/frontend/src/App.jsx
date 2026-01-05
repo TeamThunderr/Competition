@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
@@ -7,6 +7,7 @@ import StudentDashboard from './pages/student/StudentDashboard';
 import ODLetter from './pages/student/ODLetter';
 import Settings from './pages/student/Settings';
 import Profile from './pages/student/Profile';
+import StudentAnalytics from './pages/student/StudentAnalytics';
 
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import StudentList from './pages/faculty/StudentList';
@@ -47,11 +48,13 @@ function App() {
 
 
       {/* Role Based Routes - Can protect these later with Middleware */}
-      <Route path="/student" element={<StudentDashboard />} />
+      <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
+      <Route path="/student/dashboard" element={<StudentDashboard />} />
       <Route path="/student/competitions" element={<StudentCompetitions />} />
       <Route path="/student/profile" element={<Profile />} />
       <Route path="/student/od-letters" element={<ODLetter />} />
       <Route path="/student/settings" element={<Settings />} />
+      <Route path="/student/stats" element={<StudentAnalytics />} />
 
       <Route path="/faculty/verification" element={<ManualVerification />} />
 
