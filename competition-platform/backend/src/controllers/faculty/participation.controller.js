@@ -32,32 +32,28 @@ const syncSingleStudent = async (student, competition, lastSyncedAt, gmailServic
             lastSyncedAt
         );
 
-        if (match && match.suggested_status !== 'NOT_FOUND') {
-            let suggested = match.suggested_status; // REGISTERED, SHORTLISTED, REJECTED
-        if (match) {
-            let dbStatus = match.status; // REGISTERED, QUALIFIED, REJECTED
+        if (match && match.suggested_status && match.suggested_status !== 'NOT_FOUND') {
+            let dbStatus = match.suggested_status; // REGISTERED, QUALIFIED, REJECTED
+
             // Map common Gmail statuses to our DB statuses
             if (dbStatus === 'QUALIFIED') dbStatus = 'SHORTLISTED';
             if (dbStatus === 'ACTION_REQUIRED') dbStatus = 'PENDING';
 
-            // Map detected status
             // SINGLE SOURCE OF TRUTH: Update 'registrations' table directly
-            // verified = true because we found proof in their email
             const upsertData = {
-                user_id: student.id, // Note: registrations table uses 'user_id'
+                user_id: student.id,
+                student_id: student.id, // Compatibility
                 competition_id: competition.id,
-                status: 'PENDING', // Always PENDING as "Assistive"
+                status: dbStatus, // Use the mapped status
                 verification_source: 'AUTO_GMAIL',
                 gmail_message_id: match.gmail_message_id,
                 matched_keyword: match.matched_keyword,
                 confidence_score: match.confidence,
                 last_synced_at: match.detected_at,
-                remarks: `[${match.confidence_level}] Match: ${suggested}. Breakdown: ${match.match_breakdown?.join(', ')}`
-                status: dbStatus,
-                verified: true,
-                source: 'GMAIL_SYNC',
-                // proof_url: match.id // Optional: store message ID as proof?
-                registered_at: new Date().toISOString() // Or keep original if exists? Upsert handles this if we don't overwrite.
+                remarks: `[${match.confidence_level}] Match: ${match.suggested_status}. Breakdown: ${match.match_breakdown?.join(', ')}`,
+                verified: true, // Auto-verified if match found (even low pass)
+                source: 'AUTO_GMAIL',
+                registered_at: new Date().toISOString()
             };
 
             return { status: 'detected', upsertData };
@@ -211,8 +207,6 @@ async function performBatchSync(competition, departmentId, assignedVersion) {
 
     const targetStudents = students.filter(s => {
         const sSec = s.section ? s.section.trim().toUpperCase() : '';
-        // Debug sample
-        // if (Math.random() < 0.01) console.log(`[BatchSync] Checking User ${s.email} Sec: ${sSec} vs ${facultySectionsParsed}`);
         return facultySectionsParsed.includes(sSec);
     });
 
@@ -229,18 +223,18 @@ async function performBatchSync(competition, departmentId, assignedVersion) {
 
     const regMap = new Map(existingRegs?.map(r => [r.user_id, r]) || []);
 
-    // 3. Filter: Sync explicitly if NOT registered or Status is PENDING/ACTION_REQUIRED
-    // If they are already VERIFIED or REGISTERED, we might still want to check for UPGRADES (e.g. Qualified).
-    // For now, let's sync everyone who has a token to be safe, but maybe skip 'WON' status?
-    // User Rule: "If already exists -> update status".
-    // Efficient strategy: Sync everyone with a token.
+    // 2b. Fetch Existing Participation (for Last Synced At)
+    const { data: existingPart, error: partError } = await supabase
+        .from('participation')
+        .select('student_id, last_synced_at')
+        .eq('competition_id', competition.id);
 
-    const studentsToSync = targetStudents.map(s => {
-        if (s.email === 'student1@citchennai.net') {
-            return { ...s, google_refresh_token: 'MOCK_TOKEN' };
-        }
-        return s;
-    }).filter(s => !!s.google_refresh_token);
+    if (partError) throw new Error(partError.message);
+
+    const participationMap = new Map(existingPart?.map(p => [p.student_id, p]) || []);
+
+    // 3. Sync logic
+    const studentsToSync = targetStudents.filter(s => !!s.google_refresh_token);
 
     const stats = { processed: 0, detected: 0, errors: 0 };
     console.log(`[BatchSync] candidates to sync: ${studentsToSync.length}`);
@@ -252,34 +246,67 @@ async function performBatchSync(competition, departmentId, assignedVersion) {
                 continue;
             }
 
-            const row = participationMap.get(student.id);
-            const lastSyncedAt = row ? row.last_synced_at : null;
-            const row = regMap.get(student.id);
+            const partRow = participationMap.get(student.id);
+            const lastSyncedAt = partRow ? partRow.last_synced_at : null;
+            const regRow = regMap.get(student.id);
             // Optimization: If already WON, skip?
-            if (row && row.status === 'WON') continue;
+            if (regRow && regRow.status === 'WON') continue;
 
             const authClient = getAuthClient(student.google_refresh_token);
-            // Pass null for lastSyncedAt since we want fresh check or don't track it in regs table easily
             const result = await syncSingleStudent(student, competition, null, gmailService, authClient);
 
             if (result.status === 'detected') {
+                // Upsert to Participation (Legacy/Mirror)
                 await supabase.from('participation').upsert(result.upsertData, { onConflict: 'student_id, competition_id' });
+
+                // IMPORTANT: Upsert to Registrations (Source of Truth for Dashboard)
+                // Filter upsertData to only include columns that exist in 'registrations' to avoid invalid input errors.
+                // We do NOT store 'remarks', 'last_synced_at', 'confidence_score' in this table if the schema doesn't support it.
+                // From debug_db.js, we assume (user_id, competition_id, source, verified, registered_at) are safe.
+                // REMOVED 'status' because confirmed column does not exist.
+                const registrationUpsertData = {
+                    user_id: result.upsertData.user_id,
+                    competition_id: result.upsertData.competition_id,
+                    source: result.upsertData.source,
+                    verified: result.upsertData.verified,
+                    registered_at: result.upsertData.registered_at
+                };
+
+                const { error: regUpsertError } = await supabase.from('registrations').upsert(registrationUpsertData, { onConflict: 'user_id, competition_id' });
+                if (regUpsertError) {
+                    console.error('[BatchSync] Registration Upsert Error:', regUpsertError);
+                }
+
+                // Update 'competition_status' if Qualified/Shortlisted
+                if (['SHORTLISTED', 'WINNER', 'QUALIFIED'].includes(result.upsertData.status)) {
+                    await supabase.from('competition_status').upsert({
+                        user_id: result.upsertData.user_id,
+                        competition_id: result.upsertData.competition_id,
+                        is_shortlisted: true,
+                        is_winner: result.upsertData.status === 'WINNER',
+                        updated_at: new Date()
+                    }, { onConflict: 'user_id, competition_id' });
+                }
+
                 stats.detected++;
             } else if (result.status === 'no_match') {
                 // Only update last_synced_at if record ALREADY exists
-                if (row) {
+                if (regRow) {
                     await supabase.from('participation').upsert({
                         student_id: student.id,
                         competition_id: competition.id,
-                        status: row.status, // Keep existing status
+                        status: regRow.status, // Keep existing status, use regRow
                         last_synced_at: result.lastSyncedAt
                     }, { onConflict: 'student_id, competition_id' });
+
+                    // Update registrations too if exists
+                    const { error: regUpdError } = await supabase.from('registrations').update({
+                        // last_synced_at: result.lastSyncedAt // Skipped if column missing
+                        source: 'AUTO_GMAIL' // Update source
+                    }).eq('user_id', student.id).eq('competition_id', competition.id);
+
+                    if (regUpdError) console.error('[BatchSync] Registration Update Error:', regUpdError);
                 }
-                // Else: Do nothing. Don't create "NOT_REGISTERED" ghosts.
-                // UPSERT to Registrations
-                await supabase.from('registrations').upsert(result.upsertData, { onConflict: 'user_id, competition_id' });
-                // Also update stats if they weren't previously registered
-                if (!row) stats.detected++;
             } else if (result.status === 'error') {
                 stats.errors++;
             }

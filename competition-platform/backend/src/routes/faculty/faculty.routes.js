@@ -32,8 +32,8 @@ router.post('/competition/:competitionId/sync', participationController.syncComp
 router.post('/competitions/sync-active', participationController.syncAllCompetitions);
 router.get('/competitions/export-report', participationController.exportParticipationStats);
 
-// 3. Sync Competition (New Implementation)
-router.post('/sync-competition/:competitionId', syncCompetitionController.syncCompetition);
+// 3. Sync Competition (Real Implementation)
+router.post('/sync-competition/:competitionId', participationController.syncCompetition);
 
 // Verification Routes
 router.get('/pending-verifications', verificationController.getPendingVerifications);
