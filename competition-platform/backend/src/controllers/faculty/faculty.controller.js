@@ -204,6 +204,12 @@ const getDashboardStats = async (req, res) => {
                 .select('id')
                 .in('student_id', myStudentIds)
                 .in('status', ['REGISTERED', 'PENDING']);
+        // 2. Comp Registered (Unique user-competition pairs)
+        console.log('[FacultyDebug] Fetching registration stats...');
+        const { count: registeredCount, error: regError } = await supabase
+            .from('registrations')
+            .select('*', { count: 'exact', head: true })
+            .in('user_id', myStudentIds);
 
             if (pError) throw pError;
             participationCount = pData.length;
@@ -211,13 +217,13 @@ const getDashboardStats = async (req, res) => {
             console.error('[Faculty] Participation stats FAILED:', err.message);
         }
 
-        // 3. Comp Qualified
-        console.log('[FacultyDebug] Fetching qualification stats...');
+        // 3. Comp Qualified (From REGISTRATIONS status)
+        console.log('[FacultyDebug] Fetching qualification stats from REGISTRATIONS...');
         const { count: qualifiedCount, error: qualError } = await supabase
-            .from('competition_status')
-            .select('id', { count: 'exact', head: true })
+            .from('registrations')
+            .select('*', { count: 'exact', head: true })
             .in('user_id', myStudentIds)
-            .eq('is_shortlisted', true);
+            .in('status', ['SHORTLISTED', 'QUALIFIED', 'WINNER']);
 
         if (qualError) {
             console.error('[FacultyDebug] Qualification stats error:', qualError);
@@ -228,7 +234,7 @@ const getDashboardStats = async (req, res) => {
         console.log('[FacultyDebug] Fetching OD stats...');
         const { count: odCount, error: odError } = await supabase
             .from('od_requests')
-            .select('id', { count: 'exact', head: true })
+            .select('*', { count: 'exact', head: true })
             .in('user_id', myStudentIds)
             .eq('status', 'PENDING');
 
