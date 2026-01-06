@@ -103,7 +103,7 @@ const getCompetitionStats = async (req, res) => {
 
         // Group students by Year -> Section
         const groups = { "2nd Year": {}, "3rd Year": {}, "4th Year": {}, "Other": {} };
-        const currentYear = new Date().getFullYear();
+        const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
 
         allStudents.forEach(s => {
             const diff = s.admission_year ? currentYear - s.admission_year : -1;

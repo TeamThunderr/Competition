@@ -199,7 +199,7 @@ const HodDashboard = () => {
 
                 <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
                     {/* Year Tabs */}
-                    <div className="flex bg-white p-1 rounded-lg border border-gray-200 shadow-sm h-10 items-center justify-center sm:justify-start w-full sm:w-auto overflow-x-auto">
+                    <div className="flex bg-white p-1 rounded-lg border border-gray-200 shadow-sm h-10 items-center justify-center sm:justify-start w-full sm:w-auto">
                         {['2nd', '3rd', '4th'].map((tab) => (
                             <button
                                 key={tab}
