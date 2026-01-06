@@ -101,25 +101,27 @@ const getCompetitionStudents = async (req, res) => {
             });
         }
 
-        // 2. Fetch Participation Logic (NEW)
-        const { data: participation, error: partError } = await supabase
-            .from('participation')
+        // 2. Fetch Registrations (Source of Truth)
+        const { data: registrations, error: regError } = await supabase
+            .from('registrations')
             .select('*')
             .eq('competition_id', competitionId)
-            .in('student_id', myStudentIds);
+            .in('user_id', myStudentIds);
 
-        if (partError) throw partError;
+        if (regError) throw regError;
 
-        const partMap = new Map(participation?.map(p => [p.student_id, p]) || []);
+        const regMap = new Map(registrations?.map(r => [r.user_id, r]) || []);
 
-        // 3. Fallback to Registrations (Legacy Support - Optional)
-        // If we want to support both tables during migration, we would merge. 
-        // For this task, we assume participation is the Source of Truth.
-        // However, if participation is empty, we might miss manual registrations from old system?
-        // Let's do a simple merge if needed, or just rely on participation.
-        // Given prompt "Participation (MOST IMPORTANT TABLE)", I will rely on it.
-        // But since I assume the DB might have old data in 'registrations' not 'participation', 
-        // I should probably Sync? No, I'll rely on Participation.
+        // 3. Fetch Competition Status (Shortlisted/Winner)
+        const { data: compStatus, error: statusError } = await supabase
+            .from('competition_status')
+            .select('*')
+            .eq('competition_id', competitionId)
+            .in('user_id', myStudentIds);
+
+        if (statusError) throw statusError;
+
+        const statusMap = new Map(compStatus?.map(s => [s.user_id, s]) || []);
 
         const response = {
             total: myStudents.map(s => ({
@@ -131,52 +133,65 @@ const getCompetitionStudents = async (req, res) => {
 
             registered: myStudents
                 .filter(s => {
-                    const p = partMap.get(s.id);
-                    return p && (p.status === 'REGISTERED');
+                    // Check if they are in registrations table
+                    // AND NOT shortlisted (optional, if we want mutually exclusive lists)
+                    // Usually "Registered" list implies everyone who registered.
+                    // But if the UI has "Registered" and "Shortlisted" as separate tabs/columns, 
+                    // we might want to show them in both?
+                    // Previous logic: p.status === 'REGISTERED'
+                    // If p.status was 'SHORTLISTED', they were NOT in 'registered' array.
+                    // So let's mimic that: purely registered (no special status yet).
+
+                    const isReg = regMap.has(s.id);
+                    const isShort = statusMap.get(s.id)?.is_shortlisted;
+                    return isReg && !isShort;
                 })
                 .map(s => {
-                    const p = partMap.get(s.id);
+                    const r = regMap.get(s.id);
                     return {
                         id: s.id,
                         name: s.full_name,
                         regNo: s.registration_no,
-                        status: p.status,
-                        source: p.verification_source,
-                        confidence: p.confidence_score,
-                        verified: !!p.verified_by, // Confirmed
-                        remarks: p.remarks
+                        status: 'Registered',
+                        source: r.source,
+                        confidence: 100, // Manual/Confirmed
+                        verified: r.verified,
+                        remarks: r.proof_url ? 'Manual Upload' : 'Gmail Match'
                     };
                 }),
 
             shortlisted: myStudents
                 .filter(s => {
-                    const p = partMap.get(s.id);
-                    return p && (p.status === 'SHORTLISTED' || p.status === 'QUALIFIED');
-                })
-                .map(s => ({
-                    id: s.id,
-                    name: s.full_name,
-                    regNo: s.registration_no,
-                    status: 'Shortlisted'
-                })),
-
-            unregistered: myStudents
-                .filter(s => {
-                    const p = partMap.get(s.id);
-                    // If no row, or status is NOT_REGISTERED or PENDING or REJECTED
-                    if (!p) return true;
-                    return ['NOT_REGISTERED', 'PENDING', 'REJECTED', 'ACTION_REQUIRED'].includes(p.status);
+                    const st = statusMap.get(s.id);
+                    return st && (st.is_shortlisted || st.is_winner);
                 })
                 .map(s => {
-                    const p = partMap.get(s.id);
+                    const st = statusMap.get(s.id);
+                    const statusLabel = st.is_winner ? 'Winner' : 'Shortlisted';
                     return {
                         id: s.id,
                         name: s.full_name,
                         regNo: s.registration_no,
-                        status: p ? p.status : 'NOT_REGISTERED',
-                        lastSynced: p ? p.last_synced_at : null,
-                        confidence: p ? p.confidence_score : 0,
-                        remarks: p ? p.remarks : ''
+                        status: statusLabel
+                    };
+                }),
+
+            unregistered: myStudents
+                .filter(s => {
+                    const isReg = regMap.has(s.id);
+                    const isShort = statusMap.get(s.id)?.is_shortlisted;
+                    // If NOT registered AND NOT shortlisted
+                    return !isReg && !isShort;
+                })
+                .map(s => {
+                    return {
+                        id: s.id,
+                        name: s.full_name,
+                        regNo: s.registration_no,
+                        status: 'NOT_REGISTERED',
+                        lastSynced: null,
+                        confidence: 0,
+                        remarks: ''
                     };
                 })
         };

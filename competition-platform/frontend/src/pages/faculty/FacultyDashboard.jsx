@@ -110,12 +110,20 @@ const FacultyDashboard = () => {
                                     <div className="flex gap-3">
                                         <button
                                             onClick={async () => {
-                                                if (confirm("Sync ALL active competitions? This scans Gmail for all eligible students. It might take a minute.")) {
+                                                if (confirm("Sync ALL active competitions? This will check registration status for all students against the database.")) {
                                                     setLoading(true);
                                                     try {
-                                                        const { syncActiveCompetitions, getFacultyDashboardStats } = await import('../../services/usersService');
-                                                        const res = await syncActiveCompetitions();
-                                                        alert(`Sync Complete! Processed: ${res.stats?.processed}, Detected: ${res.stats?.detected}`);
+                                                        const { syncCompetition } = await import('../../services/facultyService');
+                                                        const { getFacultyDashboardStats } = await import('../../services/usersService');
+
+                                                        let processedCount = 0;
+                                                        // Sync each competition sequentially
+                                                        for (const comp of competitions) {
+                                                            await syncCompetition(comp.id);
+                                                            processedCount++;
+                                                        }
+
+                                                        alert(`Sync Complete! Synced ${processedCount} active competitions.`);
 
                                                         // Refresh Stats
                                                         const newStats = await getFacultyDashboardStats();
