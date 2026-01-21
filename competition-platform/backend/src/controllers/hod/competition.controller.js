@@ -153,6 +153,20 @@ const getCompetitionStats = async (req, res) => {
             if (regData) registrations = [...registrations, ...regData];
         }
 
+        // 2b. Fetch Participation (Chunked)
+        let participation = [];
+        for (let i = 0; i < myStudentIds.length; i += chunkSize) {
+            const chunk = myStudentIds.slice(i, i + chunkSize);
+            const { data: partData, error: partError } = await supabase
+                .from('participation')
+                .select('student_id, confidence_score')
+                .eq('competition_id', competitionId)
+                .in('student_id', chunk);
+
+            if (partError) throw partError;
+            if (partData) participation = [...participation, ...partData];
+        }
+
         // 3. Fetch Shortlisted (Chunked)
         let statusData = [];
         for (let i = 0; i < myStudentIds.length; i += chunkSize) {
@@ -169,7 +183,18 @@ const getCompetitionStats = async (req, res) => {
         }
 
         // Map Data
-        const registeredMap = new Map(registrations.map(r => [r.user_id, r]));
+        const registeredMap = new Map();
+
+        // Add Manual Registrations
+        registrations.forEach(r => registeredMap.set(r.user_id, { verified: r.verified, source: 'MANUAL' }));
+
+        // Add/Merge Participation (Auto)
+        participation.forEach(p => {
+            if (!registeredMap.has(p.student_id)) {
+                registeredMap.set(p.student_id, { verified: true, source: 'GMAIL' }); // Auto assumed verified?
+            }
+        });
+
         const shortlistedSet = new Set(statusData.map(s => s.user_id));
 
         const response = {

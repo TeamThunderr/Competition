@@ -30,6 +30,14 @@ const getAllCompetitions = async (req, res) => {
 
         if (regError) throw regError;
 
+        // Fetch user's participation (Gmail Sync)
+        const { data: participation, error: partError } = await supabase
+            .from('participation')
+            .select('competition_id, status, confidence_score')
+            .eq('student_id', userId);
+
+        if (partError) throw partError;
+
         // Fetch user's status (shortlist/winner)
         const { data: statusList, error: statusError } = await supabase
             .from('competition_status')
@@ -49,6 +57,23 @@ const getAllCompetitions = async (req, res) => {
         // Merge data
         const enrichedCompetitions = competitions.map(comp => {
             const reg = registrations.find(r => r.competition_id === comp.id);
+            const part = participation.find(p => p.competition_id === comp.id);
+
+            // Prioritize manual registration if available, otherwise check participation
+            let myRegistration = null;
+            if (reg) {
+                myRegistration = reg;
+            } else if (part) {
+                // Mock a registration object from participation data
+                myRegistration = {
+                    competition_id: comp.id,
+                    source: 'GMAIL',
+                    verified: true, // or check part.confidence_score > threshold?
+                    proof_url: null,
+                    status: part.status
+                };
+            }
+
             const stat = statusList.find(s => s.competition_id === comp.id);
             const od = odRequests.find(o => o.competition_id === comp.id);
 
@@ -59,7 +84,7 @@ const getAllCompetitions = async (req, res) => {
 
             return {
                 ...comp,
-                my_registration: reg || null,
+                my_registration: myRegistration || null,
                 my_status: stat || null,
                 my_od: od || null,
                 registrations: [{ count: totalCount }] // Hack: Mocked structure for frontend consistency

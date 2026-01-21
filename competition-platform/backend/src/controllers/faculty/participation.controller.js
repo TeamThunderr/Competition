@@ -1,6 +1,6 @@
 
 const supabase = require('../../config/supabaseClient');
-const gmailService = require('../../services/gmailService');
+const gmailService = require('../../services/gmail/gmail.service');
 const { google } = require('googleapis');
 
 // Helper to get OAuth2 Client with Refresh Token

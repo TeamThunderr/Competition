@@ -101,7 +101,7 @@ const getCompetitionStudents = async (req, res) => {
             });
         }
 
-        // 2. Fetch Registrations (Source of Truth)
+        // 2. Fetch Registrations (Source of Truth for Manual)
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
             .select('*')
@@ -111,6 +111,17 @@ const getCompetitionStudents = async (req, res) => {
         if (regError) throw regError;
 
         const regMap = new Map(registrations?.map(r => [r.user_id, r]) || []);
+
+        // 2b. Fetch Participation (Source of Truth for Gmail/Auto)
+        const { data: participation, error: partError } = await supabase
+            .from('participation')
+            .select('*')
+            .eq('competition_id', competitionId)
+            .in('student_id', myStudentIds);
+
+        if (partError) throw partError;
+
+        const partMap = new Map(participation?.map(p => [p.student_id, p]) || []);
 
         // 3. Fetch Competition Status (Shortlisted/Winner)
         const { data: compStatus, error: statusError } = await supabase
@@ -133,30 +144,33 @@ const getCompetitionStudents = async (req, res) => {
 
             registered: myStudents
                 .filter(s => {
-                    // Check if they are in registrations table
-                    // AND NOT shortlisted (optional, if we want mutually exclusive lists)
-                    // Usually "Registered" list implies everyone who registered.
-                    // But if the UI has "Registered" and "Shortlisted" as separate tabs/columns, 
-                    // we might want to show them in both?
-                    // Previous logic: p.status === 'REGISTERED'
-                    // If p.status was 'SHORTLISTED', they were NOT in 'registered' array.
-                    // So let's mimic that: purely registered (no special status yet).
-
                     const isReg = regMap.has(s.id);
+                    const isPart = partMap.has(s.id);
+                    // Registered if in EITHER table
+                    const hasRegistration = isReg || isPart;
+
                     const isShort = statusMap.get(s.id)?.is_shortlisted;
-                    return isReg && !isShort;
+                    return hasRegistration && !isShort;
                 })
                 .map(s => {
                     const r = regMap.get(s.id);
+                    const p = partMap.get(s.id);
+
+                    // Prioritize Manual Registration if both exist, or merge info?
+                    // Let's take manual if available, else auto.
+                    const source = r ? r.source : (p ? 'GMAIL' : 'UNKNOWN');
+                    const verified = r ? r.verified : (p ? true : false); // Auto assumed verified? Or based on confidence?
+                    const remarks = r ? (r.proof_url ? 'Manual Upload' : '') : (p ? `Gmail Match (${p.confidence_score}%)` : '');
+
                     return {
                         id: s.id,
                         name: s.full_name,
                         regNo: s.registration_no,
                         status: 'Registered',
-                        source: r.source,
-                        confidence: 100, // Manual/Confirmed
-                        verified: r.verified,
-                        remarks: r.proof_url ? 'Manual Upload' : 'Gmail Match'
+                        source: source,
+                        confidence: p ? p.confidence_score : 100,
+                        verified: verified,
+                        remarks: remarks
                     };
                 }),
 

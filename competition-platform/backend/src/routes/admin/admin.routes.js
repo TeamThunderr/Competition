@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 //const authMiddleware = require("../middleware/authMiddleware");
-//const roleMiddleware = require("../middleware/roleMiddleware");
+//const roleMiddleware = require('../../middleware/role.middleware');
 
 const adminController = require('../../controllers/admin/competition.controller');
 const usersController = require('../../controllers/admin/users.controller');
