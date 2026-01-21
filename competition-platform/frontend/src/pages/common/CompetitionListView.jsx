@@ -55,41 +55,35 @@ const CompetitionListView = ({
         return matchesSearch && matchesFilter;
     }).sort((a, b) => {
         // Sort by Priority: Active > Expired > No Deadline
+        const now = new Date();
 
-        // Helper to get deadline from correct property (DB uses registration_deadline)
-        const getDeadline = (obj) => obj.registration_deadline || obj.deadline;
-
-        // Helper to parse 'DD/MM/YYYY' or ISO string
-        const parseDate = (dateStr) => {
+        const getEndOfDay = (dateStr) => {
             if (!dateStr) return null;
+            let d;
             if (dateStr.includes('/')) {
                 const [day, month, year] = dateStr.split('/');
-                const paddedMonth = month.padStart(2, '0');
-                const paddedDay = day.padStart(2, '0');
-                return new Date(`${year}-${paddedMonth}-${paddedDay}`);
+                d = new Date(`${year}-${month}-${day}`);
+            } else {
+                d = new Date(dateStr);
             }
-            return new Date(dateStr);
+            if (isNaN(d.getTime())) return null;
+            d.setHours(23, 59, 59, 999);
+            return d;
         };
 
-        const deadlineA = getDeadline(a);
-        const deadlineB = getDeadline(b);
-
-        const dateA = parseDate(deadlineA);
-        const dateB = parseDate(deadlineB);
+        const dateA = getEndOfDay(a.registration_deadline || a.deadline);
+        const dateB = getEndOfDay(b.registration_deadline || b.deadline);
 
         // No deadline -> Push to end
-        if (!dateA || isNaN(dateA.getTime())) return 1;
-        if (!dateB || isNaN(dateB.getTime())) return -1;
-
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
+        if (!dateA) return 1;
+        if (!dateB) return -1;
 
         const isExpiredA = dateA < now;
         const isExpiredB = dateB < now;
 
         // 1. Separation: Active first, Expired last
         if (isExpiredA !== isExpiredB) {
-            return isExpiredA ? 1 : -1;
+            return isExpiredA ? 1 : -1; // Active (not expired) comes first [-1]
         }
 
         // 2. Sorting by Sub-group

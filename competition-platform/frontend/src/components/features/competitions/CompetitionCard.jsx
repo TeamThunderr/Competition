@@ -4,11 +4,8 @@ import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
 
 const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, showRegister = true }) => {
     const { my_registration, my_status, my_od } = competition;
-
-    // Fix: Set deadline time to end of day (23:59:59) so it includes today
     const deadlineDate = new Date(competition.registration_deadline);
     deadlineDate.setHours(23, 59, 59, 999);
-
     const isClosed = deadlineDate < new Date();
     const [isVerifying, setIsVerifying] = React.useState(false);
 
