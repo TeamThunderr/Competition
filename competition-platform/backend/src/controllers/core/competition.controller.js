@@ -9,7 +9,7 @@ const getAllCompetitions = async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('competitions')
-            .select('*, registrations(count)')
+            .select('*, registrations(count), participation(count)')
             .order('registration_deadline', { ascending: true });
 
 
@@ -17,7 +17,23 @@ const getAllCompetitions = async (req, res) => {
             return res.status(500).json({ error: error.message });
         }
 
-        res.status(200).json(data);
+        // Aggregate counts (Manual Registrations + Auto-Synced Participation)
+        const enrichedData = data.map(comp => {
+            const manualCount = comp.registrations && comp.registrations[0] ? comp.registrations[0].count : 0;
+            const autoCount = comp.participation && comp.participation[0] ? comp.participation[0].count : 0;
+            const totalCount = manualCount + autoCount;
+
+            // Hack: Override registrations count for frontend compatibility
+            // The frontend looks at comp.registrations[0].count
+            return {
+                ...comp,
+                registrations: [{ count: totalCount }], // Mocked structure
+                manual_count: manualCount,
+                auto_count: autoCount
+            };
+        });
+
+        res.status(200).json(enrichedData);
     } catch (err) {
         console.error('Error fetching competitions:', err);
         res.status(500).json({ error: 'Internal Server Error' });

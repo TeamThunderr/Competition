@@ -1,118 +1,125 @@
-CREATE TYPE user_role AS ENUM ('STUDENT', 'FACULTY', 'HOD', 'ADMIN');
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
-CREATE TYPE status_type AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
-
-CREATE TYPE registration_source AS ENUM ('AUTO_GMAIL', 'MANUAL_SCREENSHOT');
-CREATE TABLE departments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT UNIQUE NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.competition_status (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  competition_id uuid,
+  is_shortlisted boolean DEFAULT false,
+  is_winner boolean DEFAULT false,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT competition_status_pkey PRIMARY KEY (id),
+  CONSTRAINT competition_status_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT competition_status_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id)
 );
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    email TEXT UNIQUE NOT NULL,   -- seeded emails for testing
-    full_name TEXT NOT NULL,
-    role user_role NOT NULL,
-
-    department_id UUID REFERENCES departments(id),
-    section TEXT,
-
-    -- student-only
-    registration_no TEXT UNIQUE,
-    admission_year INT,
-    cgpa NUMERIC(3,2),
-    attendance NUMERIC(5,2),
-
-    -- faculty-only
-    assigned_sections TEXT[],
-
-    created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.competitions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  organizer text,
+  platform text,
+  external_link text,
+  registration_deadline date,
+  event_date date,
+  mode text,
+  team_allowed boolean DEFAULT false,
+  min_team_size integer DEFAULT 1,
+  max_team_size integer DEFAULT 1,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  departments ARRAY DEFAULT ARRAY['All'::text],
+  CONSTRAINT competitions_pkey PRIMARY KEY (id),
+  CONSTRAINT competitions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
-CREATE TABLE competitions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    title TEXT NOT NULL,
-    description TEXT,
-    organizer TEXT,
-    platform TEXT,
-    external_link TEXT,
-
-    registration_deadline DATE,
-    event_date DATE,
-    mode TEXT, -- Online / Offline / Hybrid
-
-    team_allowed BOOLEAN DEFAULT FALSE,
-    min_team_size INT DEFAULT 1,
-    max_team_size INT DEFAULT 1,
-
-    created_by UUID REFERENCES users(id), -- ADMIN
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE TABLE registrations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    competition_id UUID REFERENCES competitions(id) ON DELETE CASCADE,
-
-    source registration_source,
-    proof_url TEXT,
-
-    verified BOOLEAN DEFAULT FALSE,
-    verified_by UUID REFERENCES users(id), -- FACULTY
-
-    registered_at TIMESTAMPTZ DEFAULT NOW(),
-
-    UNIQUE (user_id, competition_id)
-);
-CREATE TABLE competition_status (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    competition_id UUID REFERENCES competitions(id) ON DELETE CASCADE,
-
-    is_shortlisted BOOLEAN DEFAULT FALSE,
-    is_winner BOOLEAN DEFAULT FALSE,
-
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-
-    UNIQUE (user_id, competition_id)
-);
-CREATE TABLE od_requests (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    competition_id UUID REFERENCES competitions(id) ON DELETE CASCADE,
-
-    reason TEXT,
-    status status_type DEFAULT 'PENDING',
-
-    approved_by UUID REFERENCES users(id), -- HOD
-    approved_at TIMESTAMPTZ,
-
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-
-    UNIQUE (user_id, competition_id)
-);
-CREATE TABLE teams (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    competition_id UUID REFERENCES competitions(id) ON DELETE CASCADE,
-    leader_id UUID REFERENCES users(id),
-    team_name TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-
-    UNIQUE (competition_id, leader_id)
+CREATE TABLE public.departments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT departments_pkey PRIMARY KEY (id)
 );
 
-CREATE TABLE team_members (
-    team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    PRIMARY KEY (team_id, user_id)
+CREATE TABLE public.od_requests (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  competition_id uuid,
+  reason text,
+  status USER-DEFINED DEFAULT 'PENDING'::status_type,
+  approved_by uuid,
+  approved_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  approved_days integer DEFAULT 1,
+  time_slot text,
+  CONSTRAINT od_requests_pkey PRIMARY KEY (id),
+  CONSTRAINT od_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT od_requests_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id),
+  CONSTRAINT od_requests_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id)
 );
-ALTER TABLE users ADD COLUMN phone_number TEXT;
-UPDATE users 
-SET phone_number = '98765' || substring(registration_no from 5) 
-WHERE role = 'STUDENT';
-
--- Department Filter Support
-ALTER TABLE competitions ADD COLUMN departments text[] DEFAULT ARRAY['All'];
+CREATE TABLE public.participation (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  student_id uuid,
+  competition_id uuid,
+  status USER-DEFINED DEFAULT 'NOT_REGISTERED'::participation_status,
+  verification_source USER-DEFINED,
+  verified_by uuid,
+  gmail_message_id text,
+  matched_keyword text,
+  confidence_score integer DEFAULT 0,
+  last_synced_at timestamp with time zone,
+  remarks text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT participation_pkey PRIMARY KEY (id),
+  CONSTRAINT participation_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.users(id),
+  CONSTRAINT participation_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id),
+  CONSTRAINT participation_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.registrations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  competition_id uuid,
+  source USER-DEFINED,
+  proof_url text,
+  verified boolean DEFAULT false,
+  verified_by uuid,
+  registered_at timestamp with time zone DEFAULT now(),
+  status text DEFAULT 'REGISTERED'::text,
+  CONSTRAINT registrations_pkey PRIMARY KEY (id),
+  CONSTRAINT registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT registrations_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id),
+  CONSTRAINT registrations_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.team_members (
+  team_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  CONSTRAINT team_members_pkey PRIMARY KEY (team_id, user_id),
+  CONSTRAINT team_members_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id),
+  CONSTRAINT team_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.teams (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  competition_id uuid,
+  leader_id uuid,
+  team_name text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT teams_pkey PRIMARY KEY (id),
+  CONSTRAINT teams_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id),
+  CONSTRAINT teams_leader_id_fkey FOREIGN KEY (leader_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,
+  full_name text NOT NULL,
+  role USER-DEFINED NOT NULL,
+  department_id uuid,
+  section text,
+  registration_no text UNIQUE,
+  cgpa numeric,
+  attendance numeric,
+  assigned_sections ARRAY,
+  created_at timestamp with time zone DEFAULT now(),
+  admission_year integer,
+  phone_number text,
+  google_refresh_token text,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id)
+);

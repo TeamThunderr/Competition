@@ -3,7 +3,7 @@
 // Written for beginner developers
 
 const supabase = require('../../config/supabaseClient');
-const gmailService = require('../../services/gmailService');
+const gmailService = require('../../services/gmail/gmail.service');
 
 const checkRegistrationStatus = async (req, res) => {
     try {

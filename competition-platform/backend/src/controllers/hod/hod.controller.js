@@ -139,7 +139,7 @@ const getDepartmentStats = async (req, res) => {
 
         // Process Analytics
         const sectionMap = {};
-        const currentYear = new Date().getFullYear();
+        const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
 
         // Fetch Faculty for Class Advisor Mapping
         const { data: facultyData } = await supabase
@@ -259,7 +259,7 @@ const getDepartmentUsers = async (req, res) => {
         // Calculate admission year if year filter is present
         let targetAdmissionYear = null;
         if (year) {
-            const currentYear = new Date().getFullYear();
+            const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
             // 2nd Year = current - 1, 3rd = current - 2, etc.
             // Actually, usually:
             // 1st Year: Admitted Current Year (e.g. 2024) (diff 0)
@@ -564,7 +564,7 @@ const getDashboardAnalysis = async (req, res) => {
 
         // E. Batch & Academic Year Stats (Existing Logic optimized)
         console.log('[HodController] Step 3: Processing batch/year stats...');
-        const currentYear = new Date().getFullYear();
+        const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
         const batchMap = {};
         const yearMap = {
             '2nd Year': { count: 0, totalCgpa: 0, studentsWithCgpa: 0 },

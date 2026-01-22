@@ -195,25 +195,32 @@ const getDashboardStats = async (req, res) => {
         // 1. Total Students
         const totalStudents = myStudentIds.length;
 
-        // 2. Comp Registered (Unique user-competition pairs)
-        console.log('[FacultyDebug] Fetching registration stats...');
-        const { count: registeredCount, error: regError } = await supabase
-            .from('registrations')
-            .select('id', { count: 'exact', head: true })
-            .in('user_id', myStudentIds);
+        // 2. Comp Registered
+        let participationCount = 0;
+        try {
+            // SINGLE SOURCE OF TRUTH: Use 'registrations' table
+            console.log('[FacultyDebug] Fetching registration stats from REGISTRATIONS...');
+            const { count: registeredCount, error: regError } = await supabase
+                .from('registrations')
+                .select('*', { count: 'exact', head: true })
+                .in('user_id', myStudentIds);
+            // Removed .in('status') filter because status column does not exist.
+            // Any row in registrations table counts as "Registered".
 
-        if (regError) {
-            console.error('[FacultyDebug] Registration stats error:', regError);
-            throw regError;
+            if (regError) throw regError;
+            participationCount = registeredCount;
+        } catch (err) {
+            console.error('[Faculty] Registration stats FAILED:', err.message);
         }
 
-        // 3. Comp Qualified
-        console.log('[FacultyDebug] Fetching qualification stats...');
+        // 3. Comp Qualified (From COMPETITION_STATUS table)
+        // Fixed: 'registrations' has no status. 'competition_status' holds is_shortlisted/is_winner.
+        console.log('[FacultyDebug] Fetching qualification stats from COMPETITION_STATUS...');
         const { count: qualifiedCount, error: qualError } = await supabase
             .from('competition_status')
-            .select('id', { count: 'exact', head: true })
+            .select('*', { count: 'exact', head: true })
             .in('user_id', myStudentIds)
-            .eq('is_shortlisted', true);
+            .or('is_shortlisted.eq.true,is_winner.eq.true');
 
         if (qualError) {
             console.error('[FacultyDebug] Qualification stats error:', qualError);
@@ -224,7 +231,7 @@ const getDashboardStats = async (req, res) => {
         console.log('[FacultyDebug] Fetching OD stats...');
         const { count: odCount, error: odError } = await supabase
             .from('od_requests')
-            .select('id', { count: 'exact', head: true })
+            .select('*', { count: 'exact', head: true })
             .in('user_id', myStudentIds)
             .eq('status', 'PENDING');
 
@@ -269,7 +276,7 @@ const getDashboardStats = async (req, res) => {
 
         const stats = {
             total_students: totalStudents,
-            comp_registered: registeredCount || 0,
+            comp_registered: participationCount || 0, // Fallback safely
             comp_qualified: qualifiedCount || 0,
             od_requests: odCount || 0,
             section_label: assigned_sections?.join(', ') || 'N/A',
@@ -511,4 +518,3 @@ const getStudentDetails = async (req, res) => {
 };
 
 module.exports = { getMyStudents, getStats, getDashboardStats, getRecentRegistrations, getStudentDetails };
-

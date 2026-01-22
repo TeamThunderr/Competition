@@ -10,7 +10,7 @@ const getAllCompetitions = async (req, res) => {
         console.log("HOD Controller - Fetching competitions");
         const { data: competitions, error } = await supabase
             .from('competitions')
-            .select('*, registrations(count)')
+            .select('*, registrations(count), participation(count)')
             .order('registration_deadline', { ascending: true });
 
         if (error) {
@@ -20,7 +20,22 @@ const getAllCompetitions = async (req, res) => {
 
         console.log('HOD Competitions Sample:', competitions.length > 0 ? JSON.stringify(competitions[0]) : 'No data');
 
-        res.status(200).json(competitions);
+        // Aggregate counts (Manual Registrations + Auto-Synced Participation)
+        const enrichedCompetitions = competitions.map(comp => {
+            const manualCount = comp.registrations && comp.registrations[0] ? comp.registrations[0].count : 0;
+            const autoCount = comp.participation && comp.participation[0] ? comp.participation[0].count : 0;
+            const totalCount = manualCount + autoCount;
+
+            // Hack: Override registrations count for frontend compatibility
+            return {
+                ...comp,
+                registrations: [{ count: totalCount }], // Mocked structure
+                manual_count: manualCount,
+                auto_count: autoCount
+            };
+        });
+
+        res.status(200).json(enrichedCompetitions);
     } catch (err) {
         console.error('Error fetching competitions (HOD):', err);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -88,7 +103,7 @@ const getCompetitionStats = async (req, res) => {
 
         // Group students by Year -> Section
         const groups = { "2nd Year": {}, "3rd Year": {}, "4th Year": {}, "Other": {} };
-        const currentYear = new Date().getFullYear();
+        const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
 
         allStudents.forEach(s => {
             const diff = s.admission_year ? currentYear - s.admission_year : -1;
@@ -138,6 +153,20 @@ const getCompetitionStats = async (req, res) => {
             if (regData) registrations = [...registrations, ...regData];
         }
 
+        // 2b. Fetch Participation (Chunked)
+        let participation = [];
+        for (let i = 0; i < myStudentIds.length; i += chunkSize) {
+            const chunk = myStudentIds.slice(i, i + chunkSize);
+            const { data: partData, error: partError } = await supabase
+                .from('participation')
+                .select('student_id, confidence_score')
+                .eq('competition_id', competitionId)
+                .in('student_id', chunk);
+
+            if (partError) throw partError;
+            if (partData) participation = [...participation, ...partData];
+        }
+
         // 3. Fetch Shortlisted (Chunked)
         let statusData = [];
         for (let i = 0; i < myStudentIds.length; i += chunkSize) {
@@ -154,7 +183,18 @@ const getCompetitionStats = async (req, res) => {
         }
 
         // Map Data
-        const registeredMap = new Map(registrations.map(r => [r.user_id, r]));
+        const registeredMap = new Map();
+
+        // Add Manual Registrations
+        registrations.forEach(r => registeredMap.set(r.user_id, { verified: r.verified, source: 'MANUAL' }));
+
+        // Add/Merge Participation (Auto)
+        participation.forEach(p => {
+            if (!registeredMap.has(p.student_id)) {
+                registeredMap.set(p.student_id, { verified: true, source: 'GMAIL' }); // Auto assumed verified?
+            }
+        });
+
         const shortlistedSet = new Set(statusData.map(s => s.user_id));
 
         const response = {

@@ -101,7 +101,18 @@ const getCompetitionStudents = async (req, res) => {
             });
         }
 
-        // 2. Fetch Participation Logic (NEW)
+        // 2. Fetch Registrations (Source of Truth for Manual)
+        const { data: registrations, error: regError } = await supabase
+            .from('registrations')
+            .select('*')
+            .eq('competition_id', competitionId)
+            .in('user_id', myStudentIds);
+
+        if (regError) throw regError;
+
+        const regMap = new Map(registrations?.map(r => [r.user_id, r]) || []);
+
+        // 2b. Fetch Participation (Source of Truth for Gmail/Auto)
         const { data: participation, error: partError } = await supabase
             .from('participation')
             .select('*')
@@ -112,14 +123,16 @@ const getCompetitionStudents = async (req, res) => {
 
         const partMap = new Map(participation?.map(p => [p.student_id, p]) || []);
 
-        // 3. Fallback to Registrations (Legacy Support - Optional)
-        // If we want to support both tables during migration, we would merge. 
-        // For this task, we assume participation is the Source of Truth.
-        // However, if participation is empty, we might miss manual registrations from old system?
-        // Let's do a simple merge if needed, or just rely on participation.
-        // Given prompt "Participation (MOST IMPORTANT TABLE)", I will rely on it.
-        // But since I assume the DB might have old data in 'registrations' not 'participation', 
-        // I should probably Sync? No, I'll rely on Participation.
+        // 3. Fetch Competition Status (Shortlisted/Winner)
+        const { data: compStatus, error: statusError } = await supabase
+            .from('competition_status')
+            .select('*')
+            .eq('competition_id', competitionId)
+            .in('user_id', myStudentIds);
+
+        if (statusError) throw statusError;
+
+        const statusMap = new Map(compStatus?.map(s => [s.user_id, s]) || []);
 
         const response = {
             total: myStudents.map(s => ({
@@ -131,52 +144,68 @@ const getCompetitionStudents = async (req, res) => {
 
             registered: myStudents
                 .filter(s => {
-                    const p = partMap.get(s.id);
-                    return p && (p.status === 'REGISTERED');
+                    const isReg = regMap.has(s.id);
+                    const isPart = partMap.has(s.id);
+                    // Registered if in EITHER table
+                    const hasRegistration = isReg || isPart;
+
+                    const isShort = statusMap.get(s.id)?.is_shortlisted;
+                    return hasRegistration && !isShort;
                 })
                 .map(s => {
+                    const r = regMap.get(s.id);
                     const p = partMap.get(s.id);
+
+                    // Prioritize Manual Registration if both exist, or merge info?
+                    // Let's take manual if available, else auto.
+                    const source = r ? r.source : (p ? 'GMAIL' : 'UNKNOWN');
+                    const verified = r ? r.verified : (p ? true : false); // Auto assumed verified? Or based on confidence?
+                    const remarks = r ? (r.proof_url ? 'Manual Upload' : '') : (p ? `Gmail Match (${p.confidence_score}%)` : '');
+
                     return {
                         id: s.id,
                         name: s.full_name,
                         regNo: s.registration_no,
-                        status: p.status,
-                        source: p.verification_source,
-                        confidence: p.confidence_score,
-                        verified: !!p.verified_by, // Confirmed
-                        remarks: p.remarks
+                        status: 'Registered',
+                        source: source,
+                        confidence: p ? p.confidence_score : 100,
+                        verified: verified,
+                        remarks: remarks
                     };
                 }),
 
             shortlisted: myStudents
                 .filter(s => {
-                    const p = partMap.get(s.id);
-                    return p && (p.status === 'SHORTLISTED' || p.status === 'QUALIFIED');
-                })
-                .map(s => ({
-                    id: s.id,
-                    name: s.full_name,
-                    regNo: s.registration_no,
-                    status: 'Shortlisted'
-                })),
-
-            unregistered: myStudents
-                .filter(s => {
-                    const p = partMap.get(s.id);
-                    // If no row, or status is NOT_REGISTERED or PENDING or REJECTED
-                    if (!p) return true;
-                    return ['NOT_REGISTERED', 'PENDING', 'REJECTED', 'ACTION_REQUIRED'].includes(p.status);
+                    const st = statusMap.get(s.id);
+                    return st && (st.is_shortlisted || st.is_winner);
                 })
                 .map(s => {
-                    const p = partMap.get(s.id);
+                    const st = statusMap.get(s.id);
+                    const statusLabel = st.is_winner ? 'Winner' : 'Shortlisted';
                     return {
                         id: s.id,
                         name: s.full_name,
                         regNo: s.registration_no,
-                        status: p ? p.status : 'NOT_REGISTERED',
-                        lastSynced: p ? p.last_synced_at : null,
-                        confidence: p ? p.confidence_score : 0,
-                        remarks: p ? p.remarks : ''
+                        status: statusLabel
+                    };
+                }),
+
+            unregistered: myStudents
+                .filter(s => {
+                    const isReg = regMap.has(s.id);
+                    const isShort = statusMap.get(s.id)?.is_shortlisted;
+                    // If NOT registered AND NOT shortlisted
+                    return !isReg && !isShort;
+                })
+                .map(s => {
+                    return {
+                        id: s.id,
+                        name: s.full_name,
+                        regNo: s.registration_no,
+                        status: 'NOT_REGISTERED',
+                        lastSynced: null,
+                        confidence: 0,
+                        remarks: ''
                     };
                 })
         };

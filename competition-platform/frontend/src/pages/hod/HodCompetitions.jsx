@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import HodSidebar from './Sidebar';
+import HodLayout from './HodLayout';
 import CompetitionListView from '../common/CompetitionListView';
 import { api } from '../../services/api';
 
@@ -24,15 +24,17 @@ const HodCompetitions = () => {
     }, []);
 
     return (
-        <CompetitionListView
-            Sidebar={HodSidebar}
-            competitions={competitions}
-            title="Upcoming Competitions"
-            subtitle="Discover top programming events."
-            loading={loading}
-            showRegister={false}
-            role="HOD"
-        />
+        <HodLayout>
+            <CompetitionListView
+                /* No Sidebar passed, so it uses the 'content-only' mode */
+                competitions={competitions}
+                title="Upcoming Competitions"
+                subtitle="Discover top programming events."
+                loading={loading}
+                showRegister={false}
+                role="HOD"
+            />
+        </HodLayout>
     );
 };
 

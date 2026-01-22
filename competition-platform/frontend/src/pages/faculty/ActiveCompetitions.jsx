@@ -22,6 +22,8 @@ const ActiveCompetitions = () => {
         fetchCompetitions();
     }, []);
 
+
+
     return (
         <CompetitionListView
             Sidebar={Sidebar}
