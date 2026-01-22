@@ -361,9 +361,18 @@ const CompetitionStats = () => {
 
                             {/* VIEW: STUDENTS (When Section is selected) */}
                             {viewLevel === 'STUDENTS' && (
-                                <div>
-                                    <h3 className="text-lg font-bold text-gray-800 mb-6 border-b pb-2">Student List ({selectedYear || 'All'} • {selectedDept || 'All'} - {selectedSection ? `Section ${selectedSection}` : 'All Sections'})</h3>
-                                    <div className="overflow-hidden border border-gray-200 rounded-lg shadow-sm">
+                                <div className="bg-white">
+                                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                            <Users size={16} className="text-blue-600" />
+                                            Student List
+                                            <span className="text-gray-400 font-normal normal-case">
+                                                - ({selectedYear || 'All'} • {selectedDept || 'All'} - {selectedSection ? `Section ${selectedSection}` : 'All Sections'})
+                                            </span>
+                                        </h3>
+                                    </div>
+
+                                    <div>
                                         <table className="min-w-full divide-y divide-gray-200">
                                             <thead className="bg-gray-50">
                                                 <tr>
@@ -372,9 +381,8 @@ const CompetitionStats = () => {
                                                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Batch</th>
                                                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Dept</th>
                                                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Section</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
                                                     <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                                                    <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Action</th>
+                                                    <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider min-w-[120px]">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="bg-white divide-y divide-gray-200">
@@ -387,7 +395,6 @@ const CompetitionStats = () => {
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.batch}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.department}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.section}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                                             <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border 
                                                             ${student.status === 'Winner' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
@@ -399,7 +406,7 @@ const CompetitionStats = () => {
                                                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                                             <Link
                                                                 to={`/admin/student/${student.id}`}
-                                                                className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-md text-xs transition-colors shadow-sm"
+                                                                className="text-white bg-blue-600 hover:bg-blue-700 px-4 py-1.5 rounded-md text-xs font-semibold transition-colors shadow-sm"
                                                             >
                                                                 View Profile
                                                             </Link>
@@ -408,7 +415,7 @@ const CompetitionStats = () => {
                                                 ))}
                                                 {getFilteredParticipants().length === 0 && (
                                                     <tr>
-                                                        <td colSpan="8" className="px-6 py-10 text-center text-gray-500">No students found for this selection.</td>
+                                                        <td colSpan="7" className="px-6 py-10 text-center text-gray-500">No students found for this selection.</td>
                                                     </tr>
                                                 )}
                                             </tbody>

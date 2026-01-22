@@ -12,6 +12,12 @@ const getDepartmentStats = async (req, res) => {
 
     } catch (err) {
         console.error('[StatsController] Error:', err);
+        const fs = require('fs');
+        const path = require('path');
+        const logPath = path.join(__dirname, '../../../server_error.log');
+        const errorLog = `[${new Date().toISOString()}] ${err.stack || err.message}\n`;
+        fs.appendFileSync(logPath, errorLog);
+
         res.status(500).json({ error: err.message || 'Internal Server Error' });
     }
 };

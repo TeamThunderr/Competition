@@ -16,7 +16,7 @@ exports.getStudents = async (req, res) => {
                 admission_year,
                 cgpa,
                 attendance,
-                departments!inner (
+                departments (
                     name
                 )
             `)
@@ -36,7 +36,9 @@ exports.getStudents = async (req, res) => {
         if (search) {
             // content-type: application/json
             // Using 'ilike' for case-insensitive partial match
-            query = query.or(`full_name.ilike.%${search}%,registration_no.ilike.%${search}%,email.ilike.%${search}%`);
+            // Syntax: column.ilike.%term%
+            const term = `%${search}%`;
+            query = query.or(`full_name.ilike.${term},registration_no.ilike.${term},email.ilike.${term}`);
         }
 
         // Default constraints (ordering)
@@ -53,7 +55,7 @@ exports.getStudents = async (req, res) => {
         res.status(200).json({ success: true, data });
     } catch (error) {
         console.error('Error fetching students:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch students' });
+        res.status(500).json({ success: false, message: 'Failed to fetch students', error: error.message || error });
     }
 };
 
@@ -141,6 +143,36 @@ exports.getStudentDetails = async (req, res) => {
             }
         }
 
+        // 5. Fetch Class Advisor
+        let classAdvisorName = 'Not Assigned';
+        if (student.section && student.departments?.name) {
+            // Construct the search tag: e.g., "CSE-A"
+            const sectionTag = `${student.departments.name}-${student.section}`;
+
+            const { data: faculty } = await supabase
+                .from('users')
+                .select('full_name')
+                .eq('role', 'FACULTY')
+                .eq('department_id', student.department_id) // Scope to student's dept
+                .contains('assigned_sections', [sectionTag]) // Look for ["CSE-A"]
+                .maybeSingle();
+
+            if (faculty) {
+                classAdvisorName = faculty.full_name;
+            } else {
+                // Fallback: Try just the section letter in case some faculty are assigned just "A"
+                const { data: fallbackFaculty } = await supabase
+                    .from('users')
+                    .select('full_name')
+                    .eq('role', 'FACULTY')
+                    .eq('department_id', student.department_id) // Scope to student's dept
+                    .contains('assigned_sections', [student.section])
+                    .maybeSingle();
+
+                if (fallbackFaculty) classAdvisorName = fallbackFaculty.full_name;
+            }
+        }
+
         // Stats
         const stats = {
             registered: registrations.length,
@@ -158,7 +190,8 @@ exports.getStudentDetails = async (req, res) => {
                 section: student.section,
                 batch: batchLabel,
                 cgpa: student.cgpa || 'N/A',
-                phoneNumber: student.phone_number || 'N/A'
+                phoneNumber: student.phone_number || 'N/A',
+                classAdvisor: classAdvisorName
             },
             stats,
             competitions: competitionDetails

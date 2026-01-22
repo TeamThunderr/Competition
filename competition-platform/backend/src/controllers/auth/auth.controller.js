@@ -11,14 +11,15 @@ const login = async (req, res) => {
             return res.status(400).json({ error: 'Email is required' });
         }
 
-        console.log('Login attempt for:', email);
+        const cleanedEmail = email.trim();
+        console.log(`Login attempt for: '${cleanedEmail}' (orig: '${email}')`);
 
-        // 1. Check if user already exists
+        // 1. Check if user already exists (Case Insensitive)
         const { data: existingUser, error: selectError } = await supabase
             .from('users')
             .select('*')
-            .eq('email', email)
-            .single();
+            .ilike('email', cleanedEmail) // Robust matching
+            .maybeSingle();
 
         if (selectError && selectError.code !== 'PGRST116') { // PGRST116 is "Row not found"
             console.error('Database Select Error:', selectError);

@@ -24,11 +24,24 @@ const getDepartmentStats = async () => {
     }
 
     // 3. Fetch ALL Users (to calculate total strength per dept)
-    const { data: allUsers, error: userError } = await supabase
-        .from('users')
-        .select('id, department_id, full_name, email, section, role');
+    // Use pagination to bypass 1000 row limit
+    let allUsers = [];
+    let from = 0;
+    const step = 1000;
 
-    if (userError) throw new Error(userError.message);
+    while (true) {
+        const { data: users, error: userError } = await supabase
+            .from('users')
+            .select('id, department_id, full_name, email, section, role')
+            .range(from, from + step - 1);
+
+        if (userError) throw new Error(userError.message);
+        if (!users || users.length === 0) break;
+
+        allUsers = [...allUsers, ...users];
+        from += step;
+        if (users.length < step) break; // End of list
+    }
 
     // Filter only students for accurate strength calculation
     const studentUsers = allUsers.filter(u => u.role === 'STUDENT');
@@ -46,8 +59,13 @@ const getDepartmentStats = async () => {
     const deptStrength = {};
     const userMap = {}; // Helper for lookups
 
-    studentUsers.forEach(u => {
+    // Map ALL users to be safe for foreign key lookups
+    allUsers.forEach(u => {
         userMap[u.id] = u;
+    });
+
+    // Only count 'students' for the strength metric
+    studentUsers.forEach(u => {
         const dId = u.department_id || 'unknown';
         if (!deptStrength[dId]) deptStrength[dId] = 0;
         deptStrength[dId]++;
@@ -66,8 +84,8 @@ const getDepartmentStats = async () => {
                 unique_participants: new Set(),
                 total_registrations: 0,
                 verified_registrations: 0,
-                winners: 0,
-                shortlisted: 0,
+                unique_winners: new Set(),     // Changed from counter to Set
+                unique_shortlisted: new Set(), // Changed from counter to Set
                 sections: {}
             };
         });
@@ -91,8 +109,8 @@ const getDepartmentStats = async () => {
                 unique_participants: new Set(),
                 total_registrations: 0,
                 verified_registrations: 0,
-                winners: 0,
-                shortlisted: 0,
+                unique_winners: new Set(),
+                unique_shortlisted: new Set(),
                 sections: {}
             };
         }
@@ -119,14 +137,18 @@ const getDepartmentStats = async () => {
         if (!user) return;
         const deptId = user.department_id || 'unknown';
         if (stats[deptId]) {
-            if (st.is_winner) stats[deptId].winners++;
-            if (st.is_shortlisted) stats[deptId].shortlisted++;
+            // Count Unique Winners
+            if (st.is_winner) stats[deptId].unique_winners.add(st.user_id);
+
+            // Count Unique Shortlisted (Explicit Shortlist OR Winner)
+            if (st.is_shortlisted || st.is_winner) stats[deptId].unique_shortlisted.add(st.user_id);
         }
     });
 
     // Final Calculations & Format
     const result = Object.values(stats).map(dept => {
         const uniqueCount = dept.unique_participants.size;
+        const winnerCount = dept.unique_winners.size;
 
         // Participation Rate: Active Students / Total Students
         let participationRate = 0;
@@ -137,12 +159,14 @@ const getDepartmentStats = async () => {
         // Success Rate: Winners / Unique Participants
         let successRate = 0;
         if (uniqueCount > 0) {
-            successRate = (dept.winners / uniqueCount) * 100;
+            successRate = (winnerCount / uniqueCount) * 100;
         }
 
         return {
             ...dept,
             unique_participants: uniqueCount, // Convert Set to number
+            winners: winnerCount,             // Convert Set to number
+            shortlisted: dept.unique_shortlisted.size, // Convert Set to number
             participation_rate: parseFloat(participationRate.toFixed(1)),
             success_rate: parseFloat(successRate.toFixed(1)),
             sections: Object.values(dept.sections)
