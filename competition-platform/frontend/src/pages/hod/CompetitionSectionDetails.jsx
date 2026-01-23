@@ -1,0 +1,70 @@
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import SectionStudentList from '../../components/features/competitions/stats/SectionStudentList';
+import { getHODCompetitionStats } from '../../services/usersService';
+import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+
+const CompetitionSectionDetails = () => {
+    const { id, sectionName } = useParams();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // Use passed state if available, otherwise fetch
+    const [students, setStudents] = useState(location.state?.students || null);
+    const [loading, setLoading] = useState(!location.state?.students);
+    const [title, setTitle] = useState(location.state?.title || `Section ${sectionName}`);
+
+    useEffect(() => {
+        if (!students) {
+            const fetchData = async () => {
+                try {
+                    setLoading(true);
+                    const stats = await getHODCompetitionStats(id);
+
+                    // Logic to find the section students from stats
+                    // We need to look in total_sections, registered, shortlisted to find matches?
+                    // Or we just re-derive?
+                    // The backend doesn't return "sections" array directly with students for ALL types at once easily in the raw response?
+                    // Actually getHODCompetitionStats returns { total_sections: [...], registered: [...], shortlisted: [...] }
+
+                    // We need to know WHICH list we are looking at (Registered vs Shortlisted vs Total).
+                    // The URL params might need to include the "type" (e.g. 'registered', 'shortlisted', 'total').
+                    // For now, let's assume sectionName is unique enough or we infer.
+                    // But wait, "Section A" exists in "Registered" AND "Shortlisted".
+
+                    // The previous flow passed the Specific List of students.
+                    // If we refresh, we lose that context of "Which Category" (Registered vs Shortlisted) unless we put it in the URL.
+
+                    // Let's assume for resilience, if we refresh, we might not be able to perfectly reconstruct without a "type" param.
+                    // Let's add 'type' to the route: /hod/competitions/:id/section/:type/:sectionName
+
+                } catch (err) {
+                    console.error("Failed to fetch section data", err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            // If we don't have data, we might just redirect back because complex reconstruction is risky without more params.
+            // But let's try to just render loading if waiting, or empty.
+            // Actually, for better UX, let's just rely on navigation state for now as it's an internal drilldown.
+            // If user refreshes, we can redirect back to competition details.
+            navigate(`/competitions/${id}`, { replace: true });
+        }
+    }, [id, students, navigate]);
+
+    if (loading) return <RoleBasedLoader role="HOD" />;
+
+    if (!students) return null; // Will redirect
+
+    return (
+        <div className="min-h-screen bg-gray-50 p-8">
+            <SectionStudentList
+                title={title}
+                students={students}
+                onClose={() => navigate(-1)}
+            />
+        </div>
+    );
+};
+
+export default CompetitionSectionDetails;

@@ -186,6 +186,10 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
             <div className="space-y-3 mb-6">
                 <div className="flex items-center text-sm text-gray-500">
                     <Calendar className="w-4 h-4 mr-2" />
+                    <span>Event Date: {competition.event_date ? new Date(competition.event_date).toLocaleDateString() : 'TBA'}</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-500">
+                    <Calendar className="w-4 h-4 mr-2" />
                     <span>Deadline: {new Date(competition.registration_deadline || competition.created_at).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-500">

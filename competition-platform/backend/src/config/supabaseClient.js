@@ -18,7 +18,16 @@ const supabaseKey = serviceKey || anonKey;
 console.log('[SupabaseConfig] Initializing Client...');
 console.log(`[SupabaseConfig] Using Service Key? ${!!serviceKey ? 'YES (Admin Access)' : 'NO (Public Access ONLY)'}`);
 
+const fetch = require('node-fetch');
+
 // Create a single supabase client for interacting with your database
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+        persistSession: false
+    },
+    global: {
+        fetch: fetch
+    }
+});
 
 module.exports = supabase;

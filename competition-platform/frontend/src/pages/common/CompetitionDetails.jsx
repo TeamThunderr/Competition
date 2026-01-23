@@ -5,20 +5,41 @@ import { getCurrentUser } from '../../services/authService';
 import { getCompetitionStudents, getHODCompetitionStats } from '../../services/usersService';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+// import StudentListModal from '../../components/common/StudentListModal'; // Removed
+import TotalSectionsStats from '../../components/features/competitions/stats/TotalSectionsStats';
+import StudentStatsList from '../../components/features/competitions/stats/StudentStatsList';
+// import SectionStudentList from '../../components/features/competitions/stats/SectionStudentList'; // Removed from here
+import { UserCheck, UserPlus } from 'lucide-react';
 
 const CompetitionDetails = () => {
     const { id } = useParams();
     // ... (rest of imports/setup)
 
-    // ...
-
     const navigate = useNavigate();
     const [competition, setCompetition] = useState(null);
     const [loading, setLoading] = useState(true);
     const [statsData, setStatsData] = useState({ total_sections: [], registered: [], shortlisted: [], total: [] });
+
+
     const user = getCurrentUser();
     const isFaculty = user?.role === 'FACULTY';
     const isHOD = user?.role === 'HOD';
+
+    const handleStatsClick = (students, title, section) => {
+        let finalTitle = title;
+        if (section && !finalTitle.includes('Section') && !finalTitle.includes('Year')) {
+            finalTitle = `${title} - Section ${section}`;
+        }
+
+        // Navigate to new page with state
+        const sectionSlug = section ? section.toString().replace(/[^a-zA-Z0-9]/g, '-') : 'all';
+        navigate(`/hod/competitions/${id}/section/${sectionSlug}`, {
+            state: {
+                students: students,
+                title: finalTitle
+            }
+        });
+    };
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -53,6 +74,9 @@ const CompetitionDetails = () => {
         );
     }
     if (!competition) return <div className="p-8 text-center text-red-500">Competition not found</div>;
+
+    // derived data
+
 
     return (
         <div className="min-h-screen bg-gray-50 p-8 font-sans">
@@ -101,7 +125,6 @@ const CompetitionDetails = () => {
             </div>
 
             {/* Content Section: Conditionally Render based on Role */}
-            {/* Content Section: Conditionally Render based on Role */}
             {isFaculty || isHOD ? (
                 // FACULTY/HOD VIEW (3 Column Layout)
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -145,8 +168,6 @@ const CompetitionDetails = () => {
                         )}
 
                         <div className="space-y-4 text-sm mt-4 pt-4 border-t border-gray-100">
-                            {/* ... Existing Event Info ... */}
-                            {/* Re-rendering existing info to ensure it's kept */}
                             <div className="flex justify-between py-2 border-b border-gray-50">
                                 <span className="text-gray-500 flex items-center gap-2">
                                     <Clock size={16} /> Registration Ends
@@ -188,129 +209,128 @@ const CompetitionDetails = () => {
 
                     {/* Stats Columns (Right Side - Wide) */}
                     <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* Column 1: Custom Logic for Unregistered */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                            {(() => {
-                                // Use backend 'unregistered' list if available, else derive
-                                const unregisteredStudents = isHOD ? [] : (
-                                    statsData.unregistered ||
-                                    (statsData.total || []).filter(student => !statsData.registered?.some(reg => reg.id === student.id))
-                                );
+                        {/* HOD View: Using Modular Components */}
+                        {isHOD ? (
+                            <>
+                                <div className="h-full">
+                                    <TotalSectionsStats
+                                        data={statsData.total_sections}
+                                        onSectionClick={handleStatsClick}
+                                    />
+                                </div>
+                                <div className="h-full">
+                                    <StudentStatsList
+                                        title="Registered"
+                                        students={statsData.registered || []}
+                                        onSectionClick={handleStatsClick}
+                                        icon={UserPlus}
+                                        colorClass="text-blue-600"
+                                    />
+                                </div>
+                                <div className="h-full">
+                                    <StudentStatsList
+                                        title="Shortlisted"
+                                        students={statsData.shortlisted || []}
+                                        onSectionClick={handleStatsClick}
+                                        icon={UserCheck}
+                                        colorClass="text-green-600"
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            // Faculty View (Simplified for now, reusing HOD logic components or keeping legacy?)
+                            // Keeping legacy Faculty logic for "Unregistered" if needed, but previously we shared logic.
+                            // The previous code had complex inline logic for 'unregistered'. Let's keep the Faculty legacy logic separate if possible or adapt.
+                            // The prompt focus is HOD. I will wrap the non-HOD logic in the else block properly.
 
-                                return (
-                                    <>
-                                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                            {isHOD ? `Total Sections In Dept` : `Unregistered / Pending (${unregisteredStudents.length})`}
-                                        </h3>
-                                        <div className="h-96 overflow-y-auto pr-2 space-y-2">
-                                            {isHOD ? (
-                                                /* HOD View Logic (Kept Same) */
-                                                statsData.total_sections?.length > 0 ? (
-                                                    statsData.total_sections.map((group, gIdx) => (
-                                                        <div key={gIdx} className="mb-3">
-                                                            <details className="group" open={group.year === '2nd Year' || group.year === '3rd Year'}>
-                                                                <summary className="flex justify-between items-center font-bold text-gray-700 cursor-pointer p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                                                                    <span>{group.year}</span>
-                                                                    <span className="text-xs bg-white px-2 py-0.5 rounded text-gray-500 shadow-sm border border-gray-200">
-                                                                        {group.totalStudents} Students
-                                                                    </span>
-                                                                </summary>
-                                                                <div className="mt-2 pl-2 space-y-2 border-l-2 border-gray-100 ml-2">
-                                                                    {group.sections.map((sec, sIdx) => (
-                                                                        <div key={sIdx} className="flex justify-between items-center text-sm p-2 bg-white border border-gray-100 rounded-md shadow-sm">
-                                                                            <div className="font-medium text-gray-900 flex items-center gap-2">
-                                                                                <Layers size={14} className="text-gray-400" />
-                                                                                Section {sec.name}
-                                                                            </div>
-                                                                            <div className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded font-medium border border-gray-100">
-                                                                                {sec.count} Students
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </details>
-                                                        </div>
-                                                    ))
-                                                ) : <div className="text-sm text-gray-400 text-center py-4">No sections found</div>
-                                            ) : (
-                                                // Faculty: List Unregistered Students
-                                                unregisteredStudents.length > 0 ? (
-                                                    unregisteredStudents.map(student => (
-                                                        <div key={student.id} className="text-sm p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                                            <div className="font-medium text-gray-900">{student.name}</div>
-                                                            <div className="text-xs text-gray-500">{student.regNo}</div>
-                                                            {/* Show Status if available (Pending, Rejected) */}
-                                                            {student.status && student.status !== 'NOT_REGISTERED' && (
-                                                                <div className="mt-1 text-[10px] text-gray-500">
-                                                                    Status: {student.status}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div className="text-sm text-gray-400 text-center py-4">All students registered!</div>
-                                                )
-                                            )}
-                                        </div>
-                                    </>
-                                );
-                            })()}
-                        </div>
+                            /* Faculty / Student View Logic re-inserted below */
+                            <>
+                                {/* Faculty View: Unregistered/Pending */}
+                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                                    {(() => {
+                                        const unregisteredStudents = statsData.unregistered ||
+                                            (statsData.total || []).filter(student => !statsData.registered?.some(reg => reg.id === student.id));
 
-                        {/* Column 2: Registered Students */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                Registered ({statsData.registered?.length || 0})
-                            </h3>
-                            <div className="h-96 overflow-y-auto pr-2 space-y-2">
-                                {statsData.registered?.map(student => (
-                                    <div key={student.id} className={`text-sm p-3 rounded-lg border ${student.confidence > 0 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
-                                        <div className="font-medium text-gray-900">{student.name}</div>
-                                        <div className="flex justify-between items-center mt-1 flex-wrap gap-1">
-                                            <span className="text-xs text-blue-600">{student.regNo}</span>
+                                        return (
+                                            <>
+                                                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                                    Unregistered / Pending ({unregisteredStudents.length})
+                                                </h3>
+                                                <div className="h-96 overflow-y-auto pr-2 space-y-2">
+                                                    {unregisteredStudents.length > 0 ? (
+                                                        unregisteredStudents.map(student => (
+                                                            <div key={student.id} className="text-sm p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                                <div className="font-medium text-gray-900">{student.name}</div>
+                                                                <div className="text-xs text-gray-500">{student.regNo}</div>
+                                                                {student.status && student.status !== 'NOT_REGISTERED' && (
+                                                                    <div className="mt-1 text-[10px] text-gray-500">
+                                                                        Status: {student.status}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="text-sm text-gray-400 text-center py-4">All students registered!</div>
+                                                    )}
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
 
-                                            {student.verified ? (
-                                                <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded border border-green-200">
-                                                    Manual Verified
-                                                </span>
-                                            ) : (student.confidence > 0 ? (
-                                                <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded border border-purple-200" title={`Confidence: ${student.confidence}%`}>
-                                                    Auto-Detected ({student.confidence}%)
-                                                </span>
-                                            ) : (
-                                                <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200">
-                                                    Pending
-                                                </span>
-                                            ))}
-                                        </div>
-                                        {student.remarks && <div className="text-[10px] text-gray-400 mt-1 italic">{student.remarks}</div>}
+                                {/* Faculty View: Registered */}
+                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                        Registered ({statsData.registered?.length || 0})
+                                    </h3>
+                                    <div className="h-96 overflow-y-auto pr-2 space-y-2">
+                                        {statsData.registered?.length > 0 ? (
+                                            statsData.registered.map(student => (
+                                                <div key={student.id} className={`text-sm p-3 rounded-lg border ${student.confidence > 0 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                                                    <div className="font-medium text-gray-900">{student.name}</div>
+                                                    <div className="flex justify-between items-center mt-1 flex-wrap gap-1">
+                                                        <span className="text-xs text-blue-600">{student.regNo}</span>
+                                                        {student.verified ? (
+                                                            <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded border border-green-200">Manual Verified</span>
+                                                        ) : (student.confidence > 0 ? (
+                                                            <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded border border-purple-200">Auto-Detected ({student.confidence}%)</span>
+                                                        ) : (
+                                                            <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200">Pending</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : <div className="text-sm text-gray-400 text-center py-4">No registrations yet</div>}
                                     </div>
-                                ))}
-                                {(!statsData.registered || statsData.registered.length === 0) && <div className="text-sm text-gray-400 text-center py-4">No registrations yet</div>}
-                            </div>
-                        </div>
+                                </div>
 
-                        {/* Column 3: Shortlisted Students */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                Shortlisted ({statsData.shortlisted?.length || 0})
-                            </h3>
-                            <div className="h-96 overflow-y-auto pr-2 space-y-2">
-                                {statsData.shortlisted?.map(student => (
-                                    <div key={student.id} className="text-sm p-3 bg-purple-50 rounded-lg border border-purple-100">
-                                        <div className="font-medium text-gray-900">{student.name}</div>
-                                        <div className="text-xs text-purple-600">{student.regNo} {student.section && `(${student.section})`}</div>
+                                {/* Faculty View: Shortlisted */}
+                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                        Shortlisted ({statsData.shortlisted?.length || 0})
+                                    </h3>
+                                    <div className="h-96 overflow-y-auto pr-2 space-y-2">
+                                        {statsData.shortlisted?.length > 0 ? (
+                                            statsData.shortlisted.map(student => (
+                                                <div key={student.id} className="text-sm p-3 bg-purple-50 rounded-lg border border-purple-100">
+                                                    <div className="font-medium text-gray-900">{student.name}</div>
+                                                    <div className="text-xs text-purple-600">{student.regNo} {student.section && `(${student.section})`}</div>
+                                                </div>
+                                            ))
+                                        ) : <div className="text-sm text-gray-400 text-center py-4">No shortlisted students</div>}
                                     </div>
-                                ))}
-                                {(!statsData.shortlisted || statsData.shortlisted.length === 0) && <div className="text-sm text-gray-400 text-center py-4">No shortlisted students</div>}
-                            </div>
-                        </div>
+                                </div>
+                            </>
+                        )}
                     </div>
-                </div>
 
+
+
+
+                </div>
             ) : (
                 // STUDENT VIEW (Standard One with About & Timeline)
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -373,8 +393,9 @@ const CompetitionDetails = () => {
                         </div>
                     </div>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };
 

@@ -80,8 +80,46 @@ const insertBulkCompetitions = async (rows) => {
   }
 };
 
+// ✅ Update competition
+const updateCompetition = async (id, data) => {
+  const { data: updated, error } = await supabase
+    .from("competitions")
+    .update({
+      title: data.title,
+      description: data.description,
+      platform: data.platform,
+      external_link: data.external_link || data.link,
+      registration_deadline: data.registration_deadline || data.deadline,
+      event_date: data.event_date,
+      mode: data.mode,
+      team_allowed: data.team_allowed,
+      min_team_size: data.min_team_size,
+      max_team_size: data.max_team_size,
+      organizer: data.organizer,
+      departments: data.departments
+    })
+    .eq('id', id)
+    .select();
+
+  if (error) throw new Error(error.message);
+  return updated;
+};
+
+// ✅ Delete competition
+const deleteCompetition = async (id) => {
+  const { error } = await supabase
+    .from("competitions")
+    .delete()
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+  return true;
+};
+
 module.exports = {
   fetchDashboardStats,
   insertManualCompetition,
-  insertBulkCompetitions
+  insertBulkCompetitions,
+  updateCompetition,
+  deleteCompetition
 };

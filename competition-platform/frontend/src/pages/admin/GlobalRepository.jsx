@@ -119,9 +119,10 @@ const GlobalRepository = () => {
 
             const normalized = normalizeDepts(deptData);
 
-            // Check if selected department is in the list OR if 'ALL'/'ALL DEPARTMENTS' is present
+            // Check if selected department is in the list
             const target = selectedDept.toUpperCase().trim();
-            const hasMatch = normalized.some(d => d === target || d === 'ALL' || d === 'ALL DEPARTMENTS');
+            // Strict match: Only show if the target department is explicitly in the list
+            const hasMatch = normalized.some(d => d === target);
 
             if (!hasMatch) return false;
         }
