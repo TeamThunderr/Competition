@@ -3,8 +3,39 @@
 // V2 Implementation: Uses clean FACT/PROGRESSION separation
 
 const supabase = require('../../config/supabaseClient');
-const gmailService = require('../../services/gmailService');
-const { ensureRegistrationExists, upsertCompetitionStatus } = require('../../services/gmailSyncV2.service');
+const gmailService = require('../../services/gmail/gmail.service');
+
+// Defined locally to replace deleted service
+const ensureRegistrationExists = async (userId, competitionId, source) => {
+    // Check if exists first to avoid unnecessary writes
+    const { data: existing } = await supabase
+        .from('registrations')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('competition_id', competitionId)
+        .single();
+
+    if (existing) return;
+
+    // Create if missing
+    await supabase.from('registrations').upsert({
+        user_id: userId,
+        competition_id: competitionId,
+        source: source,
+        verified: true,
+        registered_at: new Date().toISOString(),
+        last_synced_at: new Date().toISOString()
+    }, { onConflict: 'user_id, competition_id' });
+};
+
+const upsertCompetitionStatus = async (userId, competitionId, statusUpdate) => {
+    await supabase.from('competition_status').upsert({
+        user_id: userId,
+        competition_id: competitionId,
+        ...statusUpdate,
+        updated_at: new Date()
+    }, { onConflict: 'user_id, competition_id' });
+};
 
 const checkRegistrationStatus = async (req, res) => {
     try {
@@ -44,7 +75,24 @@ const checkRegistrationStatus = async (req, res) => {
             console.log('[RegistrationV2] Verification Successful:', match);
 
             // 3. Apply V2 Write Rules
-            await applyDetectionResultV2(student_id, competition_id, match.suggested_status);
+            const detectedStatus = match.suggested_status;
+            console.log(`[RegistrationV2] Applying V2 rules for status: ${detectedStatus}`);
+
+            switch (detectedStatus) {
+                case 'REGISTERED':
+                    await ensureRegistrationExists(student_id, competition_id, 'AUTO_GMAIL');
+                    break;
+                case 'QUALIFIED':
+                    await ensureRegistrationExists(student_id, competition_id, 'AUTO_GMAIL');
+                    await upsertCompetitionStatus(student_id, competition_id, { is_shortlisted: true });
+                    break;
+                case 'WON':
+                    await ensureRegistrationExists(student_id, competition_id, 'AUTO_GMAIL');
+                    await upsertCompetitionStatus(student_id, competition_id, { is_shortlisted: true, is_winner: true });
+                    break;
+                default:
+                    console.log(`[RegistrationV2] Status ${detectedStatus} - no action taken`);
+            }
 
             return res.status(200).json({
                 verified: true,
@@ -72,45 +120,7 @@ const checkRegistrationStatus = async (req, res) => {
     }
 };
 
-/**
- * Apply Gmail detection results using V2 write rules
- * Ensures FACT/PROGRESSION separation and state consistency
- */
-const applyDetectionResultV2 = async (userId, competitionId, detectedStatus) => {
-    console.log(`[RegistrationV2] Applying V2 rules for status: ${detectedStatus}`);
-
-    switch (detectedStatus) {
-        case 'REGISTERED':
-            // Ensure registration exists in FACT table
-            await ensureRegistrationExists(userId, competitionId, 'AUTO_GMAIL');
-            break;
-
-        case 'QUALIFIED':
-            // Ensure registration exists (FACT)
-            await ensureRegistrationExists(userId, competitionId, 'AUTO_GMAIL');
-            // Update progression status
-            await upsertCompetitionStatus(userId, competitionId, { is_shortlisted: true });
-            break;
-
-        case 'WON':
-            // Ensure registration exists (FACT)
-            await ensureRegistrationExists(userId, competitionId, 'AUTO_GMAIL');
-            // Update progression status (winner implies shortlisted)
-            await upsertCompetitionStatus(userId, competitionId, { 
-                is_shortlisted: true, 
-                is_winner: true 
-            });
-            break;
-
-        case 'REJECTED':
-            // Do nothing - keep existing registration if it exists
-            console.log(`[RegistrationV2] REJECTED status - no action taken`);
-            break;
-
-        default:
-            console.log(`[RegistrationV2] Unknown status ${detectedStatus} - no action taken`);
-    }
-};
+// Removed applyDetectionResultV2 separate function to simplify imports
 
 // 2. Upload Screenshot Proof (Manual) - V2 Implementation
 const uploadProof = async (req, res) => {
@@ -124,7 +134,7 @@ const uploadProof = async (req, res) => {
 
         // V2: Use single write path through service
         await ensureRegistrationExists(student_id, competition_id, 'MANUAL_SCREENSHOT');
-        
+
         // Update proof URL for manual registration
         const { data, error } = await supabase
             .from('registrations')
@@ -138,9 +148,9 @@ const uploadProof = async (req, res) => {
 
         if (error) throw error;
 
-        res.status(201).json({ 
-            message: 'Proof uploaded successfully. Waiting for Faculty verification.', 
-            data: data[0] 
+        res.status(201).json({
+            message: 'Proof uploaded successfully. Waiting for Faculty verification.',
+            data: data[0]
         });
 
     } catch (err) {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Upload, FileSpreadsheet, X } from 'lucide-react';
-import { getMyStudents } from '../../services/usersService';
+import { getMyStudents } from '../../services/facultyService';
 import StudentListTable from '../common/StudentListTable';
 
 const StudentList = () => {

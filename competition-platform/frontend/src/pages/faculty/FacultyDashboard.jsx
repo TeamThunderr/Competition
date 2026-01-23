@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
-import { getFacultyDashboardStats } from '../../services/usersService';
+import { getDashboardStats } from '../../services/facultyService';
 import { api } from '../../services/api';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
@@ -24,7 +24,7 @@ const FacultyDashboard = () => {
         const fetchDashboardData = async () => {
             try {
                 const [statsData, competitionsData] = await Promise.all([
-                    getFacultyDashboardStats(),
+                    getDashboardStats(),
                     api.get('/api/competitions')
                 ]);
 
@@ -114,7 +114,7 @@ const FacultyDashboard = () => {
                                                     setLoading(true);
                                                     try {
                                                         const { syncCompetition } = await import('../../services/facultyService');
-                                                        const { getFacultyDashboardStats } = await import('../../services/usersService');
+                                                        const { getDashboardStats } = await import('../../services/facultyService');
 
                                                         let processedCount = 0;
                                                         // Sync each competition sequentially
@@ -126,7 +126,7 @@ const FacultyDashboard = () => {
                                                         alert(`Sync Complete! Synced ${processedCount} active competitions.`);
 
                                                         // Refresh Stats
-                                                        const newStats = await getFacultyDashboardStats();
+                                                        const newStats = await getDashboardStats();
                                                         setStats(newStats);
                                                     } catch (e) {
                                                         console.error(e);
@@ -143,7 +143,7 @@ const FacultyDashboard = () => {
                                         <button
                                             onClick={async () => {
                                                 try {
-                                                    const { downloadParticipationReport } = await import('../../services/usersService');
+                                                    const { downloadParticipationReport } = await import('../../services/facultyService');
                                                     await downloadParticipationReport();
                                                 } catch (e) {
                                                     alert("Download failed");

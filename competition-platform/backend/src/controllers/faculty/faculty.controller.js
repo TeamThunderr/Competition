@@ -5,7 +5,7 @@
 const { sendResponse } = require('../../utils/responseHelper');
 const supabase = require('../../config/supabaseClient');
 const statsService = require('../../services/admin/stats.service');
-const { syncCompetitionV2 } = require('../../services/gmailSyncV2.service');
+const { performBatchSync } = require('./participation.controller');
 
 // ------------------------------------------------------------------
 // 1. Student & Registration Lists (Legacy/Stable Logic)
@@ -240,13 +240,14 @@ const syncCompetition = async (req, res) => {
     try {
         const competitionId = req.params.competitionId || req.body.competitionId; // Check params first, then body
         const facultyId = req.user.id;
+        const { department_id, assigned_sections } = req.user;
 
         console.log(`[Faculty] Sync requested for competition ${competitionId} by faculty ${facultyId}`);
 
         // Validate competition
         const { data: competition, error: compError } = await supabase
             .from('competitions')
-            .select('id, title, uploaded_at, last_synced_at')
+            .select('id, title, uploaded_at, last_synced_at, is_syncing, created_at')
             .eq('id', competitionId)
             .single();
 
@@ -254,25 +255,18 @@ const syncCompetition = async (req, res) => {
             return sendResponse(res, 404, null, 'Competition not found');
         }
 
-        // Validate faculty permission
-        const { data: faculty, error: facultyError } = await supabase
-            .from('users')
-            .select('department_id')
-            .eq('id', facultyId)
-            .single();
-
-        if (facultyError || !faculty) {
-            return sendResponse(res, 403, null, 'Faculty authorization failed');
+        // Sync Lock Check
+        if (competition.is_syncing) {
+            return sendResponse(res, 409, null, 'Sync already in progress');
         }
 
-        // Get student IDs using the robust controller logic
-        const { assigned_sections, department_id } = req.user;
-        const myStudentIds = await getMyStudentIds(facultyId, department_id, assigned_sections || []);
+        // Need department_id and assigned_sections. 
+        // We trust req.user populated by middleware.
 
-        console.log(`[Faculty] Syncing for ${myStudentIds.length} students (Controller Logic)`);
+        console.log(`[Faculty] Syncing via shared batch logic`);
 
-        // Perform V2 Gmail sync with explicit student list
-        const syncResults = await syncCompetitionV2(competitionId, facultyId, myStudentIds);
+        // Perform V2 Gmail sync using shared participation controller logic
+        const syncResults = await performBatchSync(competition, department_id, assigned_sections, facultyId);
 
         const response = {
             competitionTitle: competition.title,

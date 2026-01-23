@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { CheckCircle, XCircle, ExternalLink } from 'lucide-react';
-import { getPendingVerifications, verifyRegistration } from '../../services/usersService';
+import { getPendingVerifications, verifyRegistration } from '../../services/facultyService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const FacultyVerify = () => {

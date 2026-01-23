@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import { CheckCircle, XCircle, Eye } from 'lucide-react';
-import { getPendingVerifications, verifyRegistration } from '../../services/usersService';
+import { getPendingVerifications, verifyRegistration } from '../../services/facultyService';
 
 const ManualVerification = () => {
     // Mock Data for Pending Requests

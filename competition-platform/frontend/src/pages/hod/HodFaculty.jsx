@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import HodLayout from './HodLayout';
 import { Search, Mail, Phone, MoreVertical } from 'lucide-react';
-import { getDepartmentFaculty } from '../../services/usersService';
+import { getDepartmentFaculty } from '../../services/hodService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const HodFaculty = () => {

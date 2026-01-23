@@ -8,7 +8,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     Cell, Legend
 } from 'recharts';
-import { getDashboardAnalysis } from '../../services/usersService';
+import { getDashboardAnalysis } from '../../services/hodService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const Card = ({ title, value, subtext, icon: Icon, color }) => (

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { ArrowLeft, Award, CheckCircle, Trophy, User, Clock, AlertCircle, Phone } from 'lucide-react';
-import { getStudentById } from '../../services/usersService';
+import { getStudentById } from '../../services/adminService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const StudentDetails = () => {
