@@ -173,10 +173,9 @@ const getCompetitionStats = async (req, res) => {
             const chunk = myStudentIds.slice(i, i + chunkSize);
             const { data: sData, error: sError } = await supabase
                 .from('competition_status')
-                .select('user_id, is_shortlisted')
+                .select('user_id, is_shortlisted, is_winner')
                 .eq('competition_id', competitionId)
-                .in('user_id', chunk)
-                .eq('is_shortlisted', true);
+                .in('user_id', chunk);
 
             if (sError) throw sError;
             if (sData) statusData = [...statusData, ...sData];
@@ -195,7 +194,8 @@ const getCompetitionStats = async (req, res) => {
             }
         });
 
-        const shortlistedSet = new Set(statusData.map(s => s.user_id));
+        const shortlistedSet = new Set(statusData.filter(s => s.is_shortlisted).map(s => s.user_id));
+        const winnersSet = new Set(statusData.filter(s => s.is_winner).map(s => s.user_id));
 
         const response = {
             total_sections: totalSectionsData,
@@ -210,6 +210,14 @@ const getCompetitionStats = async (req, res) => {
                 })),
             shortlisted: allStudents
                 .filter(s => shortlistedSet.has(s.id))
+                .map(s => ({
+                    id: s.id,
+                    name: s.full_name,
+                    regNo: s.registration_no,
+                    section: s.section
+                })),
+            winners: allStudents
+                .filter(s => winnersSet.has(s.id))
                 .map(s => ({
                     id: s.id,
                     name: s.full_name,
