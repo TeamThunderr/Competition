@@ -1,54 +1,137 @@
-const { google } = require('googleapis');
-const supabase = require('../config/supabaseClient');
-const { updateRegistrationFromGmail } = require('./gmailToRegistration.service');
+// gmailService.js - Pure Utility Module
+// Provides detection, tokenization, and scoring logic.
+// Does NOT interact with Database or Gmail API directly.
 
-// Scopes required for the application
-const SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly'
-];
+// ------------------------------------------------------------------
+// Constants & Keywords
+// ------------------------------------------------------------------
 
-/**
- * REF: Faculty-Driven Gmail Sync Service (Rule-Based Matching Engine)
- * 
- * Target Accuracy: ~90% without ML.
- * Signals: Platform, Date, Tokens, Organizer.
- */
-
-// Keywords per status
+// Improved Keywords with Context-Aware Patterns
 const KEYWORDS = {
-    REGISTERED: ['registration successful', 'registration confirmed', 'registration is confirmed', 'thank you for registering', 'you have registered', 'successfully registered', 'welcome', 'ticket', 'order'],
-    QUALIFIED: ['shortlisted', 'qualified', 'selected', 'congratulations', 'moved to next round', 'finalist', 'round 2'],
-    REJECTED: ['not selected', 'unfortunately', 'regret to inform', 'did not qualify', 'unsuccessful', 'rejected', 'disqualified', 'not registered', 'not qualified', 'not shortlisted', 'not finalist', 'unable to move', 'better luck'],
-    ACTION_REQUIRED: ['submit', 'deadline', 'round 1', 'round 2', 'presentation', 'ppt submission', 'interview', 'evaluation', 'action required', 'complete your profile', 'verify email', 'pending']
+    REGISTERED: {
+        primary: ['registration successful', 'registration confirmed', 'registration is confirmed', 'thank you for registering', 'you have registered', 'successfully registered'],
+        secondary: ['welcome to', 'ticket confirmed', 'order confirmed', 'payment successful', 'registration receipt'],
+        subject_patterns: ['registration confirmed', 'welcome to', 'you\'re registered', 'registration successful'],
+        exclude_if_contains: ['not registered', 'registration failed', 'payment failed']
+    },
+    QUALIFIED: {
+        primary: ['shortlisted', 'qualified for next round', 'selected for', 'moved to next round', 'advanced to', 'finalist'],
+        secondary: ['congratulations', 'well done', 'great news'],
+        subject_patterns: ['shortlisted', 'qualified', 'selected', 'round 2', 'finalist'],
+        context_required: ['round', 'next', 'stage', 'phase'], // Must appear with primary keywords
+        exclude_if_contains: ['not shortlisted', 'not qualified', 'not selected']
+    },
+    REJECTED: {
+        primary: ['not selected', 'not shortlisted', 'not qualified', 'unsuccessful', 'rejected', 'disqualified'],
+        secondary: ['unfortunately', 'regret to inform', 'did not qualify', 'unable to move', 'better luck'],
+        subject_patterns: ['not selected', 'unsuccessful', 'rejected'],
+        exclude_if_contains: [] // No exclusions for rejection
+    },
+    ACTION_REQUIRED: {
+        primary: ['action required', 'submit by', 'deadline approaching', 'complete your submission', 'verify your submission'],
+        secondary: ['round 1 submission', 'ppt submission', 'interview scheduled', 'evaluation pending', 'upload required'],
+        subject_patterns: ['action required', 'submission deadline', 'complete your', 'submit your'],
+        exclude_if_contains: ['submission successful', 'completed', 'not registered', 'registration failed']
+    }
 };
 
+// ------------------------------------------------------------------
+// Pure Utility Functions
+// ------------------------------------------------------------------
+
 /**
- * Detect hackathon status based on keywords
+ * Improved hackathon status detection with context awareness
  */
-const detectHackathonStatus = (text) => {
-    const lowerText = text.toLowerCase();
+const detectHackathonStatus = (emailData) => {
+    const subject = (emailData.subject || '').toLowerCase();
+    const snippet = (emailData.snippet || '').toLowerCase();
+    const fullText = `${subject} ${snippet}`.toLowerCase();
 
-    // Check Qualified (Highest Priority)
-    if (KEYWORDS.QUALIFIED.some(k => lowerText.includes(k))) {
-        return { status: 'QUALIFIED', confidence: 90 };
+    // Helper functions
+    const hasExclusions = (text, exclusions) => exclusions.some(e => text.includes(e));
+
+    const calculateConfidence = (primaryMatches, secondaryMatches, subjectMatches, contextMatches = 0) => {
+        let confidence = 0;
+        confidence += primaryMatches * 30;      // Primary keywords worth 30 points each
+        confidence += secondaryMatches * 15;    // Secondary keywords worth 15 points each  
+        confidence += subjectMatches * 25;      // Subject matches worth 25 points each
+        confidence += contextMatches * 10;      // Context matches worth 10 points each
+        return Math.min(confidence, 95);        // Cap at 95%
+    };
+
+    const results = [];
+
+    // 1. REGISTERED
+    const regKeywords = KEYWORDS.REGISTERED;
+    if (!hasExclusions(fullText, regKeywords.exclude_if_contains)) {
+        const primaryMatches = regKeywords.primary.filter(k => fullText.includes(k)).length;
+        const secondaryMatches = regKeywords.secondary.filter(k => fullText.includes(k)).length;
+        const subjectMatches = regKeywords.subject_patterns.filter(k => subject.includes(k)).length;
+
+        if (primaryMatches > 0 || (secondaryMatches > 0 && subjectMatches > 0)) {
+            const confidence = calculateConfidence(primaryMatches, secondaryMatches, subjectMatches);
+            results.push({ status: 'REGISTERED', confidence, matches: primaryMatches + secondaryMatches + subjectMatches });
+        }
     }
 
-    // Check Rejected (Priority over Registered to catch "not registered")
-    if (KEYWORDS.REJECTED.some(k => lowerText.includes(k))) {
-        return { status: 'REJECTED', confidence: 70 };
+    // 2. QUALIFIED
+    const qualKeywords = KEYWORDS.QUALIFIED;
+    if (!hasExclusions(fullText, qualKeywords.exclude_if_contains)) {
+        const primaryMatches = qualKeywords.primary.filter(k => fullText.includes(k)).length;
+        const secondaryMatches = qualKeywords.secondary.filter(k => fullText.includes(k)).length;
+        const subjectMatches = qualKeywords.subject_patterns.filter(k => subject.includes(k)).length;
+        const contextMatches = qualKeywords.context_required.filter(k => fullText.includes(k)).length;
+
+        if (primaryMatches > 0 || (secondaryMatches > 0 && contextMatches > 0 && subjectMatches > 0)) {
+            const confidence = calculateConfidence(primaryMatches, secondaryMatches, subjectMatches, contextMatches);
+            results.push({ status: 'QUALIFIED', confidence, matches: primaryMatches + secondaryMatches + subjectMatches });
+        }
     }
 
-    // Check Registered
-    if (KEYWORDS.REGISTERED.some(k => lowerText.includes(k))) {
-        return { status: 'REGISTERED', confidence: 80 };
+    // 3. REJECTED
+    const rejKeywords = KEYWORDS.REJECTED;
+    const primaryMatches = rejKeywords.primary.filter(k => fullText.includes(k)).length;
+    const secondaryMatches = rejKeywords.secondary.filter(k => fullText.includes(k)).length;
+    const subjectMatches = rejKeywords.subject_patterns.filter(k => subject.includes(k)).length;
+
+    if (primaryMatches > 0 || subjectMatches > 0) {
+        const confidence = calculateConfidence(primaryMatches, secondaryMatches, subjectMatches);
+        results.push({ status: 'REJECTED', confidence, matches: primaryMatches + secondaryMatches + subjectMatches });
     }
 
-    // Check Action Required
-    if (KEYWORDS.ACTION_REQUIRED.some(k => lowerText.includes(k))) {
-        return { status: 'ACTION_REQUIRED', confidence: 60 };
+    // 4. ACTION_REQUIRED
+    const actionKeywords = KEYWORDS.ACTION_REQUIRED;
+    if (!hasExclusions(fullText, actionKeywords.exclude_if_contains)) {
+        const primaryMatches = actionKeywords.primary.filter(k => fullText.includes(k)).length;
+        const secondaryMatches = actionKeywords.secondary.filter(k => fullText.includes(k)).length;
+        const subjectMatches = actionKeywords.subject_patterns.filter(k => subject.includes(k)).length;
+
+        if (primaryMatches > 0 || (subjectMatches > 0 && secondaryMatches > 0)) {
+            const confidence = calculateConfidence(primaryMatches, secondaryMatches, subjectMatches);
+            results.push({ status: 'ACTION_REQUIRED', confidence, matches: primaryMatches + secondaryMatches + subjectMatches });
+        }
     }
 
-    return null;
+    if (results.length === 0) return null;
+
+    // Prioritization Logic
+    results.sort((a, b) => {
+        if (b.confidence !== a.confidence) return b.confidence - a.confidence;
+        return b.matches - a.matches;
+    });
+
+    if (results.length > 1) {
+        const topResult = results[0];
+        const secondResult = results[1];
+        // Prefer REGISTERED over slightly higher QUALIFIED if close, as REGISTERED is safer default
+        if (topResult.status === 'QUALIFIED' && secondResult.status === 'REGISTERED') {
+            if (topResult.confidence - secondResult.confidence < 20) {
+                return { status: 'REGISTERED', confidence: secondResult.confidence };
+            }
+        }
+    }
+
+    return { status: results[0].status, confidence: results[0].confidence };
 };
 
 /**
@@ -56,7 +139,12 @@ const detectHackathonStatus = (text) => {
  */
 const tokenize = (text) => {
     if (!text || typeof text !== 'string') return [];
-    const stopwords = ['the', 'of', 'for', 'in', 'and', 'at', 'to', 'a', 'an', 'competition', 'hackathon', 'event', 'challenge'];
+    const stopwords = [
+        'the', 'of', 'for', 'in', 'and', 'at', 'to', 'a', 'an', 'is', 'on', 'with', 'by',
+        'competition', 'hackathon', 'event', 'challenge', 'contest', 'fest',
+        'hack', 'hacks', 'code', 'coding', 'program', 'championship',
+        '2024', '2025', '2026', 'national', 'global', 'international'
+    ];
     return text.toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
         .split(/[\s-]+/)
@@ -67,27 +155,18 @@ const tokenize = (text) => {
  * Extract Hackathon Name from Subject
  */
 const extractHackathonName = (subject, sender) => {
-    // Strategy 1: Split by separators
-    const separators = ['|', '–', '-', ':', '[', ']']; // Added brackets for [Event Name]
+    const separators = ['|', '–', '-', ':', '[', ']'];
     for (const sep of separators) {
         if (subject.includes(sep)) {
             const parts = subject.split(sep);
-            // Usually the longest part or the first part is the name
-            // Let's take the first part that looks like a name (length > 3)
             const name = parts.find(p => p.trim().length > 3);
             if (name) return name.trim();
         }
     }
 
-    // Strategy 2: Clean common prefixes
     let finalName = subject;
-
-    // Clean common prefixes (Case Insensitive Check)
     const prefixes = [
-        'Welcome to ',
-        'Registration Confirmed: ',
-        'You are registered for ',
-        'Registered successfully for ' // Added for Unstop
+        'Welcome to ', 'Registration Confirmed: ', 'You are registered for ', 'Registered successfully for '
     ];
 
     for (const p of prefixes) {
@@ -95,26 +174,18 @@ const extractHackathonName = (subject, sender) => {
             finalName = finalName.substring(p.length);
         }
     }
-
-    // Clean: Remove emojis and non-standard chars from start
     finalName = finalName.replace(/^[\u{1F600}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]\s*/gu, '');
-
-    // Clean: Remove trailing punctuation like '!' or '.'
     finalName = finalName.replace(/[!.]+$/, '');
 
-    // If name is just "Congratulations" or similar, try next part if available or using subject
     if (['congratulations', 'reminder', 'update'].includes(finalName.toLowerCase())) {
         return subject;
     }
-
     return finalName.trim();
 };
 
 /**
  * calculateMatchScore
- * @param {Object} emailMetadata { subject, snippet, from, date }
- * @param {Object} competition { title, platform, organizer, registration_start, registration_end }
- * @returns {Object} { score, breakdown, matched_signals, confidence_level }
+ * Kept for potential advanced matching needs
  */
 const calculateMatchScore = (email, competition) => {
     let score = 0;
@@ -126,8 +197,7 @@ const calculateMatchScore = (email, competition) => {
     const fromLower = (email.from || '').toLowerCase();
     const textToCheck = `${subjectLower} ${email.snippet || ''}`.toLowerCase();
 
-    // 1. PLATFORM MATCH (+40)
-    // High confidence if email comes from the platform domain or mentions it explicitly in sender
+    // 1. PLATFORM
     if (competition.platform) {
         const platform = competition.platform.toLowerCase();
         if (fromLower.includes(platform) || (fromLower.includes('no-reply') && textToCheck.includes(platform))) {
@@ -137,13 +207,11 @@ const calculateMatchScore = (email, competition) => {
         }
     }
 
-    // 2. DATE WINDOW MATCH (+25)
-    // Reg Start -> Reg End + 7 days
+    // 2. DATE
     if (competition.registration_start && competition.registration_deadline) {
         const start = new Date(competition.registration_start);
         const end = new Date(competition.registration_deadline);
-        end.setDate(end.getDate() + 7); // +7 days buffer
-
+        end.setDate(end.getDate() + 7);
         if (emailDate >= start && emailDate <= end) {
             score += 25;
             breakdown.push('Date Window (+25)');
@@ -151,12 +219,10 @@ const calculateMatchScore = (email, competition) => {
         }
     }
 
-    // 3. TOKEN MATCHING (Max 20)
-    // 5 pts per token match with title
+    // 3. TOKENS
     const titleTokens = tokenize(competition.title);
     let tokenScore = 0;
     const foundTokens = [];
-
     titleTokens.forEach(token => {
         if (textToCheck.includes(token)) {
             tokenScore += 5;
@@ -164,7 +230,17 @@ const calculateMatchScore = (email, competition) => {
         }
     });
 
-    // Cap at 20
+    if (foundTokens.length === 0) {
+        return {
+            score: 0,
+            breakdown: ['Failed: No title tokens found'],
+            matched_signals,
+            confidence_level: 'NONE',
+            detected_status: null,
+            status_confidence: 0
+        };
+    }
+
     if (tokenScore > 20) tokenScore = 20;
     if (tokenScore > 0) {
         score += tokenScore;
@@ -172,7 +248,7 @@ const calculateMatchScore = (email, competition) => {
         matched_signals.tokens = foundTokens;
     }
 
-    // 4. ORGANIZER MATCH (+20)
+    // 4. ORGANIZER
     if (competition.organizer) {
         const organizer = competition.organizer.toLowerCase();
         if (textToCheck.includes(organizer) || fromLower.includes(organizer)) {
@@ -182,34 +258,33 @@ const calculateMatchScore = (email, competition) => {
         }
     }
 
-    // 5. STATUS KEYWORD (+5)
+    // 5. STATUS
+    const statusDetection = detectHackathonStatus(email);
     let detectedStatus = null;
-    for (const status in KEYWORDS) {
-        if (KEYWORDS[status].some(kw => textToCheck.includes(kw))) {
-            detectedStatus = status;
-            score += 5;
-            breakdown.push(`Status Key: ${status} (+5)`);
-            break;
-        }
+    if (statusDetection) {
+        detectedStatus = statusDetection.status;
+        const statusPoints = Math.round(statusDetection.confidence * 0.15);
+        score += statusPoints;
+        breakdown.push(`Status: ${statusDetection.status} (${statusDetection.confidence}% confidence) (+${statusPoints})`);
     }
 
-    // DECISION
     let confidence_level = 'LOW';
     if (score >= 60) confidence_level = 'HIGH';
     else if (score >= 40) confidence_level = 'MEDIUM';
-    else if (score >= 20) confidence_level = 'LOW_PASS'; // New level for relaxed sync
+    else if (score >= 20) confidence_level = 'LOW_PASS';
 
     return {
         score,
         breakdown,
         matched_signals,
         confidence_level,
-        detected_status: detectedStatus
+        detected_status: detectedStatus,
+        status_confidence: statusDetection?.confidence || 0
     };
 };
 
 /**
- * Helper to parse email data from Gmail API response
+ * Helper to parse email data
  */
 const parseEmail = (emailData) => {
     const headers = emailData.payload.headers;
@@ -224,256 +299,14 @@ const parseEmail = (emailData) => {
         from,
         date,
         snippet,
-        sender: from // Alias for consistency
+        sender: from
     };
 };
 
-/**
- * Fetch recent emails from Gmail API using the user's provider token
- */
-const fetchRecentEmails = async (accessToken, days = 90) => {
-    try {
-        console.log("fetchRecentEmails called with token:", accessToken ? "Present" : "Missing");
-        if (!accessToken) throw new Error("AccessToken is missing");
-
-        const auth = new google.auth.OAuth2();
-        auth.setCredentials({ access_token: accessToken });
-
-        const gmail = google.gmail({ version: 'v1', auth });
-
-        // Calculate date query (after: YYYY/MM/DD)
-        const date = new Date();
-        date.setDate(date.getDate() - days);
-        const dateQuery = `after:${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
-
-        // List messages 
-        const response = await gmail.users.messages.list({
-            userId: 'me',
-            q: dateQuery,
-            maxResults: 300 // Increased limit to catch older emails
-        });
-
-        const messages = response.data.messages || [];
-        const results = [];
-
-        console.log(`Found ${messages.length} emails. Processing...`);
-
-        // Fetch details for each message
-        for (const msg of messages) {
-            try {
-                const msgDetails = await gmail.users.messages.get({
-                    userId: 'me',
-                    id: msg.id
-                });
-                results.push(parseEmail(msgDetails.data));
-            } catch (err) {
-                console.error(`Failed to fetch message ${msg.id}`, err);
-            }
-        }
-
-        return results;
-    } catch (error) {
-        console.error('Gmail API Error Details:', JSON.stringify(error, null, 2));
-        throw new Error(`Failed to fetch emails from Gmail: ${error.message}`);
-    }
-};
-
-/**
- * Main Logic to Process and Save
- */
-const processAndSaveEmails = async (accessToken, userId, competitionId) => {
-    const emails = await fetchRecentEmails(accessToken);
-    const detectedList = [];
-
-    for (const email of emails) {
-        const combinedText = `${email.subject} ${email.snippet}`;
-        const detection = detectHackathonStatus(combinedText);
-
-        if (detection) {
-            const hackathonName = extractHackathonName(email.subject, email.sender);
-
-            const record = {
-                user_id: userId,
-                hackathon_name: hackathonName,
-                platform: email.sender.toLowerCase().includes('devfolio') ? 'Devfolio' :
-                    email.sender.toLowerCase().includes('unstop') ? 'Unstop' : 'Other',
-                status: detection.status,
-                source: 'GMAIL',
-                email_date: email.date,
-                confidence_score: detection.confidence,
-                snippet: email.snippet
-            };
-
-            detectedList.push(record);
-
-            // CRITICAL: Update Registrations Table if competitionId is provided
-            if (competitionId) {
-                await updateRegistrationFromGmail({
-                    userId,
-                    competitionId,
-                    detectedStatus: detection.status
-                });
-            }
-        }
-    }
-
-    // Bulk Insert
-    if (detectedList.length > 0) {
-        const { error } = await supabase
-            .from('detected_hackathons')
-            .insert(detectedList);
-
-        if (error) console.error('Error inserting detected hackathons:', error);
-    }
-
-    return detectedList;
-};
-
-/**
- * Targeted verification for a specific competition
- * Scans only for the specific competition title/organizer
- */
-const verifySpecificRegistration = async (accessToken, hackathonName) => {
-    try {
-        const match = await syncStudentCompetition(accessToken, { title: hackathonName }, null, null);
-        return match.suggested_status === 'REGISTERED' || match.suggested_status === 'QUALIFIED';
-    } catch (e) {
-        console.error("Verification error:", e);
-        return false;
-    }
-};
-
-/**
- * Main Entry Point: Syncs specific competition for a specific student.
- * 
- * @param {string} accessToken - Student's valid OAuth Access Token
- * @param {Object} competition - Full Competition Object
- * @param {string} [lastSyncedAt] - ISO Date string to filter "after:..."
- * @returns {Promise<Object>} Result object
- */
-const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = null) => {
-    try {
-        if (!accessToken) throw new Error("AccessToken is missing");
-
-        const auth = new google.auth.OAuth2();
-        auth.setCredentials({ access_token: accessToken });
-        const gmail = google.gmail({ version: 'v1', auth });
-
-        // 1. Construct Broad Query
-        // Strategy: "TitleTokens" OR "Platform"
-        const titleTokens = tokenize(competition.title);
-        const mainTerms = titleTokens.slice(0, 2).join(' '); // e.g., "techsprint 2026"
-
-        let queryString = `"${mainTerms}"`;
-
-        if (competition.platform) {
-            queryString = `(${queryString}) OR "${competition.platform}"`;
-        }
-
-        console.log(`[GmailDebug] Query: [${queryString}] for Comp: ${competition.title}`);
-
-        // Handling Dates
-        let dateQuery = '';
-        if (lastSyncedAt) {
-            const date = new Date(lastSyncedAt);
-            if (!isNaN(date)) {
-                dateQuery = `after:${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
-            }
-        }
-
-        // Fallback to 90 days if no dateQuery
-        if (!dateQuery) {
-            const date = new Date();
-            date.setDate(date.getDate() - 90);
-            dateQuery = `after:${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
-        }
-
-        // Add date query to main query
-        queryString = `${queryString} ${dateQuery}`;
-
-        // 2. Fetch Candidates
-        const response = await gmail.users.messages.list({
-            userId: 'me',
-            q: queryString,
-            maxResults: 15 // Check top 15 candidates
-        });
-
-        const messages = response.data.messages || [];
-        console.log(`[GmailDebug] Messages found: ${messages.length}`);
-
-        if (messages.length === 0) {
-            return { suggested_status: 'NOT_FOUND', confidence: 0 };
-        }
-
-        // 3. Score Candidates
-        let bestMatch = null;
-        let bestScore = -1;
-
-        for (const msg of messages) {
-            const details = await gmail.users.messages.get({
-                userId: 'me',
-                id: msg.id,
-                format: 'metadata',
-                metadataHeaders: ['Subject', 'From', 'Date']
-            });
-
-            const emailData = {
-                id: msg.id,
-                snippet: details.data.snippet,
-                subject: details.data.payload.headers.find(h => h.name === 'Subject')?.value,
-                from: details.data.payload.headers.find(h => h.name === 'From')?.value,
-                date: details.data.payload.headers.find(h => h.name === 'Date')?.value
-            };
-
-            const analysis = calculateMatchScore(emailData, competition);
-
-            if (analysis.score > bestScore) {
-                bestScore = analysis.score;
-                bestMatch = {
-                    ...analysis,
-                    gmail_message_id: msg.id,
-                    matched_keyword: analysis.detected_status
-                };
-            }
-        }
-
-        if (bestMatch) {
-            console.log(`[GmailDebug] Best Match for ${competition.title}: Score ${bestScore} | Breakdown: ${bestMatch.breakdown.join(', ')}`);
-        }
-
-        // 4. Final Decision
-        if (!bestMatch) return { suggested_status: 'NOT_FOUND', confidence: 0 };
-
-        // Thresholds
-        // RELAXED: Lowered from 40 to 20 to catch partial matches (e.g. Platform + Date)
-        if (bestScore < 20) {
-            return {
-                suggested_status: 'NOT_FOUND',
-                confidence: bestScore,
-                remarks: `Ignored Low Score: ${bestScore} (${bestMatch.breakdown.join(', ')})`
-            };
-        }
-
-        // Return Match
-        return {
-            suggested_status: bestMatch.detected_status || (bestScore >= 60 ? 'REGISTERED' : 'PENDING'), // Default to PENDING/REGISTERED if status key missing but context is strong
-            confidence: bestScore, // Use Score as confidence
-            gmail_message_id: bestMatch.gmail_message_id,
-            matched_keyword: bestMatch.matched_keyword,
-            detected_at: new Date().toISOString(),
-            source: 'AUTO_GMAIL',
-            confidence_level: bestMatch.confidence_level,
-            match_breakdown: bestMatch.breakdown
-        };
-
-    } catch (error) {
-        console.error('Error in Matching Engine:', error.message);
-        throw error;
-    }
-};
-
 module.exports = {
-    syncStudentCompetition,
-    processAndSaveEmails,
-    fetchRecentEmails
+    detectHackathonStatus,
+    calculateMatchScore,
+    tokenize,
+    extractHackathonName,
+    parseEmail
 };
