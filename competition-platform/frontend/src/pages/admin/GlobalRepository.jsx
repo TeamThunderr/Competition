@@ -275,17 +275,17 @@ const GlobalRepository = () => {
                         </div>
 
                         {/* Table */}
-                        <div className="">
-                            <table className="w-full text-left table-fixed">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left min-w-[900px]">
                                 <thead>
                                     <tr className="bg-gray-50 border-b border-gray-100">
-                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">Competition Name</th>
-                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/6">Platform</th>
-                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/6">Deadline</th>
-                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/6">Event Date</th>
-                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/6">Participating Depts</th>
-                                        <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Reg</th>
-                                        <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Qualified</th>
+                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-[280px]">Competition Name</th>
+                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-[130px]">Platform</th>
+                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-[120px]">Deadline</th>
+                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-[120px]">Event Date</th>
+                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-[150px]">Participating Depts</th>
+                                        <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-[50px]">Reg</th>
+                                        <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-[70px]">Qualified</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">

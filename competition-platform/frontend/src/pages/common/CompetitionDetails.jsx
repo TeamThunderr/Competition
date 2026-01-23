@@ -18,9 +18,7 @@ const CompetitionDetails = () => {
     const navigate = useNavigate();
     const [competition, setCompetition] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [statsData, setStatsData] = useState({ total_sections: [], registered: [], shortlisted: [], total: [] });
-
-
+    const [statsData, setStatsData] = useState({ total_sections: [], registered: [], shortlisted: [], winners: [], total: [] });
     const user = getCurrentUser();
     const isFaculty = user?.role === 'FACULTY';
     const isHOD = user?.role === 'HOD';
@@ -90,59 +88,38 @@ const CompetitionDetails = () => {
             </button>
 
             {/* Header Card */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 mb-6">
-                <div className="flex flex-col md:flex-row justify-between items-start gap-6">
-                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full md:w-auto">
-                        <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xl md:text-2xl font-bold flex-shrink-0">
-                            {competition.platform?.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                            <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-2 break-words">{competition.title}</h1>
-                            <div className="flex flex-wrap items-center gap-3">
-                                <span className={`px-3 py-1 bg-${isHOD ? 'purple' : 'green'}-100 text-${isHOD ? 'purple' : 'green'}-700 rounded-full text-xs font-semibold whitespace-nowrap`}>
-                                    {isHOD ? "DEPARTMENT VIEW" : isFaculty ? "MENTOR VIEW" : "DETAILS VIEW"}
-                                </span>
-                                <span className="text-gray-500 text-sm flex items-center gap-1 whitespace-nowrap">
-                                    <Globe size={14} />
-                                    {competition.platform}
-                                </span>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+                <div className="flex flex-col gap-6">
+                    {/* Top Row: Icon, Title, Actions */}
+                    <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xl font-bold flex-shrink-0">
+                                {competition.platform?.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-900 mb-2">{competition.title}</h1>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <span className={`px-3 py-1 bg-${isHOD ? 'purple' : 'green'}-100 text-${isHOD ? 'purple' : 'green'}-700 rounded-full text-xs font-semibold whitespace-nowrap`}>
+                                        {isHOD ? "DEPARTMENT VIEW" : isFaculty ? "MENTOR VIEW" : "DETAILS VIEW"}
+                                    </span>
+                                    <span className="text-gray-500 text-sm flex items-center gap-1">
+                                        <Globe size={14} />
+                                        {competition.platform}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {competition.external_link && (
-                        <a
-                            href={competition.external_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 mt-4 md:mt-0"
-                        >
-                            <ExternalLink size={18} />
-                            Open Website
-                        </a>
-                    )}
-                </div>
-            </div>
-
-            {/* Content Section: Conditionally Render based on Role */}
-            {isFaculty || isHOD ? (
-                // FACULTY/HOD VIEW (3 Column Layout)
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    {/* Event Info (Left Side - Small) */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:col-span-1 h-fit">
-                        <h2 className="font-bold text-gray-900 mb-4">Event Information</h2>
-
-                        {/* FACULTY ACTIONS */}
-                        {isFaculty && (
-                            <div className="mb-6 space-y-3">
+                        <div className="flex gap-3 w-full md:w-auto">
+                            {/* Faculty Sync Button - Moved to Header */}
+                            {isFaculty && (
                                 <button
                                     onClick={async () => {
                                         if (confirm(`Start Gmail Sync for ${competition.title}? This may take a moment.`)) {
-                                            setLoading(true); // Reuse main loader or local
+                                            setLoading(true);
                                             try {
                                                 await api.post(`/api/faculty/competition/${id}/sync`, {});
                                                 alert("Sync Completed! Refreshing data...");
-                                                // Refresh Data
                                                 const students = await getCompetitionStudents(id);
                                                 setStatsData(students);
                                             } catch (e) {
@@ -153,178 +130,211 @@ const CompetitionDetails = () => {
                                             }
                                         }
                                     }}
-                                    className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm"
+                                    className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
                                 >
-                                    🔄 Sync Competition
+                                    🔄 Sync
                                 </button>
+                            )}
 
-                                <button
-                                    className="w-full bg-white border border-gray-300 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm"
-                                    onClick={() => alert("Download CSV Feature Implementation needed")}
+                            {competition.external_link && (
+                                <a
+                                    href={competition.external_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
                                 >
-                                    📥 Download List
-                                </button>
-                            </div>
-                        )}
-
-                        <div className="space-y-4 text-sm mt-4 pt-4 border-t border-gray-100">
-                            <div className="flex justify-between py-2 border-b border-gray-50">
-                                <span className="text-gray-500 flex items-center gap-2">
-                                    <Clock size={16} /> Registration Ends
-                                </span>
-                                <span className="font-medium text-gray-900">
-                                    {competition.registration_deadline
-                                        ? new Date(competition.registration_deadline).toLocaleDateString()
-                                        : "TBA"}
-                                </span>
-                            </div>
-                            <div className="flex justify-between py-2 border-b border-gray-50">
-                                <span className="text-gray-500 flex items-center gap-2">
-                                    <Calendar size={16} /> Event Date
-                                </span>
-                                <span className="font-medium text-gray-900">
-                                    {competition.event_date
-                                        ? new Date(competition.event_date).toLocaleDateString()
-                                        : "TBA"}
-                                </span>
-                            </div>
-                            <div className="flex justify-between py-2 border-b border-gray-50">
-                                <span className="text-gray-500 flex items-center gap-2">
-                                    <Users size={16} /> Team Size
-                                </span>
-                                <span className="font-medium text-gray-900">
-                                    {competition.min_team_size} - {competition.max_team_size} Members
-                                </span>
-                            </div>
-                            <div className="flex justify-between py-2">
-                                <span className="text-gray-500 flex items-center gap-2">
-                                    <MessageSquare size={16} /> Mode
-                                </span>
-                                <span className="font-medium text-gray-900">
-                                    {competition.mode || "Online"}
-                                </span>
-                            </div>
+                                    <ExternalLink size={16} />
+                                    Open Website
+                                </a>
+                            )}
                         </div>
                     </div>
 
+                    {/* Integrated Event Info Bar */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-t border-gray-100 mt-2">
+                        <div className="flex flex-col">
+                            <span className="text-gray-500 text-xs flex items-center gap-1 mb-1">
+                                <Clock size={12} /> Registration Ends
+                            </span>
+                            <span className="font-medium text-gray-900 text-sm">
+                                {competition.registration_deadline ? new Date(competition.registration_deadline).toLocaleDateString() : "TBA"}
+                            </span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-gray-500 text-xs flex items-center gap-1 mb-1">
+                                <Calendar size={12} /> Event Date
+                            </span>
+                            <span className="font-medium text-gray-900 text-sm">
+                                {competition.event_date ? new Date(competition.event_date).toLocaleDateString() : "TBA"}
+                            </span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-gray-500 text-xs flex items-center gap-1 mb-1">
+                                <Users size={12} /> Team Size
+                            </span>
+                            <span className="font-medium text-gray-900 text-sm">
+                                {competition.min_team_size} - {competition.max_team_size} Members
+                            </span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-gray-500 text-xs flex items-center gap-1 mb-1">
+                                <MessageSquare size={12} /> Mode
+                            </span>
+                            <span className="font-medium text-gray-900 text-sm">
+                                {competition.mode || "Online"}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Content Section: Conditionally Render based on Role */}
+            {isFaculty || isHOD ? (
+                // FACULTY/HOD VIEW (Full Width Grid)
+                <div className="w-full">
+                    {/* Stats Columns - Full Width */}
+
                     {/* Stats Columns (Right Side - Wide) */}
-                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* HOD View: Using Modular Components */}
-                        {isHOD ? (
-                            <>
-                                <div className="h-full">
-                                    <TotalSectionsStats
-                                        data={statsData.total_sections}
-                                        onSectionClick={handleStatsClick}
-                                    />
-                                </div>
-                                <div className="h-full">
-                                    <StudentStatsList
-                                        title="Registered"
-                                        students={statsData.registered || []}
-                                        onSectionClick={handleStatsClick}
-                                        icon={UserPlus}
-                                        colorClass="text-blue-600"
-                                    />
-                                </div>
-                                <div className="h-full">
-                                    <StudentStatsList
-                                        title="Shortlisted"
-                                        students={statsData.shortlisted || []}
-                                        onSectionClick={handleStatsClick}
-                                        icon={UserCheck}
-                                        colorClass="text-green-600"
-                                    />
-                                </div>
-                            </>
-                        ) : (
-                            // Faculty View (Simplified for now, reusing HOD logic components or keeping legacy?)
-                            // Keeping legacy Faculty logic for "Unregistered" if needed, but previously we shared logic.
-                            // The previous code had complex inline logic for 'unregistered'. Let's keep the Faculty legacy logic separate if possible or adapt.
-                            // The prompt focus is HOD. I will wrap the non-HOD logic in the else block properly.
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Column 1: Custom Logic for Unregistered */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden">
+                            {(() => {
+                                // Use backend 'unregistered' list if available, else derive
+                                const unregisteredStudents = isHOD ? [] : (
+                                    statsData.unregistered ||
+                                    (statsData.total || []).filter(student => !statsData.registered?.some(reg => reg.id === student.id))
+                                );
 
-                            /* Faculty / Student View Logic re-inserted below */
-                            <>
-                                {/* Faculty View: Unregistered/Pending */}
-                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                                    {(() => {
-                                        const unregisteredStudents = statsData.unregistered ||
-                                            (statsData.total || []).filter(student => !statsData.registered?.some(reg => reg.id === student.id));
+                                return (
+                                    <>
+                                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 truncate">
+                                            <div className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
+                                            <span className="truncate" title={isHOD ? `Total Sections In Dept` : `Unregistered / Pending`}>
+                                                {isHOD ? `Total Sections In Dept` : `Unregistered / Pending (${unregisteredStudents.length})`}
+                                            </span>
+                                        </h3>
+                                        <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                                            {isHOD ? (
+                                                /* HOD View Logic (Kept Same) */
+                                                statsData.total_sections?.length > 0 ? (
+                                                    statsData.total_sections.map((group, gIdx) => (
+                                                        <div key={gIdx} className="mb-3">
+                                                            <details className="group" open={group.year === '2nd Year' || group.year === '3rd Year'}>
+                                                                <summary className="flex justify-between items-center font-bold text-gray-700 cursor-pointer p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                                                    <span>{group.year}</span>
+                                                                    <span className="text-xs bg-white px-2 py-0.5 rounded text-gray-500 shadow-sm border border-gray-200">
+                                                                        {group.totalStudents} Students
+                                                                    </span>
+                                                                </summary>
+                                                                <div className="mt-2 pl-2 space-y-2 border-l-2 border-gray-100 ml-2">
+                                                                    {group.sections.map((sec, sIdx) => (
+                                                                        <div key={sIdx} className="flex justify-between items-center text-sm p-2 bg-white border border-gray-100 rounded-md shadow-sm">
+                                                                            <div className="font-medium text-gray-900 flex items-center gap-2 truncate">
+                                                                                <Layers size={14} className="text-gray-400 flex-shrink-0" />
+                                                                                <span className="truncate">Section {sec.name}</span>
+                                                                            </div>
+                                                                            <div className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded font-medium border border-gray-100 whitespace-nowrap">
+                                                                                {sec.count} Students
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </details>
+                                                        </div>
+                                                    ))
+                                                ) : <div className="text-sm text-gray-400 text-center py-4">No sections found</div>
+                                            ) : (
+                                                // Faculty: List Unregistered Students
+                                                unregisteredStudents.length > 0 ? (
+                                                    unregisteredStudents.map(student => (
+                                                        <div key={student.id} className="text-sm p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                            <div className="font-medium text-gray-900">{student.name}</div>
+                                                            <div className="text-xs text-gray-500">{student.regNo}</div>
+                                                            {/* Show Status if available (Pending, Rejected) */}
+                                                            {student.status && student.status !== 'NOT_REGISTERED' && (
+                                                                <div className="mt-1 text-[10px] text-gray-500">
+                                                                    Status: {student.status}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="text-sm text-gray-400 text-center py-4">All students registered!</div>
+                                                )
+                                            )}
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </div>
 
-                                        return (
-                                            <>
-                                                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                                    Unregistered / Pending ({unregisteredStudents.length})
-                                                </h3>
-                                                <div className="h-96 overflow-y-auto pr-2 space-y-2">
-                                                    {unregisteredStudents.length > 0 ? (
-                                                        unregisteredStudents.map(student => (
-                                                            <div key={student.id} className="text-sm p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                                                <div className="font-medium text-gray-900">{student.name}</div>
-                                                                <div className="text-xs text-gray-500">{student.regNo}</div>
-                                                                {student.status && student.status !== 'NOT_REGISTERED' && (
-                                                                    <div className="mt-1 text-[10px] text-gray-500">
-                                                                        Status: {student.status}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <div className="text-sm text-gray-400 text-center py-4">All students registered!</div>
-                                                    )}
-                                                </div>
-                                            </>
-                                        );
-                                    })()}
-                                </div>
+                        {/* Column 2: Registered Students */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden">
+                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                                <span className="truncate">Registered ({statsData.registered?.length || 0})</span>
+                            </h3>
+                            <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                                {statsData.registered?.map(student => (
+                                    <div key={student.id} className={`text-sm p-3 rounded-lg border ${student.confidence > 0 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                                        <div className="font-medium text-gray-900 truncate">{student.name}</div>
+                                        <div className="flex justify-between items-center mt-1 flex-wrap gap-1">
+                                            <span className="text-xs text-blue-600 truncate">{student.regNo}</span>
 
-                                {/* Faculty View: Registered */}
-                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                        Registered ({statsData.registered?.length || 0})
-                                    </h3>
-                                    <div className="h-96 overflow-y-auto pr-2 space-y-2">
-                                        {statsData.registered?.length > 0 ? (
-                                            statsData.registered.map(student => (
-                                                <div key={student.id} className={`text-sm p-3 rounded-lg border ${student.confidence > 0 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
-                                                    <div className="font-medium text-gray-900">{student.name}</div>
-                                                    <div className="flex justify-between items-center mt-1 flex-wrap gap-1">
-                                                        <span className="text-xs text-blue-600">{student.regNo}</span>
-                                                        {student.verified ? (
-                                                            <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded border border-green-200">Manual Verified</span>
-                                                        ) : (student.confidence > 0 ? (
-                                                            <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded border border-purple-200">Auto-Detected ({student.confidence}%)</span>
-                                                        ) : (
-                                                            <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200">Pending</span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : <div className="text-sm text-gray-400 text-center py-4">No registrations yet</div>}
+                                            {student.verified ? (
+                                                <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded border border-green-200">
+                                                    Manual Verified
+                                                </span>
+                                            ) : (student.confidence > 0 ? (
+                                                <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded border border-purple-200" title={`Confidence: ${student.confidence}%`}>
+                                                    Auto-Detected ({student.confidence}%)
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200">
+                                                    Pending
+                                                </span>
+                                            ))}
+                                        </div>
+                                        {student.remarks && <div className="text-[10px] text-gray-400 mt-1 italic">{student.remarks}</div>}
                                     </div>
-                                </div>
+                                ))}
+                                {(!statsData.registered || statsData.registered.length === 0) && <div className="text-sm text-gray-400 text-center py-4">No registrations yet</div>}
+                            </div>
+                        </div>
 
-                                {/* Faculty View: Shortlisted */}
-                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                        Shortlisted ({statsData.shortlisted?.length || 0})
-                                    </h3>
-                                    <div className="h-96 overflow-y-auto pr-2 space-y-2">
-                                        {statsData.shortlisted?.length > 0 ? (
-                                            statsData.shortlisted.map(student => (
-                                                <div key={student.id} className="text-sm p-3 bg-purple-50 rounded-lg border border-purple-100">
-                                                    <div className="font-medium text-gray-900">{student.name}</div>
-                                                    <div className="text-xs text-purple-600">{student.regNo} {student.section && `(${student.section})`}</div>
-                                                </div>
-                                            ))
-                                        ) : <div className="text-sm text-gray-400 text-center py-4">No shortlisted students</div>}
+                        {/* Column 3: Shortlisted Students */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden">
+                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
+                                <span className="truncate">Shortlisted ({statsData.shortlisted?.length || 0})</span>
+                            </h3>
+                            <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                                {statsData.shortlisted?.map(student => (
+                                    <div key={student.id} className="text-sm p-3 bg-purple-50 rounded-lg border border-purple-100">
+                                        <div className="font-medium text-gray-900 truncate">{student.name}</div>
+                                        <div className="text-xs text-purple-600 truncate">{student.regNo} {student.section && `(${student.section})`}</div>
                                     </div>
-                                </div>
-                            </>
-                        )}
+                                ))}
+                                {(!statsData.shortlisted || statsData.shortlisted.length === 0) && <div className="text-sm text-gray-400 text-center py-4">No shortlisted students</div>}
+                            </div>
+                        </div>
+
+                        {/* Column 4: Winners */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden">
+                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                                <span className="truncate">Winners ({statsData.winners?.length || 0})</span>
+                            </h3>
+                            <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                                {statsData.winners?.map(student => (
+                                    <div key={student.id} className="text-sm p-3 bg-green-50 rounded-lg border border-green-100">
+                                        <div className="font-medium text-gray-900 truncate">{student.name}</div>
+                                        <div className="text-xs text-green-600 truncate">{student.regNo} {student.section && `(${student.section})`}</div>
+                                    </div>
+                                ))}
+                                {(!statsData.winners || statsData.winners.length === 0) && <div className="text-sm text-gray-400 text-center py-4">No winners yet</div>}
+                            </div>
+                        </div>
                     </div>
 
 
