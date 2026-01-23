@@ -223,7 +223,7 @@ async function performBatchSync(competition, departmentId, assignedVersion) {
 
     const regMap = new Map(existingRegs?.map(r => [r.user_id, r]) || []);
 
-    // 2b. Fetch Existing Participation (for Last Synced At)
+    // 2b. Fetch Existing Participation (for Last Synced At) - DEPRECATED for V2 Sync Source
     const { data: existingPart, error: partError } = await supabase
         .from('participation')
         .select('student_id, last_synced_at')
@@ -234,6 +234,13 @@ async function performBatchSync(competition, departmentId, assignedVersion) {
     const participationMap = new Map(existingPart?.map(p => [p.student_id, p]) || []);
 
     // 3. Sync logic
+    // CRITICAL FIX: Use GLOBAL competition time as start point
+    // If competition.last_synced_at exists, use it.
+    // If NOT (first sync), use competition.uploaded_at.
+    // This prevents picking up old emails for a newly added competition.
+    const batchScanStartTime = competition.last_synced_at || competition.uploaded_at;
+    console.log(`[BatchSync] Enforcing Time Boundary: Scanning emails AFTER ${batchScanStartTime}`);
+
     const studentsToSync = targetStudents.filter(s => !!s.google_refresh_token);
 
     const stats = { processed: 0, detected: 0, errors: 0 };
@@ -246,14 +253,17 @@ async function performBatchSync(competition, departmentId, assignedVersion) {
                 continue;
             }
 
-            const partRow = participationMap.get(student.id);
-            const lastSyncedAt = partRow ? partRow.last_synced_at : null;
+            // OLD Logic: const partRow = participationMap.get(student.id);
+            // OLD Logic: const lastSyncedAt = partRow ? partRow.last_synced_at : null;
+
             const regRow = regMap.get(student.id);
             // Optimization: If already WON, skip?
             if (regRow && regRow.status === 'WON') continue;
 
             const authClient = getAuthClient(student.google_refresh_token);
-            const result = await syncSingleStudent(student, competition, null, gmailService, authClient);
+
+            // PASS GLOBAL BATCH START TIME
+            const result = await syncSingleStudent(student, competition, batchScanStartTime, gmailService, authClient);
 
             if (result.status === 'detected') {
                 // Upsert to Participation (Legacy/Mirror)
@@ -296,16 +306,8 @@ async function performBatchSync(competition, departmentId, assignedVersion) {
                         student_id: student.id,
                         competition_id: competition.id,
                         status: regRow.status, // Keep existing status, use regRow
-                        last_synced_at: result.lastSyncedAt
+                        last_synced_at: new Date().toISOString()
                     }, { onConflict: 'student_id, competition_id' });
-
-                    // Update registrations too if exists
-                    const { error: regUpdError } = await supabase.from('registrations').update({
-                        // last_synced_at: result.lastSyncedAt // Skipped if column missing
-                        source: 'AUTO_GMAIL' // Update source
-                    }).eq('user_id', student.id).eq('competition_id', competition.id);
-
-                    if (regUpdError) console.error('[BatchSync] Registration Update Error:', regUpdError);
                 }
             } else if (result.status === 'error') {
                 stats.errors++;
@@ -317,6 +319,17 @@ async function performBatchSync(competition, departmentId, assignedVersion) {
             stats.errors++;
         }
     }
+
+    // 4. Update Competition Last Synced At (Global)
+    const { error: compUpdateError } = await supabase
+        .from('competitions')
+        .update({ last_synced_at: new Date().toISOString() })
+        .eq('id', competition.id);
+
+    if (compUpdateError) {
+        console.error('[BatchSync] Failed to update competition last_synced_at:', compUpdateError);
+    }
+
     return stats;
 }
 
