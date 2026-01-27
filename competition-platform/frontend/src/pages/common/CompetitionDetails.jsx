@@ -31,9 +31,14 @@ const CompetitionDetails = () => {
     const isHOD = user?.role === 'HOD';
 
     const handleSectionClick = (students, year, sectionName, type = 'Total') => {
-        setModalTitle(`${year} - Section ${sectionName} (${type})`);
-        setSelectedStudents(students || []);
-        setIsModalOpen(true);
+        const title = `${year} - Section ${sectionName} (${type})`;
+        const sectionSlug = sectionName ? sectionName.toString().replace(/[^a-zA-Z0-9]/g, '-') : 'all';
+        navigate(`/hod/competitions/${id}/section/${sectionSlug}`, {
+            state: {
+                students: students,
+                title: title
+            }
+        });
     };
 
     const handleStatsClick = (students, title, section) => {

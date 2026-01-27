@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import SectionStudentList from '../../components/features/competitions/stats/SectionStudentList';
-import { getHODCompetitionStats } from '../../services/usersService';
+import { getHODCompetitionStats } from '../../services/hodService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+import HodLayout from './HodLayout';
+import { ArrowLeft } from 'lucide-react';
 
 const CompetitionSectionDetails = () => {
     const { id, sectionName } = useParams();
@@ -54,16 +56,30 @@ const CompetitionSectionDetails = () => {
 
     if (loading) return <RoleBasedLoader role="HOD" />;
 
-    if (!students) return null; // Will redirect
+    // Redirect if no students data found (and not loading)
+    if (!students) return null;
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
-            <SectionStudentList
-                title={title}
-                students={students}
-                onClose={() => navigate(-1)}
-            />
-        </div>
+        <HodLayout>
+            <div className="mb-6">
+                <button
+                    onClick={() => navigate(-1)}
+                    className="flex items-center text-gray-500 hover:text-blue-600 transition-colors font-medium mb-2"
+                >
+                    <ArrowLeft className="w-5 h-5 mr-2" />
+                    Back to Competition
+                </button>
+                <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+                <p className="text-gray-500">View and manage students in this section.</p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[500px]">
+                <SectionStudentList
+                    students={students}
+                // title and onClose are handled by the parent page layout now
+                />
+            </div>
+        </HodLayout>
     );
 };
 

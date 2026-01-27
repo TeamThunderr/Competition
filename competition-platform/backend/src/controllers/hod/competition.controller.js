@@ -148,42 +148,6 @@ const getCompetitionStats = async (req, res) => {
             });
         }
 
-        // Group students by Year -> Section
-        const groups = { "2nd Year": {}, "3rd Year": {}, "4th Year": {}, "Other": {} };
-        const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
-
-        allStudents.forEach(s => {
-            const diff = s.admission_year ? currentYear - s.admission_year : -1;
-            let academicYear = 'Other';
-            if (diff === 1) academicYear = '2nd Year';
-            else if (diff === 2) academicYear = '3rd Year';
-            else if (diff === 3) academicYear = '4th Year';
-
-            const sec = s.section || 'Unknown';
-            if (!groups[academicYear][sec]) groups[academicYear][sec] = [];
-            groups[academicYear][sec].push(s);
-        });
-
-        // Transform to Array for Frontend
-        const yearOrder = ["2nd Year", "3rd Year", "4th Year", "Other"];
-        const totalSectionsData = yearOrder
-            .map(year => {
-                const sectionsObj = groups[year];
-                if (Object.keys(sectionsObj).length === 0) return null;
-
-                const sectionsList = Object.keys(sectionsObj).sort().map(sec => ({
-                    name: sec,
-                    count: sectionsObj[sec].length,
-                    students: sectionsObj[sec].map(s => ({ id: s.id, name: s.full_name, regNo: s.registration_no }))
-                }));
-
-                return {
-                    year: year,
-                    totalStudents: sectionsList.reduce((acc, curr) => acc + curr.count, 0),
-                    sections: sectionsList
-                };
-            })
-            .filter(g => g !== null);
 
         // 2. Fetch Registrations (Chunked) - Single source of truth
         let registrations = [];
