@@ -1,13 +1,8 @@
-// File Name: faculty.routes.js
-// Purpose: Routes for faculty features
-// Written for beginner developers
-
 const express = require('express');
 const router = express.Router();
 const facultyController = require('../../controllers/faculty/faculty.controller');
 const verificationController = require('../../controllers/faculty/verification.controller');
 const facultyCompetitionController = require('../../controllers/faculty/competition.controller');
-const participationController = require('../../controllers/faculty/participation.controller');
 const authMiddleware = require('../../middleware/authMiddleware');
 const roleMiddleware = require('../../middleware/role.middleware');
 
@@ -15,25 +10,24 @@ const roleMiddleware = require('../../middleware/role.middleware');
 router.use(authMiddleware);
 router.use(roleMiddleware('FACULTY'));
 
+// Student Management
 router.get('/students', facultyController.getMyStudents);
-router.get('/stats', facultyController.getStats); // Existing, maybe deprecated?
-router.get('/dashboard-stats', facultyController.getDashboardStats); // New
-router.get('/registrations', facultyController.getRecentRegistrations); // New
 router.get('/students/:studentId', facultyController.getStudentDetails);
 
+// Data & Stats
+router.get('/stats', facultyController.getStats); // Legacy
+router.get('/dashboard-stats', facultyController.getDashboardStats); // V2 Logic
+router.get('/registrations', facultyController.getRecentRegistrations);
 
-const syncCompetitionController = require('../../controllers/faculty/syncCompetition.controller');
-
-// Competition View (Read Only)
+// Feature: Competition View & Sync
 router.get('/competitions', facultyCompetitionController.getAllCompetitions);
 router.get('/competition/:id', facultyCompetitionController.getCompetitionDetails);
-router.get('/competition/:id/students', facultyCompetitionController.getCompetitionStudents); // Need to update this controller too?
-router.post('/competition/:competitionId/sync', participationController.syncCompetition);
-router.post('/competitions/sync-active', participationController.syncAllCompetitions);
-router.get('/competitions/export-report', participationController.exportParticipationStats);
+router.get('/competition/:id/students', facultyCompetitionController.getCompetitionStudents);
 
-// 3. Sync Competition (Real Implementation)
-router.post('/sync-competition/:competitionId', participationController.syncCompetition);
+// V2 Sync Routes
+router.post('/competition/:competitionId/sync', facultyController.syncCompetition);
+router.post('/sync-competition/:competitionId', facultyController.syncCompetition);
+router.get('/competition-sync-status', facultyController.getCompetitionSyncStatus); // New route if needed by frontend
 
 // Verification Routes
 router.get('/pending-verifications', verificationController.getPendingVerifications);

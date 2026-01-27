@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import HodLayout from './HodLayout';
 import { ChevronDown, CheckCircle, User, FileText, Users, Award, FileDown, BarChart3, TrendingUp, Calendar, ChevronRight, Menu, BookOpen } from 'lucide-react';
-import { getDepartmentUsers, downloadWinnersReport } from '../../services/usersService';
+import { getDepartmentUsers, downloadWinnersReport } from '../../services/hodService';
 import { api } from '../../services/api';
 import StudentListTable from '../common/StudentListTable';
 import { useNavigate } from 'react-router-dom';

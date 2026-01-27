@@ -1,13 +1,11 @@
 // File Name: competition.controller.js (Faculty)
 // Purpose: Handle faculty competition view requests
-// Written for beginner developers
+// UPDATED: Removed all participation table references - uses registrations only
 
 const supabase = require('../../config/supabaseClient');
 
 const getAllCompetitions = async (req, res) => {
     try {
-        // Fetch competitions sorted by deadline
-        // Does NOT fetch registration status as faculty don't register
         const { data: competitions, error } = await supabase
             .from('competitions')
             .select('*, registrations(count)')
@@ -39,18 +37,13 @@ const getCompetitionDetails = async (req, res) => {
     }
 };
 
-
-
-// 3. Get Students for specific competition (Total, Registered, Shortlisted)
+// Get Students for specific competition (Total, Registered, Shortlisted)
 const getCompetitionStudents = async (req, res) => {
     try {
         const { id: competitionId } = req.params;
         const { assigned_sections, department_id } = req.user;
 
-
-
         // 1. Fetch ALL Students in Faculty's Sections
-        // Reuse logic: Fetch all dept students, then filter by section
         let allStudents = [];
         let page = 0;
         const pageSize = 1000;
@@ -69,13 +62,11 @@ const getCompetitionStudents = async (req, res) => {
                 throw error;
             }
 
-
             allStudents = [...allStudents, ...pageData];
             page++;
             if (pageData.length < pageSize) hasMore = false;
         }
 
-        // Filter by assigned sections
         // Filter by assigned sections
         const allowedSections = assigned_sections
             ? assigned_sections.map(s => {
@@ -101,7 +92,7 @@ const getCompetitionStudents = async (req, res) => {
             });
         }
 
-        // 2. Fetch Registrations (Source of Truth for Manual)
+        // 2. Fetch Registrations (Single Source of Truth)
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
             .select('*')
@@ -111,17 +102,6 @@ const getCompetitionStudents = async (req, res) => {
         if (regError) throw regError;
 
         const regMap = new Map(registrations?.map(r => [r.user_id, r]) || []);
-
-        // 2b. Fetch Participation (Source of Truth for Gmail/Auto)
-        const { data: participation, error: partError } = await supabase
-            .from('participation')
-            .select('*')
-            .eq('competition_id', competitionId)
-            .in('student_id', myStudentIds);
-
-        if (partError) throw partError;
-
-        const partMap = new Map(participation?.map(p => [p.student_id, p]) || []);
 
         // 3. Fetch Competition Status (Shortlisted/Winner)
         const { data: compStatus, error: statusError } = await supabase
@@ -145,22 +125,17 @@ const getCompetitionStudents = async (req, res) => {
             registered: myStudents
                 .filter(s => {
                     const isReg = regMap.has(s.id);
-                    const isPart = partMap.has(s.id);
-                    // Registered if in EITHER table
-                    const hasRegistration = isReg || isPart;
-
                     const isShort = statusMap.get(s.id)?.is_shortlisted;
-                    return hasRegistration && !isShort;
+                    return isReg && !isShort;
                 })
                 .map(s => {
                     const r = regMap.get(s.id);
-                    const p = partMap.get(s.id);
-
-                    // Prioritize Manual Registration if both exist, or merge info?
-                    // Let's take manual if available, else auto.
-                    const source = r ? r.source : (p ? 'GMAIL' : 'UNKNOWN');
-                    const verified = r ? r.verified : (p ? true : false); // Auto assumed verified? Or based on confidence?
-                    const remarks = r ? (r.proof_url ? 'Manual Upload' : '') : (p ? `Gmail Match (${p.confidence_score}%)` : '');
+                    const source = r?.source || 'UNKNOWN';
+                    const verified = r?.verified || false;
+                    const confidence = r?.confidence_score || 100;
+                    const remarks = r?.source === 'AUTO_GMAIL'
+                        ? `Gmail Match (${confidence}%)`
+                        : (r?.proof_url ? 'Manual Upload' : '');
 
                     return {
                         id: s.id,
@@ -168,7 +143,7 @@ const getCompetitionStudents = async (req, res) => {
                         regNo: s.registration_no,
                         status: 'Registered',
                         source: source,
-                        confidence: p ? p.confidence_score : 100,
+                        confidence: confidence,
                         verified: verified,
                         remarks: remarks
                     };
@@ -194,7 +169,6 @@ const getCompetitionStudents = async (req, res) => {
                 .filter(s => {
                     const isReg = regMap.has(s.id);
                     const isShort = statusMap.get(s.id)?.is_shortlisted;
-                    // If NOT registered AND NOT shortlisted
                     return !isReg && !isShort;
                 })
                 .map(s => {

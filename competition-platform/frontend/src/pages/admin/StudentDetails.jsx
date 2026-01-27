@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { getStudentById } from '../../services/usersService';
+import { ArrowLeft, Award, CheckCircle, Trophy, User, Clock, AlertCircle, Phone } from 'lucide-react';
+import { getStudentById } from '../../services/adminService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import StudentProfileView from '../common/StudentProfileView';
 

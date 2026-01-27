@@ -5,31 +5,25 @@
 const supabase = require('../../config/supabaseClient');
 
 // Get all competitions (Public)
+// UPDATED: Removed participation table reference (table dropped)
 const getAllCompetitions = async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('competitions')
-            .select('*, registrations(count), participation(count)')
+            .select('*, registrations(count)')
             .order('registration_deadline', { ascending: true });
-
 
         if (error) {
             return res.status(500).json({ error: error.message });
         }
 
-        // Aggregate counts (Manual Registrations + Auto-Synced Participation)
+        // Use registrations count only (participation table was dropped)
         const enrichedData = data.map(comp => {
-            const manualCount = comp.registrations && comp.registrations[0] ? comp.registrations[0].count : 0;
-            const autoCount = comp.participation && comp.participation[0] ? comp.participation[0].count : 0;
-            const totalCount = manualCount + autoCount;
+            const totalCount = comp.registrations && comp.registrations[0] ? comp.registrations[0].count : 0;
 
-            // Hack: Override registrations count for frontend compatibility
-            // The frontend looks at comp.registrations[0].count
             return {
                 ...comp,
-                registrations: [{ count: totalCount }], // Mocked structure
-                manual_count: manualCount,
-                auto_count: autoCount
+                registrations: [{ count: totalCount }]
             };
         });
 

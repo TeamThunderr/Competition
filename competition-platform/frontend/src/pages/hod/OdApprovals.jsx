@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import HodLayout from './HodLayout';
 import { ShieldCheck, Check, X, Calendar } from 'lucide-react';
-import { getPendingODRequests, manageODRequest } from '../../services/usersService';
+import { getPendingODRequests, manageODRequest } from '../../services/hodService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const OdApprovals = () => {
