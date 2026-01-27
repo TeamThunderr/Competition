@@ -51,7 +51,7 @@ const StudentListModal = ({ isOpen, onClose, title, students }) => {
                                     </div>
 
                                     <button
-                                        onClick={() => navigate(`/hod/student/${student.id}`)}
+                                        onClick={() => navigate(`/hod/students/${student.id}`)}
                                         className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 translate-x-2 group-hover:translate-x-0"
                                     >
                                         View Profile

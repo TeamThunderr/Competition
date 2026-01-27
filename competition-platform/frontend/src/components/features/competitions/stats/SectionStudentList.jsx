@@ -21,8 +21,8 @@ const SectionStudentList = ({ title, students, onClose }) => {
             const isNegative = ['REJECTED', 'DISQUALIFIED'].includes(student.status);
             return (
                 <span className={`ml-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${isPositive ? 'bg-green-100 text-green-700 border-green-200' :
-                        isNegative ? 'bg-red-100 text-red-700 border-red-200' :
-                            'bg-gray-100 text-gray-600 border-gray-200'
+                    isNegative ? 'bg-red-100 text-red-700 border-red-200' :
+                        'bg-gray-100 text-gray-600 border-gray-200'
                     }`}>
                     {student.status}
                 </span>
@@ -81,13 +81,13 @@ const SectionStudentList = ({ title, students, onClose }) => {
                             {filteredStudents.map((student, index) => (
                                 <div
                                     key={student.id}
-                                    onClick={() => navigate(`/hod/student/${student.id}`)}
+                                    onClick={() => navigate(`/hod/students/${student.id}`)}
                                     className="p-4 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-between group"
                                 >
                                     <div className="flex items-center gap-4">
                                         {/* Icon/Avatar */}
                                         <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                                            <Clock className="w-5 h-5" />
+                                            <User className="w-5 h-5" />
                                         </div>
 
                                         {/* Info */}

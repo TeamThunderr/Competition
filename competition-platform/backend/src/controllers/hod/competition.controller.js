@@ -59,6 +59,57 @@ const getCompetitionDetails = async (req, res) => {
     }
 };
 
+
+const groupStudentsBySection = (students) => {
+    if (!students || students.length === 0) return [];
+
+    // Group by Year -> Section
+    const groups = { "2nd Year": {}, "3rd Year": {}, "4th Year": {}, "Other": {} };
+    const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
+
+    students.forEach(s => {
+        const diff = s.admission_year ? currentYear - s.admission_year : -1;
+        let academicYear = 'Other';
+        if (diff === 1) academicYear = '2nd Year';
+        else if (diff === 2) academicYear = '3rd Year';
+        else if (diff === 3) academicYear = '4th Year';
+
+        const sec = s.section || 'Unknown';
+        if (!groups[academicYear][sec]) groups[academicYear][sec] = [];
+        groups[academicYear][sec].push(s);
+    });
+
+    // Transform to Array
+    const yearOrder = ["2nd Year", "3rd Year", "4th Year", "Other"];
+    return yearOrder
+        .map(year => {
+            const sectionsObj = groups[year];
+            if (Object.keys(sectionsObj).length === 0) return null;
+
+            const sectionsList = Object.keys(sectionsObj).sort().map(sec => ({
+                name: sec,
+                count: sectionsObj[sec].length,
+                students: sectionsObj[sec].map(s => ({
+                    id: s.id,
+                    name: s.full_name || s.name, // Handle cases where map might differ
+                    regNo: s.registration_no || s.regNo,
+                    section: s.section,
+                    // Preserve extra props if they exist in source
+                    verified: s.verified,
+                    confidence: s.confidence,
+                    status: s.status
+                }))
+            }));
+
+            return {
+                year: year,
+                totalStudents: sectionsList.reduce((acc, curr) => acc + curr.count, 0),
+                sections: sectionsList
+            };
+        })
+        .filter(g => g !== null);
+};
+
 const getCompetitionStats = async (req, res) => {
     try {
         const { id: competitionId } = req.params;
@@ -97,46 +148,10 @@ const getCompetitionStats = async (req, res) => {
             return res.status(200).json({
                 total_sections: [],
                 registered: [],
+                registered_sections: [],
                 shortlisted: []
             });
         }
-
-        // Group students by Year -> Section
-        const groups = { "2nd Year": {}, "3rd Year": {}, "4th Year": {}, "Other": {} };
-        const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
-
-        allStudents.forEach(s => {
-            const diff = s.admission_year ? currentYear - s.admission_year : -1;
-            let academicYear = 'Other';
-            if (diff === 1) academicYear = '2nd Year';
-            else if (diff === 2) academicYear = '3rd Year';
-            else if (diff === 3) academicYear = '4th Year';
-
-            const sec = s.section || 'Unknown';
-            if (!groups[academicYear][sec]) groups[academicYear][sec] = [];
-            groups[academicYear][sec].push(s);
-        });
-
-        // Transform to Array for Frontend
-        const yearOrder = ["2nd Year", "3rd Year", "4th Year", "Other"];
-        const totalSectionsData = yearOrder
-            .map(year => {
-                const sectionsObj = groups[year];
-                if (Object.keys(sectionsObj).length === 0) return null;
-
-                const sectionsList = Object.keys(sectionsObj).sort().map(sec => ({
-                    name: sec,
-                    count: sectionsObj[sec].length,
-                    students: sectionsObj[sec].map(s => ({ id: s.id, name: s.full_name, regNo: s.registration_no }))
-                }));
-
-                return {
-                    year: year,
-                    totalStudents: sectionsList.reduce((acc, curr) => acc + curr.count, 0),
-                    sections: sectionsList
-                };
-            })
-            .filter(g => g !== null); // Remove empty years
 
         // 2. Fetch Registrations (Chunked to avoid URL length issues)
         let registrations = [];
@@ -190,24 +205,36 @@ const getCompetitionStats = async (req, res) => {
         // Add/Merge Participation (Auto)
         participation.forEach(p => {
             if (!registeredMap.has(p.student_id)) {
-                registeredMap.set(p.student_id, { verified: true, source: 'GMAIL' }); // Auto assumed verified?
+                registeredMap.set(p.student_id, { verified: true, source: 'GMAIL', confidence: p.confidence_score });
+            } else {
+                // Merge info if needed
+                const existing = registeredMap.get(p.student_id);
+                existing.confidence = p.confidence_score;
+                registeredMap.set(p.student_id, existing);
             }
         });
 
         const shortlistedSet = new Set(statusData.filter(s => s.is_shortlisted).map(s => s.user_id));
         const winnersSet = new Set(statusData.filter(s => s.is_winner).map(s => s.user_id));
 
+        const registeredStudents = allStudents
+            .filter(s => registeredMap.has(s.id))
+            .map(s => ({
+                id: s.id,
+                full_name: s.full_name,
+                name: s.full_name, // Alias for frontend compatibility
+                registration_no: s.registration_no,
+                regNo: s.registration_no,
+                section: s.section,
+                admission_year: s.admission_year,
+                verified: registeredMap.get(s.id)?.verified || false,
+                confidence: registeredMap.get(s.id)?.confidence || 0
+            }));
+
         const response = {
-            total_sections: totalSectionsData,
-            registered: allStudents
-                .filter(s => registeredMap.has(s.id))
-                .map(s => ({
-                    id: s.id,
-                    name: s.full_name,
-                    regNo: s.registration_no,
-                    section: s.section,
-                    verified: registeredMap.get(s.id)?.verified || false
-                })),
+            total_sections: groupStudentsBySection(allStudents),
+            registered: registeredStudents, // Keep flat list for counts/compatibility
+            registered_sections: groupStudentsBySection(registeredStudents), // New grouped list
             shortlisted: allStudents
                 .filter(s => shortlistedSet.has(s.id))
                 .map(s => ({
