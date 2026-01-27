@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import HodLayout from './HodLayout';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { getHodStudentDetails } from '../../services/usersService';
+import { getHodStudentDetails } from '../../services/hodService';
 import StudentProfileView from '../common/StudentProfileView';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 

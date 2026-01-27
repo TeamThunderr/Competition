@@ -7,7 +7,7 @@ const { google } = require('googleapis');
 const getAuthClient = (refreshToken) => {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000'; // Placeholder
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000';
 
     if (!clientId || !clientSecret) {
         throw new Error("Google Client ID/Secret missing in env");
@@ -33,26 +33,23 @@ const syncSingleStudent = async (student, competition, lastSyncedAt, gmailServic
         );
 
         if (match && match.suggested_status && match.suggested_status !== 'NOT_FOUND') {
-            let dbStatus = match.suggested_status; // REGISTERED, QUALIFIED, REJECTED
+            let dbStatus = match.suggested_status;
 
-            // Map common Gmail statuses to our DB statuses
             if (dbStatus === 'QUALIFIED') dbStatus = 'SHORTLISTED';
             if (dbStatus === 'ACTION_REQUIRED') dbStatus = 'PENDING';
 
             // SINGLE SOURCE OF TRUTH: Update 'registrations' table directly
             const upsertData = {
                 user_id: student.id,
-                student_id: student.id, // Compatibility
                 competition_id: competition.id,
-                status: dbStatus, // Use the mapped status
-                verification_source: 'AUTO_GMAIL',
+                status: dbStatus,
+                source: 'AUTO_GMAIL',
                 gmail_message_id: match.gmail_message_id,
                 matched_keyword: match.matched_keyword,
                 confidence_score: match.confidence,
                 last_synced_at: match.detected_at,
                 remarks: `[${match.confidence_level}] Match: ${match.suggested_status}. Breakdown: ${match.match_breakdown?.join(', ')}`,
-                verified: true, // Auto-verified if match found (even low pass)
-                source: 'AUTO_GMAIL',
+                verified: true,
                 registered_at: new Date().toISOString()
             };
 
@@ -74,11 +71,18 @@ const syncCompetition = async (req, res) => {
 
         console.log(`[Sync] Started by Faculty ${facultyId} for Comp ${competitionId}`);
 
-        // 1. Fetch Comp
         const { data: competition } = await supabase.from('competitions').select('*').eq('id', competitionId).single();
         if (!competition) return res.status(404).json({ error: 'Competition not found' });
 
-        const results = await performBatchSync(competition, department_id, assigned_sections);
+        // Check if sync is already in progress (Sync Lock)
+        if (competition.is_syncing) {
+            return res.status(409).json({
+                error: 'Sync already in progress',
+                message: 'Another sync is currently running. Please wait and try again.'
+            });
+        }
+
+        const results = await performBatchSync(competition, department_id, assigned_sections, facultyId);
 
         res.status(200).json({ message: 'Sync completed', stats: results });
 
@@ -110,7 +114,6 @@ const syncAllCompetitions = async (req, res) => {
         }
 
         console.log(`[SyncAll] Found ${competitions?.length || 0} active competitions.`);
-        if (compError) return res.status(500).json({ error: 'Database Error: Competitions' });
 
         let totalStats = { processed: 0, detected: 0, errors: 0 };
 
@@ -137,12 +140,11 @@ const syncAllCompetitions = async (req, res) => {
     }
 };
 
-// EXPORT Report - Reading from REGISTRATIONS now (Source of Truth)
+// EXPORT Report - Reading from REGISTRATIONS (Source of Truth)
 const exportParticipationStats = async (req, res) => {
     try {
         const { id: facultyId, department_id, assigned_sections } = req.user;
 
-        // 1. Get My Students
         const facultySectionsParsed = (assigned_sections || []).map(s => {
             const parts = s.split('-');
             return parts.length > 1 ? parts[parts.length - 1].trim() : s.trim();
@@ -156,7 +158,6 @@ const exportParticipationStats = async (req, res) => {
 
         if (myStudentIds.length === 0) return res.status(200).send("No students found.");
 
-        // 2. Get Registrations (Source of Truth)
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
             .select(`
@@ -168,7 +169,6 @@ const exportParticipationStats = async (req, res) => {
 
         if (regError) throw regError;
 
-        // 3. Build CSV
         const header = "Student Name,Reg No,Section,Competition,Platform,Status,Source,Verified\n";
         const rows = registrations.map(r => {
             const student = myStudents.find(s => s.id === r.user_id);
@@ -186,138 +186,219 @@ const exportParticipationStats = async (req, res) => {
     }
 };
 
-// Shared Logic for Batch Sync (Using Registrations Table)
-async function performBatchSync(competition, departmentId, assignedVersion) {
-    // 1. Fetch Class Students
-    const { data: students, error: studentError } = await supabase
-        .from('users')
-        .select('id, email, section, google_refresh_token')
-        .eq('department_id', departmentId)
-        .eq('role', 'STUDENT');
+// Shared Logic for Batch Sync (Using Registrations Table ONLY)
+// IMPROVED: Sync Lock, Time Tracking, Status, Deduplication
+async function performBatchSync(competition, departmentId, assignedVersion, facultyId = null) {
+    const syncFrom = competition.last_synced_at || competition.uploaded_at || competition.created_at;
+    const syncTo = new Date().toISOString();
+    const stats = { processed: 0, detected: 0, errors: 0, skipped: 0 };
 
-    if (studentError) throw new Error(studentError.message);
+    try {
+        // 1. Acquire Sync Lock
+        const { error: lockError } = await supabase
+            .from('competitions')
+            .update({
+                is_syncing: true,
+                sync_started_by: facultyId,
+                last_sync_from: syncFrom,
+                sync_status: 'running'
+            })
+            .eq('id', competition.id);
 
-    const facultySectionsParsed = (assignedVersion || []).map(s => {
-        const parts = s.split('-');
-        return parts.length > 1 ? parts[parts.length - 1].trim() : s.trim();
-    });
+        if (lockError) {
+            console.error('[BatchSync] Failed to acquire lock:', lockError);
+            throw new Error('Failed to acquire sync lock');
+        }
 
-    console.log(`[BatchSync] Raw Sections: ${assignedVersion}, Parsed: ${facultySectionsParsed}`);
-    console.log(`[BatchSync] Total Students in Dept: ${students.length}`);
+        console.log(`[BatchSync] Lock acquired. Scanning emails from ${syncFrom} to ${syncTo}`);
 
-    const targetStudents = students.filter(s => {
-        const sSec = s.section ? s.section.trim().toUpperCase() : '';
-        return facultySectionsParsed.includes(sSec);
-    });
+        // 2. Fetch Students (MOVED TO CONDITIONAL LOIC BELOW)
 
-    console.log(`[BatchSync] Target Students after Section Filter: ${targetStudents.length}`);
+        const facultySectionsParsed = (assignedVersion || []).map(s => {
+            const parts = s.split('-');
+            return parts.length > 1 ? parts[parts.length - 1].trim() : s.trim();
+        });
 
+        console.log(`[BatchSync] Raw Sections: ${assignedVersion}, Parsed: ${facultySectionsParsed}`);
 
-    // 2. Fetch Existing Registrations (to avoid redundant Gmail API usage)
-    const { data: existingRegs, error: regError } = await supabase
-        .from('registrations')
-        .select('user_id, status')
-        .eq('competition_id', competition.id);
+        // OPTIMIZATION: If competition is CLOSED, only sync ALREADY REGISTERED students
+        // Goal: Check for updates (Won/Qualified) without scanning 1000s of non-participants
+        const isClosed = competition.registration_deadline && new Date(competition.registration_deadline) < new Date();
+        let targetStudents = [];
 
-    if (regError) throw new Error(regError.message);
+        if (isClosed) {
+            console.log(`[BatchSync] Competition Closed. Optimizing: Syncing ONLY registered students.`);
 
-    const regMap = new Map(existingRegs?.map(r => [r.user_id, r]) || []);
+            // Fetch users who have a registration for this competition
+            const { data: regStudents, error: regError } = await supabase
+                .from('registrations')
+                .select('user_id, users!inner(id, email, section, google_refresh_token)')
+                .eq('competition_id', competition.id)
+                .eq('users.department_id', departmentId) // Ensure department safety
+                .eq('users.role', 'STUDENT');
 
-    // 2b. Fetch Existing Participation (for Last Synced At)
-    const { data: existingPart, error: partError } = await supabase
-        .from('participation')
-        .select('student_id, last_synced_at')
-        .eq('competition_id', competition.id);
+            if (regError) throw new Error(regError.message);
 
-    if (partError) throw new Error(partError.message);
+            // Extract user objects from the join
+            const potentialStudents = regStudents.map(r => r.users);
 
-    const participationMap = new Map(existingPart?.map(p => [p.student_id, p]) || []);
+            // Apply Section Filter
+            targetStudents = potentialStudents.filter(s => {
+                const sSec = s.section ? s.section.trim().toUpperCase() : '';
+                return facultySectionsParsed.includes(sSec);
+            });
 
-    // 3. Sync logic
-    const studentsToSync = targetStudents.filter(s => !!s.google_refresh_token);
+        } else {
+            console.log(`[BatchSync] Competition Open. Full Scan Mode.`);
+            // Fetch ALL students in department (Standard Discovery Mode)
+            const { data: students, error: studentError } = await supabase
+                .from('users')
+                .select('id, email, section, google_refresh_token')
+                .eq('department_id', departmentId)
+                .eq('role', 'STUDENT');
 
-    const stats = { processed: 0, detected: 0, errors: 0 };
-    console.log(`[BatchSync] candidates to sync: ${studentsToSync.length}`);
+            if (studentError) throw new Error(studentError.message);
 
-    for (const student of studentsToSync) {
-        try {
-            if (!student.google_refresh_token) {
-                console.log(`[BatchSync] Skipping ${student.email} - Missing Refresh Token`);
-                continue;
-            }
+            console.log(`[BatchSync] Total Students in Dept: ${students.length}`);
 
-            const partRow = participationMap.get(student.id);
-            const lastSyncedAt = partRow ? partRow.last_synced_at : null;
-            const regRow = regMap.get(student.id);
-            // Optimization: If already WON, skip?
-            if (regRow && regRow.status === 'WON') continue;
+            targetStudents = students.filter(s => {
+                const sSec = s.section ? s.section.trim().toUpperCase() : '';
+                return facultySectionsParsed.includes(sSec);
+            });
+        }
 
-            const authClient = getAuthClient(student.google_refresh_token);
-            const result = await syncSingleStudent(student, competition, null, gmailService, authClient);
+        console.log(`[BatchSync] Target Students after Filter: ${targetStudents.length}`);
 
-            if (result.status === 'detected') {
-                // Upsert to Participation (Legacy/Mirror)
-                await supabase.from('participation').upsert(result.upsertData, { onConflict: 'student_id, competition_id' });
+        // 3. Fetch Existing Registrations and gmail_message_ids for deduplication
+        const { data: existingRegs, error: regError } = await supabase
+            .from('registrations')
+            .select('user_id, status, last_synced_at, gmail_message_id')
+            .eq('competition_id', competition.id);
 
-                // IMPORTANT: Upsert to Registrations (Source of Truth for Dashboard)
-                // Filter upsertData to only include columns that exist in 'registrations' to avoid invalid input errors.
-                // We do NOT store 'remarks', 'last_synced_at', 'confidence_score' in this table if the schema doesn't support it.
-                // From debug_db.js, we assume (user_id, competition_id, source, verified, registered_at) are safe.
-                // REMOVED 'status' because confirmed column does not exist.
-                const registrationUpsertData = {
-                    user_id: result.upsertData.user_id,
-                    competition_id: result.upsertData.competition_id,
-                    source: result.upsertData.source,
-                    verified: result.upsertData.verified,
-                    registered_at: result.upsertData.registered_at
-                };
+        if (regError) throw new Error(regError.message);
 
-                const { error: regUpsertError } = await supabase.from('registrations').upsert(registrationUpsertData, { onConflict: 'user_id, competition_id' });
-                if (regUpsertError) {
-                    console.error('[BatchSync] Registration Upsert Error:', regUpsertError);
+        const regMap = new Map(existingRegs?.map(r => [r.user_id, r]) || []);
+        const existingGmailIds = new Set(existingRegs?.filter(r => r.gmail_message_id).map(r => r.gmail_message_id) || []);
+
+        const studentsToSync = targetStudents.filter(s => !!s.google_refresh_token);
+        console.log(`[BatchSync] Candidates to sync: ${studentsToSync.length}`);
+
+        // 4. Process Each Student
+        for (const student of studentsToSync) {
+            try {
+                if (!student.google_refresh_token) {
+                    console.log(`[BatchSync] Skipping ${student.email} - Missing Refresh Token`);
+                    stats.skipped++;
+                    continue;
                 }
 
-                // Update 'competition_status' if Qualified/Shortlisted
-                if (['SHORTLISTED', 'WINNER', 'QUALIFIED'].includes(result.upsertData.status)) {
-                    await supabase.from('competition_status').upsert({
+                const regRow = regMap.get(student.id);
+                if (regRow && regRow.status === 'WON') {
+                    stats.skipped++;
+                    continue;
+                }
+
+                const authClient = getAuthClient(student.google_refresh_token);
+                const result = await syncSingleStudent(student, competition, syncFrom, gmailService, authClient);
+
+                if (result.status === 'detected') {
+                    // Deduplication Check
+                    if (result.upsertData.gmail_message_id && existingGmailIds.has(result.upsertData.gmail_message_id)) {
+                        console.log(`[BatchSync] Skipping duplicate email: ${result.upsertData.gmail_message_id}`);
+                        stats.skipped++;
+                        continue;
+                    }
+
+                    // Upsert to Registrations
+                    const registrationUpsertData = {
                         user_id: result.upsertData.user_id,
                         competition_id: result.upsertData.competition_id,
-                        is_shortlisted: true,
-                        is_winner: result.upsertData.status === 'WINNER',
-                        updated_at: new Date()
-                    }, { onConflict: 'user_id, competition_id' });
+                        source: result.upsertData.source,
+                        verified: result.upsertData.verified,
+                        registered_at: result.upsertData.registered_at,
+                        gmail_message_id: result.upsertData.gmail_message_id,
+                        matched_keyword: result.upsertData.matched_keyword,
+                        confidence_score: result.upsertData.confidence_score,
+                        last_synced_at: syncTo,
+                        remarks: result.upsertData.remarks
+                    };
+
+                    const { error: regUpsertError } = await supabase
+                        .from('registrations')
+                        .upsert(registrationUpsertData, { onConflict: 'user_id, competition_id' });
+
+                    if (regUpsertError) {
+                        console.error('[BatchSync] Registration Upsert Error:', regUpsertError);
+                        stats.errors++;
+                    } else {
+                        // Track this gmail_message_id as processed
+                        if (result.upsertData.gmail_message_id) {
+                            existingGmailIds.add(result.upsertData.gmail_message_id);
+                        }
+                        stats.detected++;
+                    }
+
+                    // Update competition_status if Qualified/Shortlisted
+                    if (['SHORTLISTED', 'WINNER', 'QUALIFIED'].includes(result.upsertData.status)) {
+                        await supabase.from('competition_status').upsert({
+                            user_id: result.upsertData.user_id,
+                            competition_id: result.upsertData.competition_id,
+                            is_shortlisted: true,
+                            is_winner: result.upsertData.status === 'WINNER',
+                            updated_at: new Date()
+                        }, { onConflict: 'user_id, competition_id' });
+                    }
+                } else if (result.status === 'no_match') {
+                    if (regRow) {
+                        await supabase.from('registrations').update({
+                            last_synced_at: syncTo
+                        }).eq('user_id', student.id).eq('competition_id', competition.id);
+                    }
+                } else if (result.status === 'error') {
+                    stats.errors++;
                 }
 
-                stats.detected++;
-            } else if (result.status === 'no_match') {
-                // Only update last_synced_at if record ALREADY exists
-                if (regRow) {
-                    await supabase.from('participation').upsert({
-                        student_id: student.id,
-                        competition_id: competition.id,
-                        status: regRow.status, // Keep existing status, use regRow
-                        last_synced_at: result.lastSyncedAt
-                    }, { onConflict: 'student_id, competition_id' });
-
-                    // Update registrations too if exists
-                    const { error: regUpdError } = await supabase.from('registrations').update({
-                        // last_synced_at: result.lastSyncedAt // Skipped if column missing
-                        source: 'AUTO_GMAIL' // Update source
-                    }).eq('user_id', student.id).eq('competition_id', competition.id);
-
-                    if (regUpdError) console.error('[BatchSync] Registration Update Error:', regUpdError);
-                }
-            } else if (result.status === 'error') {
+                stats.processed++;
+            } catch (e) {
+                console.error(`Error processing ${student.email}:`, e.message);
                 stats.errors++;
             }
-
-            stats.processed++;
-        } catch (e) {
-            console.error(`Error processing ${student.email}:`, e.message);
-            stats.errors++;
         }
+
+        // 5. Update Competition with Success Status
+        const syncStatus = stats.errors > 0 ? (stats.detected > 0 ? 'partial' : 'failed') : 'success';
+        const syncErrorMsg = stats.errors > 0 ? `${stats.errors} students failed to sync` : null;
+
+        await supabase
+            .from('competitions')
+            .update({
+                is_syncing: false,
+                last_synced_at: syncTo,
+                last_sync_from: syncFrom,
+                last_sync_to: syncTo,
+                sync_status: syncStatus,
+                sync_error_message: syncErrorMsg
+            })
+            .eq('id', competition.id);
+
+        console.log(`[BatchSync] Completed. Status: ${syncStatus}`, stats);
+        return stats;
+
+    } catch (error) {
+        // 6. Release Lock and Set Failed Status on Error
+        console.error('[BatchSync] Critical Error:', error);
+
+        await supabase
+            .from('competitions')
+            .update({
+                is_syncing: false,
+                sync_status: 'failed',
+                sync_error_message: error.message
+            })
+            .eq('id', competition.id);
+
+        throw error;
     }
-    return stats;
 }
 
-module.exports = { syncCompetition, syncAllCompetitions, exportParticipationStats };
+module.exports = { syncCompetition, syncAllCompetitions, exportParticipationStats, performBatchSync };

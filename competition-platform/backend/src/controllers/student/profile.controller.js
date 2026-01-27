@@ -40,10 +40,14 @@ const getProfile = async (req, res) => {
 
         if (regError || statusError) throw regError || statusError;
 
+        // Filter statuses to only include those matching active registrations
+        const registeredCompIds = new Set(registrations.map(r => r.competition_id));
+        const validStatuses = statuses?.filter(s => registeredCompIds.has(s.competition_id)) || [];
+
         // 3. Calculate Stats
         const totalCompetitions = registrations.length;
-        const wins = statuses?.filter(s => s.is_winner).length || 0;
-        const qualified = statuses?.filter(s => s.is_shortlisted).length || 0;
+        const wins = validStatuses.filter(s => s.is_winner).length;
+        const qualified = validStatuses.filter(s => s.is_shortlisted).length;
 
         // Simple participation points logic: 10 pts per reg, 50 pts per win
         const participationPoints = (totalCompetitions * 10) + (wins * 50);
@@ -88,8 +92,8 @@ const getProfile = async (req, res) => {
                 participation_points: participationPoints,
                 qualified: qualified
             },
-            competitionsWon: statuses?.filter(s => s.is_winner).map(s => s.competitions.title) || [],
-            competitionsQualified: statuses?.filter(s => s.is_shortlisted).map(s => s.competitions.title) || []
+            competitionsWon: validStatuses.filter(s => s.is_winner).map(s => s.competitions.title),
+            competitionsQualified: validStatuses.filter(s => s.is_shortlisted).map(s => s.competitions.title)
         };
 
         sendResponse(res, 200, profileData, 'Fetched profile successfully');

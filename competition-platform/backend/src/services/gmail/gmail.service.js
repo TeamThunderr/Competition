@@ -1,6 +1,5 @@
 const { google } = require('googleapis');
 const supabase = require('../../config/supabaseClient');
-const { updateRegistrationFromGmail } = require('./gmailToRegistration.service');
 
 // Scopes required for the application
 const SCOPES = [

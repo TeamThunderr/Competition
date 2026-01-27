@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Users, ExternalLink, ArrowLeft, Globe, Clock, MessageSquare, Layers } from 'lucide-react';
 import { getCurrentUser } from '../../services/authService';
-import { getCompetitionStudents, getHODCompetitionStats } from '../../services/usersService';
+import { getCompetitionStudents } from '../../services/facultyService';
+import { getHODCompetitionStats } from '../../services/hodService';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 // import StudentListModal from '../../components/common/StudentListModal'; // Removed -> Uncommented below

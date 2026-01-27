@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StudentSidebar from './Sidebar';
 import { Upload, Calendar, FileText, Send, AlertCircle, Lock, Check, Clock } from 'lucide-react';
-import { getStudentCompetitions, requestOD } from '../../services/usersService';
+import { getAllCompetitions, requestOD } from '../../services/studentService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const ODLetter = () => {
@@ -20,7 +20,7 @@ const ODLetter = () => {
 
     const fetchCompetitions = async () => {
         try {
-            const data = await getStudentCompetitions();
+            const data = await getAllCompetitions();
 
             // 1. Existing Requests (Pending, Approved, Rejected)
             const requested = data.filter(comp => comp.my_od);

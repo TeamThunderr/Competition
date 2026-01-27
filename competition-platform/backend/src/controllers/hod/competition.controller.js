@@ -1,16 +1,16 @@
 // File Name: competition.controller.js (HOD)
 // Purpose: Handle HOD competition view requests
-// Written for beginner developers
+// UPDATED: Removed all references to deprecated 'participation' table
 
 const supabase = require('../../config/supabaseClient');
 
 const getAllCompetitions = async (req, res) => {
     try {
-        // Fetch competitions sorted by deadline
+        // Fetch competitions sorted by deadline (participation table removed)
         console.log("HOD Controller - Fetching competitions");
         const { data: competitions, error } = await supabase
             .from('competitions')
-            .select('*, registrations(count), participation(count)')
+            .select('*, registrations(count)')
             .order('registration_deadline', { ascending: true });
 
         if (error) {
@@ -20,18 +20,13 @@ const getAllCompetitions = async (req, res) => {
 
         console.log('HOD Competitions Sample:', competitions.length > 0 ? JSON.stringify(competitions[0]) : 'No data');
 
-        // Aggregate counts (Manual Registrations + Auto-Synced Participation)
+        // Get counts from registrations only
         const enrichedCompetitions = competitions.map(comp => {
-            const manualCount = comp.registrations && comp.registrations[0] ? comp.registrations[0].count : 0;
-            const autoCount = comp.participation && comp.participation[0] ? comp.participation[0].count : 0;
-            const totalCount = manualCount + autoCount;
+            const totalCount = comp.registrations && comp.registrations[0] ? comp.registrations[0].count : 0;
 
-            // Hack: Override registrations count for frontend compatibility
             return {
                 ...comp,
-                registrations: [{ count: totalCount }], // Mocked structure
-                manual_count: manualCount,
-                auto_count: autoCount
+                registrations: [{ count: totalCount }]
             };
         });
 
@@ -153,33 +148,56 @@ const getCompetitionStats = async (req, res) => {
             });
         }
 
-        // 2. Fetch Registrations (Chunked to avoid URL length issues)
+        // Group students by Year -> Section
+        const groups = { "2nd Year": {}, "3rd Year": {}, "4th Year": {}, "Other": {} };
+        const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
+
+        allStudents.forEach(s => {
+            const diff = s.admission_year ? currentYear - s.admission_year : -1;
+            let academicYear = 'Other';
+            if (diff === 1) academicYear = '2nd Year';
+            else if (diff === 2) academicYear = '3rd Year';
+            else if (diff === 3) academicYear = '4th Year';
+
+            const sec = s.section || 'Unknown';
+            if (!groups[academicYear][sec]) groups[academicYear][sec] = [];
+            groups[academicYear][sec].push(s);
+        });
+
+        // Transform to Array for Frontend
+        const yearOrder = ["2nd Year", "3rd Year", "4th Year", "Other"];
+        const totalSectionsData = yearOrder
+            .map(year => {
+                const sectionsObj = groups[year];
+                if (Object.keys(sectionsObj).length === 0) return null;
+
+                const sectionsList = Object.keys(sectionsObj).sort().map(sec => ({
+                    name: sec,
+                    count: sectionsObj[sec].length,
+                    students: sectionsObj[sec].map(s => ({ id: s.id, name: s.full_name, regNo: s.registration_no }))
+                }));
+
+                return {
+                    year: year,
+                    totalStudents: sectionsList.reduce((acc, curr) => acc + curr.count, 0),
+                    sections: sectionsList
+                };
+            })
+            .filter(g => g !== null);
+
+        // 2. Fetch Registrations (Chunked) - Single source of truth
         let registrations = [];
         const chunkSize = 50;
         for (let i = 0; i < myStudentIds.length; i += chunkSize) {
             const chunk = myStudentIds.slice(i, i + chunkSize);
             const { data: regData, error: regError } = await supabase
                 .from('registrations')
-                .select('user_id, verified')
+                .select('user_id, verified, source')
                 .eq('competition_id', competitionId)
                 .in('user_id', chunk);
 
             if (regError) throw regError;
             if (regData) registrations = [...registrations, ...regData];
-        }
-
-        // 2b. Fetch Participation (Chunked)
-        let participation = [];
-        for (let i = 0; i < myStudentIds.length; i += chunkSize) {
-            const chunk = myStudentIds.slice(i, i + chunkSize);
-            const { data: partData, error: partError } = await supabase
-                .from('participation')
-                .select('student_id, confidence_score')
-                .eq('competition_id', competitionId)
-                .in('student_id', chunk);
-
-            if (partError) throw partError;
-            if (partData) participation = [...participation, ...partData];
         }
 
         // 3. Fetch Shortlisted (Chunked)
@@ -196,23 +214,9 @@ const getCompetitionStats = async (req, res) => {
             if (sData) statusData = [...statusData, ...sData];
         }
 
-        // Map Data
+        // Map Data - registrations is now single source of truth
         const registeredMap = new Map();
-
-        // Add Manual Registrations
-        registrations.forEach(r => registeredMap.set(r.user_id, { verified: r.verified, source: 'MANUAL' }));
-
-        // Add/Merge Participation (Auto)
-        participation.forEach(p => {
-            if (!registeredMap.has(p.student_id)) {
-                registeredMap.set(p.student_id, { verified: true, source: 'GMAIL', confidence: p.confidence_score });
-            } else {
-                // Merge info if needed
-                const existing = registeredMap.get(p.student_id);
-                existing.confidence = p.confidence_score;
-                registeredMap.set(p.student_id, existing);
-            }
-        });
+        registrations.forEach(r => registeredMap.set(r.user_id, { verified: r.verified, source: r.source }));
 
         const shortlistedSet = new Set(statusData.filter(s => s.is_shortlisted).map(s => s.user_id));
         const winnersSet = new Set(statusData.filter(s => s.is_winner).map(s => s.user_id));
@@ -257,7 +261,6 @@ const getCompetitionStats = async (req, res) => {
 
     } catch (err) {
         console.error('[HOD Stats] Error:', err);
-        // Return 500 with message
         res.status(500).json({ error: `Internal Server Error: ${err.message}` });
     }
 };
