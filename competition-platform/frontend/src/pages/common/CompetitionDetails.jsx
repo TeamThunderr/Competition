@@ -6,20 +6,56 @@ import { getCompetitionStudents } from '../../services/facultyService';
 import { getHODCompetitionStats } from '../../services/hodService';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+// import StudentListModal from '../../components/common/StudentListModal'; // Removed -> Uncommented below
+import StudentListModal from '../../components/common/StudentListModal';
+import TotalSectionsStats from '../../components/features/competitions/stats/TotalSectionsStats';
+import StudentStatsList from '../../components/features/competitions/stats/StudentStatsList';
+// import SectionStudentList from '../../components/features/competitions/stats/SectionStudentList'; // Removed from here
+import { UserCheck, UserPlus } from 'lucide-react';
 
 const CompetitionDetails = () => {
     const { id } = useParams();
     // ... (rest of imports/setup)
 
-    // ...
-
     const navigate = useNavigate();
     const [competition, setCompetition] = useState(null);
     const [loading, setLoading] = useState(true);
     const [statsData, setStatsData] = useState({ total_sections: [], registered: [], shortlisted: [], winners: [], total: [] });
+    // Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalTitle, setModalTitle] = useState('');
+    const [selectedStudents, setSelectedStudents] = useState([]);
+
     const user = getCurrentUser();
     const isFaculty = user?.role === 'FACULTY';
     const isHOD = user?.role === 'HOD';
+
+    const handleSectionClick = (students, year, sectionName, type = 'Total') => {
+        const title = `${year} - Section ${sectionName} (${type})`;
+        const sectionSlug = sectionName ? sectionName.toString().replace(/[^a-zA-Z0-9]/g, '-') : 'all';
+        navigate(`/hod/competitions/${id}/section/${sectionSlug}`, {
+            state: {
+                students: students,
+                title: title
+            }
+        });
+    };
+
+    const handleStatsClick = (students, title, section) => {
+        let finalTitle = title;
+        if (section && !finalTitle.includes('Section') && !finalTitle.includes('Year')) {
+            finalTitle = `${title} - Section ${section}`;
+        }
+
+        // Navigate to new page with state
+        const sectionSlug = section ? section.toString().replace(/[^a-zA-Z0-9]/g, '-') : 'all';
+        navigate(`/hod/competitions/${id}/section/${sectionSlug}`, {
+            state: {
+                students: students,
+                title: finalTitle
+            }
+        });
+    };
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -54,6 +90,9 @@ const CompetitionDetails = () => {
         );
     }
     if (!competition) return <div className="p-8 text-center text-red-500">Competition not found</div>;
+
+    // derived data
+
 
     return (
         <div className="min-h-screen bg-gray-50 p-8 font-sans">
@@ -207,7 +246,11 @@ const CompetitionDetails = () => {
                                                                 </summary>
                                                                 <div className="mt-2 pl-2 space-y-2 border-l-2 border-gray-100 ml-2">
                                                                     {group.sections.map((sec, sIdx) => (
-                                                                        <div key={sIdx} className="flex justify-between items-center text-sm p-2 bg-white border border-gray-100 rounded-md shadow-sm">
+                                                                        <div
+                                                                            key={sIdx}
+                                                                            onClick={() => handleSectionClick(sec.students, group.year, sec.name, 'Total Students')}
+                                                                            className="flex justify-between items-center text-sm p-2 bg-white border border-gray-100 rounded-md shadow-sm cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                                                                        >
                                                                             <div className="font-medium text-gray-900 flex items-center gap-2 truncate">
                                                                                 <Layers size={14} className="text-gray-400 flex-shrink-0" />
                                                                                 <span className="truncate">Section {sec.name}</span>
@@ -254,30 +297,68 @@ const CompetitionDetails = () => {
                                 <span className="truncate">Registered ({statsData.registered?.length || 0})</span>
                             </h3>
                             <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-                                {statsData.registered?.map(student => (
-                                    <div key={student.id} className={`text-sm p-3 rounded-lg border ${student.confidence > 0 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
-                                        <div className="font-medium text-gray-900 truncate">{student.name}</div>
-                                        <div className="flex justify-between items-center mt-1 flex-wrap gap-1">
-                                            <span className="text-xs text-blue-600 truncate">{student.regNo}</span>
+                                {isHOD && statsData.registered_sections ? (
+                                    statsData.registered_sections.length > 0 ? (
+                                        statsData.registered_sections.map((group, gIdx) => (
+                                            <div key={gIdx} className="mb-3">
+                                                <details className="group" open={group.year === '2nd Year' || group.year === '3rd Year'}>
+                                                    <summary className="flex justify-between items-center font-bold text-gray-700 cursor-pointer p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                                        <span>{group.year}</span>
+                                                        <span className="text-xs bg-white px-2 py-0.5 rounded text-gray-500 shadow-sm border border-gray-200">
+                                                            {group.totalStudents} Reg
+                                                        </span>
+                                                    </summary>
+                                                    <div className="mt-2 pl-2 space-y-2 border-l-2 border-gray-100 ml-2">
+                                                        {group.sections.map((sec, sIdx) => (
+                                                            <div
+                                                                key={sIdx}
+                                                                onClick={() => handleSectionClick(sec.students, group.year, sec.name, 'Registered Students')}
+                                                                className="flex justify-between items-center text-sm p-2 bg-white border border-gray-100 rounded-md shadow-sm cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                                                            >
+                                                                <div className="font-medium text-gray-900 flex items-center gap-2 truncate">
+                                                                    <Layers size={14} className="text-gray-400 flex-shrink-0" />
+                                                                    <span className="truncate">Section {sec.name}</span>
+                                                                </div>
+                                                                <div className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded font-medium border border-green-100 whitespace-nowrap">
+                                                                    {sec.count} Reg
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </details>
+                                            </div>
+                                        ))
+                                    ) : <div className="text-sm text-gray-400 text-center py-4">No registrations yet</div>
+                                ) : (
+                                    /* Faculty/Original View - Flat List */
+                                    (statsData.registered && statsData.registered.length > 0) ? (
+                                        statsData.registered.map(student => (
+                                            <div key={student.id} className={`text-sm p-3 rounded-lg border ${student.confidence > 0 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                                                <div className="font-medium text-gray-900 truncate">{student.name}</div>
+                                                <div className="flex justify-between items-center mt-1 flex-wrap gap-1">
+                                                    <span className="text-xs text-blue-600 truncate">{student.regNo}</span>
 
-                                            {student.verified ? (
-                                                <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded border border-green-200">
-                                                    Manual Verified
-                                                </span>
-                                            ) : (student.confidence > 0 ? (
-                                                <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded border border-purple-200" title={`Confidence: ${student.confidence}%`}>
-                                                    Auto-Detected ({student.confidence}%)
-                                                </span>
-                                            ) : (
-                                                <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200">
-                                                    Pending
-                                                </span>
-                                            ))}
-                                        </div>
-                                        {student.remarks && <div className="text-[10px] text-gray-400 mt-1 italic">{student.remarks}</div>}
-                                    </div>
-                                ))}
-                                {(!statsData.registered || statsData.registered.length === 0) && <div className="text-sm text-gray-400 text-center py-4">No registrations yet</div>}
+                                                    {student.verified ? (
+                                                        <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded border border-green-200">
+                                                            Manual Verified
+                                                        </span>
+                                                    ) : (student.confidence > 0 ? (
+                                                        <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded border border-purple-200" title={`Confidence: ${student.confidence}%`}>
+                                                            Auto-Detected ({student.confidence}%)
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200">
+                                                            Pending
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                {student.remarks && <div className="text-[10px] text-gray-400 mt-1 italic">{student.remarks}</div>}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-sm text-gray-400 text-center py-4">No registrations yet</div>
+                                    )
+                                )}
                             </div>
                         </div>
 
@@ -315,8 +396,11 @@ const CompetitionDetails = () => {
                             </div>
                         </div>
                     </div>
-                </div>
 
+
+
+
+                </div>
             ) : (
                 // STUDENT VIEW (Standard One with About & Timeline)
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -379,8 +463,15 @@ const CompetitionDetails = () => {
                         </div>
                     </div>
                 </div>
-            )}
-        </div>
+            )
+            }
+            <StudentListModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={modalTitle}
+                students={selectedStudents}
+            />
+        </div >
     );
 };
 

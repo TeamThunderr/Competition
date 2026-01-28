@@ -406,6 +406,7 @@ const CompetitionStats = () => {
                                                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                                             <Link
                                                                 to={`/admin/student/${student.id}`}
+                                                                state={{ from: location.pathname }}
                                                                 className="text-white bg-blue-600 hover:bg-blue-700 px-4 py-1.5 rounded-md text-xs font-semibold transition-colors shadow-sm"
                                                             >
                                                                 View Profile

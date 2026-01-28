@@ -15,6 +15,8 @@ const upload = multer({ dest: "uploads/" });
 
 // ➕ Manual entry
 router.post("/competition", adminController.addCompetition);
+router.put("/competition/:id", adminController.editCompetition);
+router.delete("/competition/:id", adminController.deleteCompetition);
 
 // 📂 Excel / CSV upload
 router.post(

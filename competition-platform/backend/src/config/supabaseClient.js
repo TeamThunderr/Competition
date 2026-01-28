@@ -19,6 +19,10 @@ console.log('[SupabaseConfig] Initializing Client...');
 console.log(`[SupabaseConfig] Using Service Key? ${!!serviceKey ? 'YES (Admin Access)' : 'NO (Public Access ONLY)'}`);
 
 // Create a single supabase client for interacting with your database
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+        persistSession: false
+    }
+});
 
 module.exports = supabase;

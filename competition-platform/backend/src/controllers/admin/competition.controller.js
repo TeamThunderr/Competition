@@ -37,3 +37,37 @@ exports.uploadCompetitions = async (req, res) => {
         });
     }
 };
+// ✅ Update competition
+exports.editCompetition = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updated = await adminService.updateCompetition(id, req.body);
+        res.status(200).json({
+            success: true,
+            message: "Competition updated successfully",
+            data: updated
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// ✅ Delete competition
+exports.deleteCompetition = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await adminService.deleteCompetition(id);
+        res.status(200).json({
+            success: true,
+            message: "Competition deleted successfully"
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

@@ -132,7 +132,8 @@ const extractEventName = (subject, body) => {
         'Registration Confirmed: ',
         'You are registered for ',
         'Registered successfully for ',
-        'Application received for '
+        'Application received for ',
+        'Successfully Registered'
     ];
 
     let finalName = subject;

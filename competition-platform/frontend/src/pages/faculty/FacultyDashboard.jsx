@@ -128,6 +128,10 @@ const FacultyDashboard = () => {
                                                         // Refresh Stats
                                                         const newStats = await getDashboardStats();
                                                         setStats(newStats);
+
+                                                        // Refresh Competitions (to update counts/status)
+                                                        const activeCompetitions = await api.get('/api/competitions');
+                                                        setCompetitions(activeCompetitions || []);
                                                     } catch (e) {
                                                         console.error(e);
                                                         alert("Sync Failed: " + (e.message || "Unknown Error"));

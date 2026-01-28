@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { ArrowLeft, Award, CheckCircle, Trophy, User, Clock, AlertCircle, Phone } from 'lucide-react';
 import { getStudentById } from '../../services/adminService';
@@ -9,9 +9,13 @@ import StudentProfileView from '../common/StudentProfileView';
 const StudentDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [student, setStudent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const backPath = location.state?.from || '/admin/search';
+    const backLabel = location.state?.from ? 'Back' : 'Back to Search';
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -51,10 +55,10 @@ const StudentDetails = () => {
                         {error}
                     </div>
                     <button
-                        onClick={() => navigate('/admin/search')}
+                        onClick={() => navigate(backPath)}
                         className="mt-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
                     >
-                        <ArrowLeft size={20} /> Back to Search
+                        <ArrowLeft size={20} /> {backLabel}
                     </button>
                 </main>
             </div>
@@ -72,10 +76,10 @@ const StudentDetails = () => {
                     {/* Header with Back Button */}
                     <div className="mb-6">
                         <button
-                            onClick={() => navigate('/admin/search')}
+                            onClick={() => navigate(backPath)}
                             className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 transition-colors"
                         >
-                            <ArrowLeft size={18} /> Back to Search
+                            <ArrowLeft size={18} /> {backLabel}
                         </button>
                     </div>
 

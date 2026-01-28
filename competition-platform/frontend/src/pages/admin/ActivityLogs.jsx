@@ -1,50 +1,87 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
-import { ArrowLeft, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Clock, AlertCircle, Trash2, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+import EditCompetitionModal from '../../components/admin/EditCompetitionModal';
 
 const ActivityLogs = () => {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchLogs = async () => {
-            try {
-                // Fetch all competitions to act as "logs" since we track creations
-                const data = await api.get('/api/competitions');
-                if (Array.isArray(data)) {
-                    // Sort by created_at desc (newest first)
-                    const sorted = data.sort((a, b) => {
-                        const dateA = new Date(a.created_at || 0);
-                        const dateB = new Date(b.created_at || 0);
-                        return dateB - dateA;
-                    });
+    // Edit/Delete State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedRepo, setSelectedRepo] = useState(null);
 
-                    const activityLogs = sorted.map(comp => ({
-                        id: comp.id,
-                        title: comp.title, // Added title explicitly
-                        action: "Competition Uploaded",
-                        details: `Created competition: ${comp.title}`,
-                        user: "Admin", // Assuming admin for now as per context
-                        timestamp: comp.created_at || new Date().toISOString(),
-                        status: "Success"
-                    }));
+    const fetchLogs = async () => {
+        try {
+            // Fetch all competitions to act as "logs" since we track creations
+            const data = await api.get('/api/competitions');
+            if (Array.isArray(data)) {
+                // Sort by created_at desc (newest first)
+                const sorted = data.sort((a, b) => {
+                    const dateA = new Date(a.created_at || 0);
+                    const dateB = new Date(b.created_at || 0);
+                    return dateB - dateA;
+                });
 
-                    setLogs(activityLogs);
-                }
-            } catch (err) {
-                console.error("Failed to fetch activity logs", err);
-                setError("Failed to load activity logs.");
-            } finally {
-                setLoading(false);
+                const activityLogs = sorted.map(comp => ({
+                    ...comp, // Keep full object for editing
+                    action: "Competition Uploaded",
+                    details: `Created competition: ${comp.title}`,
+                    user: "Admin", // Assuming admin for now as per context
+                    timestamp: comp.created_at || new Date().toISOString(),
+                    status: "Success"
+                }));
+
+                setLogs(activityLogs);
             }
-        };
+        } catch (err) {
+            console.error("Failed to fetch activity logs", err);
+            setError("Failed to load activity logs.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchLogs();
     }, []);
+
+    const handleDelete = async (e, id) => {
+        e.preventDefault(); // Prevent Link navigation
+        e.stopPropagation();
+
+        if (window.confirm("Are you sure you want to delete this competition? This action cannot be undone.")) {
+            try {
+                const response = await api.del(`/api/admin/competition/${id}`);
+                // In a perfect world we check response, but axios throws on error status
+                setLogs(prev => prev.filter(log => log.id !== id));
+                alert("Competition deleted successfully.");
+            } catch (err) {
+                console.error("Delete failed", err);
+                alert("Failed to delete competition.");
+            }
+        }
+    };
+
+    const handleEdit = (e, competition) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedRepo(competition);
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdate = (updatedCompetition) => {
+        setLogs(prev => prev.map(log =>
+            log.id === updatedCompetition[0].id
+                ? { ...log, ...updatedCompetition[0], title: updatedCompetition[0].title }
+                : log
+        ));
+        fetchLogs(); // Refresh to be safe
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
@@ -83,12 +120,11 @@ const ActivityLogs = () => {
                         ) : (
                             <div className="divide-y divide-gray-100">
                                 {logs.map((log) => (
-                                    <Link
-                                        to={`/competitions/${log.id}`}
+                                    <div
                                         key={log.id}
-                                        className="p-6 hover:bg-gray-50 transition-colors flex items-center justify-between group block"
+                                        className="p-6 hover:bg-gray-50 transition-colors flex items-center justify-between group block relative"
                                     >
-                                        <div className="flex items-start gap-4">
+                                        <div className="flex items-start gap-4 flex-1">
                                             <div className="mt-1 p-2 bg-blue-100 text-blue-600 rounded-lg group-hover:bg-blue-200 transition-colors">
                                                 <Clock size={20} />
                                             </div>
@@ -116,17 +152,44 @@ const ActivityLogs = () => {
                                             </div>
                                         </div>
 
-                                        <div className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <span className="text-sm font-medium mr-2">View Details</span>
-                                            &rarr;
+                                        <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={(e) => handleEdit(e, log)}
+                                                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                title="Edit Competition"
+                                            >
+                                                <Edit2 size={18} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => handleDelete(e, log.id)}
+                                                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Delete Competition"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                            {/* Link to view details */}
+                                            <Link
+                                                to={`/competitions/${log.id}`}
+                                                className="ml-2 text-sm font-medium text-gray-400 hover:text-blue-600"
+                                            >
+                                                View &rarr;
+                                            </Link>
                                         </div>
-                                    </Link>
+                                    </div>
                                 ))}
                             </div>
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Edit Modal */}
+            <EditCompetitionModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                competition={selectedRepo}
+                onUpdate={handleUpdate}
+            />
         </div>
     );
 };

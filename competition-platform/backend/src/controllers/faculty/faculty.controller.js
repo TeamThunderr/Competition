@@ -152,12 +152,12 @@ const getDashboardStats = async (req, res) => {
 
         // V2 COUNTS - Single Source of Truth
 
-        // 1. Registered Count: COUNT(DISTINCT user_id) from competition_status
+        // 1. Registered Count: COUNT(DISTINCT user_id) from registrations
         let participationCount = 0;
         try {
-            console.log('[Faculty] Fetching registration stats from COMPETITION_STATUS...');
+            console.log('[Faculty] Fetching registration stats from REGISTRATIONS...');
             const { data: regData, error: regError } = await supabase
-                .from('competition_status')
+                .from('registrations')
                 .select('user_id')
                 .in('user_id', myStudentIds);
 
