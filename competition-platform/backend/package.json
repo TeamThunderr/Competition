@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "seed:competitions": "node src/scripts/seed_competitions.js",
+    "test:email_mock": "node src/scripts/mock_email_verification.js"
   },
   "keywords": [],
   "author": "",
