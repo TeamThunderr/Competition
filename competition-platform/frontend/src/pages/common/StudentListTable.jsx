@@ -18,12 +18,14 @@ import RoleBasedLoader from '../../components/common/RoleBasedLoader';
  * @param {String} emptyMessage - Message to show when no students found
  * @param {String} role - 'STUDENT', 'FACULTY', 'HOD' for customized loader
  */
+// Force update
 const StudentListTable = ({
     students = [],
     loading = false,
     onRowClick,
     emptyMessage = "No students found.",
-    role = 'STUDENT'
+    role = 'STUDENT',
+    showSection = true
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -61,27 +63,27 @@ const StudentListTable = ({
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto min-h-[400px]">
+            <div className="min-h-[400px]">
                 <table className="w-full">
                     <thead className="bg-gray-50/50">
                         <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                             <th className="px-6 py-4 w-12">S.No</th>
                             <th className="px-6 py-4">Register No</th>
                             <th className="px-6 py-4">Name</th>
-                            <th className="px-6 py-4">Section</th>
+                            {showSection && <th className="px-6 py-4">Section</th>}
                             <th className="px-6 py-4">Email</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50 bg-white">
                         {loading ? (
                             <tr>
-                                <td colSpan="5" className="px-6 py-12">
+                                <td colSpan={showSection ? 5 : 4} className="px-6 py-12">
                                     <RoleBasedLoader role={role} />
                                 </td>
                             </tr>
                         ) : sortedStudents.length === 0 ? (
                             <tr>
-                                <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                                <td colSpan={showSection ? 5 : 4} className="px-6 py-12 text-center text-gray-500">
                                     {emptyMessage}
                                 </td>
                             </tr>
@@ -106,11 +108,13 @@ const StudentListTable = ({
                                             <span className="font-semibold text-gray-900 text-sm">{student.name}</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                            {student.section}
-                                        </span>
-                                    </td>
+                                    {showSection && (
+                                        <td className="px-6 py-4 text-sm text-gray-500">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                {student.section}
+                                            </span>
+                                        </td>
+                                    )}
                                     <td className="px-6 py-4 text-sm text-gray-500">{student.email}</td>
                                 </tr>
                             ))
