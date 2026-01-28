@@ -6,14 +6,58 @@ const supabase = require('../../config/supabaseClient');
 
 const getAllCompetitions = async (req, res) => {
     try {
-        const { data: competitions, error } = await supabase
+        const { id: facultyId, department_id, assigned_sections } = req.user;
+
+        // 1. Get Faculty's Student IDs
+        const { data: students, error: studentError } = await supabase
+            .from('users')
+            .select('id, section')
+            .eq('department_id', department_id)
+            .eq('role', 'STUDENT');
+
+        if (studentError) throw studentError;
+
+        const allowedSections = (assigned_sections || []).map(s => {
+            const parts = s.split('-');
+            return parts.length > 1 ? parts[parts.length - 1].trim().toUpperCase() : s.trim().toUpperCase();
+        });
+
+        const myStudentIds = students
+            .filter(s => allowedSections.includes((s.section || '').trim().toUpperCase()))
+            .map(s => s.id);
+
+        // 2. Fetch Competitions with Registration Counts for THESE students
+        // Note: Supabase doesn't support complex filtered joins easily in one go.
+        // We will fetch competitions and then fetch counts in parallel or via a second query.
+
+        const { data: competitions, error: compError } = await supabase
             .from('competitions')
-            .select('*, registrations(count)')
+            .select('*')
             .order('registration_deadline', { ascending: false });
 
-        if (error) throw error;
+        if (compError) throw compError;
 
-        res.status(200).json(competitions);
+        // 3. Fetch Registration Counts for My Students
+        const { data: regCounts, error: countError } = await supabase
+            .from('registrations')
+            .select('competition_id')
+            .in('user_id', myStudentIds);
+
+        if (countError) throw countError;
+
+        // Aggregating counts
+        const countMap = {};
+        regCounts.forEach(r => {
+            countMap[r.competition_id] = (countMap[r.competition_id] || 0) + 1;
+        });
+
+        // 4. Merge Data
+        const enrichedCompetitions = competitions.map(c => ({
+            ...c,
+            registrations: [{ count: countMap[c.id] || 0 }]
+        }));
+
+        res.status(200).json(enrichedCompetitions);
     } catch (err) {
         console.error('Error fetching competitions (Faculty):', err);
         res.status(500).json({ error: 'Internal Server Error' });
