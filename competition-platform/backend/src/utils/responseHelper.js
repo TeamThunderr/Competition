@@ -3,11 +3,21 @@
 // Written for beginner developers
 
 const sendResponse = (res, statusCode, data, message = 'Success') => {
+    const isSuccess = statusCode < 400;
     res.status(statusCode).json({
-        status: statusCode < 400 ? 'success' : 'error',
+        status: isSuccess ? 'success' : 'error',
+        success: isSuccess,
         message,
         data
     });
 };
 
-module.exports = { sendResponse };
+const sendSuccess = (res, data, message = 'Success') => {
+    sendResponse(res, 200, data, message);
+};
+
+const sendError = (res, statusCode, message = 'Error') => {
+    sendResponse(res, statusCode, null, message);
+};
+
+module.exports = { sendResponse, sendSuccess, sendError };
