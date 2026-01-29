@@ -29,8 +29,16 @@ const GlobalRepository = () => {
     React.useEffect(() => {
         const fetchCompetitions = async () => {
             try {
-                const data = await api.get('/api/competitions');
-                setCompetitions(data);
+                const response = await api.get('/api/competitions');
+                // Handle standardized response wrapper if present
+                const comps = Array.isArray(response) ? response : (response.data || []);
+
+                if (Array.isArray(comps)) {
+                    setCompetitions(comps);
+                } else {
+                    console.error("API returned non-array:", response);
+                    setCompetitions([]);
+                }
             } catch (err) {
                 console.error("Failed to fetch competitions", err);
             } finally {
