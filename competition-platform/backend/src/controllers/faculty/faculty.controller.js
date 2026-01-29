@@ -502,15 +502,9 @@ const getStudentDetails = async (req, res) => {
         const competitionDetails = registrations.map(reg => {
             const statusEntry = statuses?.find(s => s.competition_id === reg.competitions.id);
 
-            let currentStatus = 'Registered'; // Default UI label (Match frontend expectation)
-            // Or 'REGISTERED' if frontend expects caps. Staying safe with Title Case for UI?
-            // User requested: WON > QUALIFIED > REGISTERED.
-            // Let's stick to simple strings mapped from booleans.
-
+            let currentStatus = 'Registered';
             if (statusEntry?.is_winner) currentStatus = 'Won';
             else if (statusEntry?.is_shortlisted) currentStatus = 'Qualified';
-
-            // Note: The UI likely expects "Registered", "Qualified", "Won"
 
             return {
                 id: reg.competitions.id,
@@ -531,15 +525,35 @@ const getStudentDetails = async (req, res) => {
             won: competitionDetails.filter(c => c.status === 'Won').length,
         };
 
-        // Class Advisor Logic (Simplistic)
+        // 4. Class Advisor Logic (Robust - matched with HOD controller)
         let classAdvisorName = 'Not Assigned';
-        // (Skipping complex lookup for now to keep controller lean, unless needed)
+        try {
+            const { data: deptFaculty, error: facultyError } = await supabase
+                .from('users')
+                .select('full_name, assigned_sections')
+                .eq('role', 'FACULTY')
+                .eq('department_id', department_id);
+
+            if (!facultyError && deptFaculty) {
+                const advisor = deptFaculty.find(f => {
+                    const sections = f.assigned_sections || [];
+                    return sections.some(s => {
+                        const parsed = s.split('-').pop().trim().toUpperCase();
+                        return parsed === studentSec;
+                    });
+                });
+                if (advisor) classAdvisorName = advisor.full_name;
+            }
+        } catch (err) {
+            console.warn('Class advisor lookup failed:', err);
+        }
 
         // Batch Label
         const batchLabel = calculateBatchLabel(student.registration_no);
 
         const responseData = {
             profile: {
+                id: student.id, // Added ID for consistency
                 name: student.full_name,
                 rollNo: student.registration_no,
                 email: student.email,
