@@ -47,7 +47,7 @@ export const getCompetitionStudents = async (competitionId) => {
 };
 
 export const syncCompetition = async (competitionId) => {
-    const response = await api.post(`/api/faculty/sync-competition/${competitionId}`);
+    const response = await api.post(`/api/faculty/competition/${competitionId}/sync`);
     return response.data || response;
 };
 
