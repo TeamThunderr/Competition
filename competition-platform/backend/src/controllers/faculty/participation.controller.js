@@ -187,11 +187,19 @@ const exportParticipationStats = async (req, res) => {
 };
 
 // Shared Logic for Batch Sync (Using Registrations Table ONLY)
-// IMPROVED: Sync Lock, Time Tracking, Status, Deduplication
+// IMPROVED: Sync Lock, Time Tracking, Status, Deduplication, Detailed Logging
 async function performBatchSync(competition, departmentId, assignedVersion, facultyId = null) {
     const syncFrom = competition.last_synced_at || competition.uploaded_at || competition.created_at;
     const syncTo = new Date().toISOString();
+
+    // Detailed stats and logs
     const stats = { processed: 0, detected: 0, errors: 0, skipped: 0 };
+    const logs = {
+        processed: [], // { email, status, time }
+        detected: [],  // { email, status, match_details }
+        errors: [],    // { email, error }
+        skipped: []    // { email, reason }
+    };
 
     try {
         // 1. Acquire Sync Lock
@@ -289,12 +297,14 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                 if (!student.google_refresh_token) {
                     console.log(`[BatchSync] Skipping ${student.email} - Missing Refresh Token`);
                     stats.skipped++;
+                    logs.skipped.push({ email: student.email, reason: 'Missing Token' });
                     continue;
                 }
 
                 const regRow = regMap.get(student.id);
                 if (regRow && regRow.status === 'WON') {
                     stats.skipped++;
+                    logs.skipped.push({ email: student.email, reason: 'Already WON' });
                     continue;
                 }
 
@@ -306,6 +316,7 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                     if (result.upsertData.gmail_message_id && existingGmailIds.has(result.upsertData.gmail_message_id)) {
                         console.log(`[BatchSync] Skipping duplicate email: ${result.upsertData.gmail_message_id}`);
                         stats.skipped++;
+                        logs.skipped.push({ email: student.email, reason: 'Duplicate Email ID' });
                         continue;
                     }
 
@@ -330,12 +341,18 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                     if (regUpsertError) {
                         console.error('[BatchSync] Registration Upsert Error:', regUpsertError);
                         stats.errors++;
+                        logs.errors.push({ email: student.email, error: regUpsertError.message });
                     } else {
                         // Track this gmail_message_id as processed
                         if (result.upsertData.gmail_message_id) {
                             existingGmailIds.add(result.upsertData.gmail_message_id);
                         }
                         stats.detected++;
+                        logs.detected.push({
+                            email: student.email,
+                            status: result.upsertData.status,
+                            remarks: result.upsertData.remarks
+                        });
                     }
 
                     // Update competition_status if Qualified/Shortlisted
@@ -354,14 +371,22 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                             last_synced_at: syncTo
                         }).eq('user_id', student.id).eq('competition_id', competition.id);
                     }
+                    stats.processed++; // Count as processed even if no match found
+                    logs.processed.push({ email: student.email, status: 'No Match' });
+
                 } else if (result.status === 'error') {
                     stats.errors++;
+                    logs.errors.push({ email: student.email, error: result.reason });
+                } else {
+                    // Should not happen, but safe fallback
+                    stats.skipped++;
+                    logs.skipped.push({ email: student.email, reason: `Unknown status: ${result.status}` });
                 }
 
-                stats.processed++;
             } catch (e) {
                 console.error(`Error processing ${student.email}:`, e.message);
                 stats.errors++;
+                logs.errors.push({ email: student.email, error: e.message });
             }
         }
 
@@ -382,7 +407,7 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
             .eq('id', competition.id);
 
         console.log(`[BatchSync] Completed. Status: ${syncStatus}`, stats);
-        return stats;
+        return { stats, logs };
 
     } catch (error) {
         // 6. Release Lock and Set Failed Status on Error

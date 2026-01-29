@@ -26,7 +26,6 @@ router.get('/competition/:id/students', facultyCompetitionController.getCompetit
 
 // V2 Sync Routes
 router.post('/competition/:competitionId/sync', facultyController.syncCompetition);
-router.post('/sync-competition/:competitionId', facultyController.syncCompetition);
 router.get('/competition-sync-status', facultyController.getCompetitionSyncStatus); // New route if needed by frontend
 
 // Verification Routes

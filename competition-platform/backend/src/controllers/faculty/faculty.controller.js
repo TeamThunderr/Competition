@@ -109,18 +109,141 @@ const getRecentRegistrations = async (req, res) => {
 };
 
 const getStats = async (req, res) => {
-    // Legacy stats endpoint - uses admin stats service
-    // Kept for compatibility if used by other dashboards
+    // Refactored to return stats ONLY for assigned sections
     try {
-        const deptId = req.user.department_id;
-        const allStats = await statsService.getDepartmentStats();
-        const myStats = allStats.find(d => d.department_id === deptId) || {
-            department_name: 'My Department',
-            total_registrations: 0,
-            verified_registrations: 0,
-            sections: []
+        const { assigned_sections, department_id } = req.user;
+
+        // 1. Fetch all students in the department (to get section info)
+        let allStudents = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+            const { data: pageData, error } = await supabase
+                .from('users')
+                .select('id, section')
+                .eq('role', 'STUDENT')
+                .eq('department_id', department_id)
+                .range(page * pageSize, (page + 1) * pageSize - 1);
+
+            if (error) throw error;
+
+            if (pageData.length > 0) {
+                allStudents = [...allStudents, ...pageData];
+                page++;
+                if (pageData.length < pageSize) hasMore = false;
+            } else {
+                hasMore = false;
+            }
+        }
+
+        // 2. Filter by assigned sections
+        const allowedSections = (assigned_sections || []).map(s => {
+            const parts = s.split('-');
+            const sec = parts.length > 1 ? parts[1] : s;
+            return sec.trim().toUpperCase();
+        }).filter(s => s !== '');
+
+        const myStudents = allStudents.filter(student => {
+            const studentSec = (student.section || '').trim().toUpperCase();
+            return allowedSections.includes(studentSec);
+        });
+
+        const myStudentIds = myStudents.map(s => s.id);
+
+        // Fetch Department Name (for display consistency)
+        let deptName = 'My Department';
+        try {
+            const { data: deptData } = await supabase.from('departments').select('name').eq('id', department_id).single();
+            if (deptData) deptName = deptData.name;
+        } catch (ignored) { }
+
+
+        if (myStudentIds.length === 0) {
+            return sendResponse(res, 200, {
+                department_id,
+                department_name: deptName,
+                total_students: 0,
+                unique_participants: 0,
+                total_registrations: 0,
+                verified_registrations: 0,
+                unique_winners: {},
+                unique_shortlisted: {},
+                sections: [],
+                winners: 0,
+                shortlisted: 0,
+                participation_rate: 0,
+                success_rate: 0
+            }, 'Fetched faculty stats');
+        }
+
+        // 3. Stats Aggregation
+        // Section Breakdown
+        const sectionCounts = {};
+        myStudents.forEach(s => {
+            const sec = s.section || 'N/A';
+            if (!sectionCounts[sec]) sectionCounts[sec] = 0;
+            sectionCounts[sec]++;
+        });
+
+        const sectionsArray = Object.keys(sectionCounts).map(sec => ({
+            name: sec,
+            count: sectionCounts[sec]
+        })).sort((a, b) => a.name.localeCompare(b.name));
+
+        // 4. Registrations
+        const { data: registrations, error: regError } = await supabase
+            .from('registrations')
+            .select('user_id, verified')
+            .in('user_id', myStudentIds);
+
+        if (regError) throw regError;
+
+        const uniqueParticipants = new Set(registrations.map(r => r.user_id));
+        const totalRegistrations = registrations.length;
+        const verifiedRegistrations = registrations.filter(r => r.verified).length;
+
+        // 5. Winners/Shortlisted
+        const { data: statuses, error: statusError } = await supabase
+            .from('competition_status')
+            .select('user_id, is_winner, is_shortlisted')
+            .in('user_id', myStudentIds);
+
+        if (statusError) throw statusError;
+
+        const winnersSet = new Set();
+        const shortlistedSet = new Set();
+
+        statuses.forEach(s => {
+            if (s.is_winner) winnersSet.add(s.user_id);
+            if (s.is_shortlisted || s.is_winner) shortlistedSet.add(s.user_id);
+        });
+
+        // 6. Rates
+        const totalStudents = myStudents.length;
+        const participationRate = totalStudents > 0 ? ((uniqueParticipants.size / totalStudents) * 100).toFixed(1) : 0;
+        const successRate = uniqueParticipants.size > 0 ? ((winnersSet.size / uniqueParticipants.size) * 100).toFixed(1) : 0;
+
+
+        const stats = {
+            department_id,
+            department_name: deptName,
+            total_students: totalStudents,
+            unique_participants: uniqueParticipants.size,
+            total_registrations: totalRegistrations,
+            verified_registrations: verifiedRegistrations,
+            unique_winners: {}, // Legacy structure compatibility
+            unique_shortlisted: {}, // Legacy structure compatibility
+            sections: sectionsArray,
+            winners: winnersSet.size,
+            shortlisted: shortlistedSet.size,
+            participation_rate: parseFloat(participationRate),
+            success_rate: parseFloat(successRate)
         };
-        sendResponse(res, 200, myStats, 'Fetched faculty stats');
+
+        sendResponse(res, 200, stats, 'Fetched faculty stats');
+
     } catch (err) {
         console.error('[FacultyController] Error:', err);
         sendResponse(res, 500, null, 'Internal Server Error');
@@ -266,15 +389,16 @@ const syncCompetition = async (req, res) => {
         console.log(`[Faculty] Syncing via shared batch logic`);
 
         // Perform V2 Gmail sync using shared participation controller logic
-        const syncResults = await performBatchSync(competition, department_id, assigned_sections, facultyId);
+        const { stats, logs } = await performBatchSync(competition, department_id, assigned_sections, facultyId);
 
         const response = {
             competitionTitle: competition.title,
             syncWindow: {
-                from: competition.last_synced_at || competition.uploaded_at,
-                to: new Date().toISOString()
+                from: new Date(competition.last_synced_at || competition.uploaded_at || competition.created_at).toLocaleString(),
+                to: new Date().toLocaleString()
             },
-            results: syncResults,
+            results: stats,
+            details: logs,
             message: `Sync completed successfully.`
         };
 
@@ -300,12 +424,14 @@ const getCompetitionSyncStatus = async (req, res) => {
         const competitionsWithStatus = competitions.map(comp => ({
             id: comp.id,
             title: comp.title,
-            uploadedAt: comp.uploaded_at,
-            lastSyncedAt: comp.last_synced_at,
+            uploadedAt: comp.uploaded_at ? new Date(comp.uploaded_at).toLocaleString() : 'N/A',
+            lastSyncedAt: comp.last_synced_at ? new Date(comp.last_synced_at).toLocaleString() : null,
             registrationDeadline: comp.registration_deadline,
             syncStatus: comp.last_synced_at ? 'Synced' : 'Never Synced',
             canSync: true,
-            nextSyncFrom: comp.last_synced_at || comp.uploaded_at
+            nextSyncFrom: comp.last_synced_at
+                ? new Date(comp.last_synced_at).toLocaleString()
+                : (comp.uploaded_at ? new Date(comp.uploaded_at).toLocaleString() : 'N/A')
         }));
 
         sendResponse(res, 200, competitionsWithStatus, 'Competition sync status fetched');
