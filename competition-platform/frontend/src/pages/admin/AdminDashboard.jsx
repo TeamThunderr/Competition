@@ -17,86 +17,91 @@ const AdminDashboard = () => {
 
     const [recentActivity, setRecentActivity] = useState([]);
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                // 1. Fetch Department Stats using central client
-                const json = await api.get('/api/admin/stats');
-                let totalVerified = 0;
+    const fetchDashboardData = async () => {
+        try {
+            // 1. Fetch Department Stats using central client
+            const json = await api.get('/api/admin/stats');
+            let totalVerified = 0;
 
-                if (json.success && json.data) {
-                    const allDepts = json.data;
-                    totalVerified = allDepts.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
-                } else if (Array.isArray(json)) {
-                    totalVerified = json.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
-                }
+            if (json.success && json.data) {
+                const allDepts = json.data;
+                totalVerified = allDepts.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
+            } else if (Array.isArray(json)) {
+                totalVerified = json.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
+            }
 
-                // 2. Fetch Competitions for Active Count
-                const comps = await api.get('/api/competitions');
-                let activeCount = 0;
-                let activities = [];
-                let closingSoon = 0;
-                let lastDate = "Never";
+            // 2. Fetch Competitions for Active Count
+            const comps = await api.get('/api/competitions');
+            let activeCount = 0;
+            let activities = [];
+            let closingSoon = 0;
+            let lastDate = "Never";
 
-                if (comps) {
-                    console.log(`[AdminDashboard] Fetched ${comps.length} competitions total.`);
-                    const now = new Date();
+            if (comps) {
 
-                    // Filter active competitions
-                    const activeComps = comps.filter(c => {
-                        if (!c.registration_deadline) return false;
-                        const deadline = new Date(c.registration_deadline);
-                        const isValid = !isNaN(deadline.getTime()) && deadline > now;
+                const now = new Date();
 
-                        if (isValid) {
-                            // Check urgency: closing within 7 days
-                            const diffTime = Math.abs(deadline - now);
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            if (diffDays <= 7) closingSoon++;
-                        }
-                        return isValid;
-                    });
+                // Filter active competitions
+                const activeComps = comps.filter(c => {
+                    if (!c.registration_deadline) return false;
+                    const deadline = new Date(c.registration_deadline);
+                    const isValid = !isNaN(deadline.getTime()) && deadline > now;
 
-                    activeCount = activeComps.length;
-
-                    // Activity Feed - Sort by created_at DESC to get true latest
-                    const sortedByNewest = [...comps].sort((a, b) =>
-                        new Date(b.created_at || 0) - new Date(a.created_at || 0)
-                    );
-
-                    activities = sortedByNewest.slice(0, 5).map(c => ({
-                        action: "Competition added",
-                        target: c.title,
-                        user: "System",
-                        time: c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'
-                    }));
-
-                    if (sortedByNewest.length > 0) {
-                        lastDate = sortedByNewest[0]?.created_at ? new Date(sortedByNewest[0].created_at).toLocaleDateString() : "Just now";
+                    if (isValid) {
+                        // Check urgency: closing within 7 days
+                        const diffTime = Math.abs(deadline - now);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        if (diffDays <= 7) closingSoon++;
                     }
-                }
-
-                setStats({
-                    activeCompetitions: activeCount,
-                    totalParticipation: totalVerified.toString(),
-                    lastSync: new Date().toLocaleTimeString(),
-                    lastUpload: lastDate,
-                    closingSoonCount: closingSoon
+                    return isValid;
                 });
 
-                if (activities.length > 0) {
-                    setRecentActivity(activities);
+                activeCount = activeComps.length;
+
+                // Activity Feed - Sort by created_at DESC to get true latest
+                const sortedByNewest = [...comps].sort((a, b) =>
+                    new Date(b.created_at || 0) - new Date(a.created_at || 0)
+                );
+
+                activities = sortedByNewest.slice(0, 5).map(c => ({
+                    action: "Competition added",
+                    target: c.title,
+                    user: "System",
+                    time: c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'
+                }));
+
+                if (sortedByNewest.length > 0) {
+                    lastDate = sortedByNewest[0]?.created_at ? new Date(sortedByNewest[0].created_at).toLocaleDateString() : "Just now";
                 }
-
-            } catch (err) {
-                console.error("Fetch Stats Error:", err);
-            } finally {
-                setLoading(false);
             }
-        };
 
-        fetchStats();
+            setStats({
+                activeCompetitions: activeCount,
+                totalParticipation: totalVerified.toString(),
+                lastSync: new Date().toLocaleTimeString(),
+                lastUpload: lastDate,
+                closingSoonCount: closingSoon
+            });
+
+            if (activities.length > 0) {
+                setRecentActivity(activities);
+            }
+
+        } catch (err) {
+            console.error("Fetch Stats Error:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchDashboardData();
     }, []);
+
+    const handleRefresh = () => {
+        setLoading(true); // Optional: show loading state briefly or just refresh
+        fetchDashboardData();
+    };
 
     if (loading) {
         return (
@@ -150,7 +155,12 @@ const AdminDashboard = () => {
                                     Synced
                                 </span>
                             </div>
-                            <button className="text-blue-600 text-xs font-semibold hover:underline">Force Refresh</button>
+                            <button
+                                onClick={handleRefresh}
+                                className="text-blue-600 text-xs font-semibold hover:underline"
+                            >
+                                Force Refresh
+                            </button>
                         </div>
                     </div>
 

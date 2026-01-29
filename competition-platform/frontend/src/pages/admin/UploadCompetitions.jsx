@@ -158,6 +158,25 @@ const UploadCompetitions = () => {
         }
     };
 
+    const handleCancel = () => {
+        if (window.confirm("Are you sure you want to clear all fields?")) {
+            setFormData({
+                title: '',
+                organizer: '',
+                platform: 'Unstop',
+                mode: 'Online',
+                deadline: '',
+                event_date: '',
+                link: '',
+                description: '',
+                team_allowed: false,
+                min_team_size: 1,
+                max_team_size: 4,
+                departments: []
+            });
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 flex">
             <Sidebar />
@@ -296,8 +315,8 @@ const UploadCompetitions = () => {
                                             key={dept}
                                             onClick={() => toggleDepartment(dept)}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${(formData.departments || []).includes(dept)
-                                                    ? 'bg-blue-600 text-white border-blue-600'
-                                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                                                 }`}
                                         >
                                             {dept === 'All' ? 'All Departments' : dept}
@@ -399,7 +418,10 @@ const UploadCompetitions = () => {
                             </div>
 
                             <div className="flex justify-end gap-3">
-                                <button className="px-6 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                                <button
+                                    onClick={handleCancel}
+                                    className="px-6 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                                >
                                     Cancel
                                 </button>
                                 <button

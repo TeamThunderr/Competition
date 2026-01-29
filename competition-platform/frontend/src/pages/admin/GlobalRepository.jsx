@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { Search, ChevronDown, Filter } from 'lucide-react';
+import { Search, ChevronDown } from 'lucide-react';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
@@ -41,11 +41,7 @@ const GlobalRepository = () => {
         fetchCompetitions();
     }, []);
 
-    const getStatus = (deadline) => {
-        const d = new Date(deadline);
-        d.setHours(23, 59, 59, 999); // End of deadline day
-        return d >= new Date() ? 'Open' : 'Closed';
-    };
+
 
     const filteredCompetitions = competitions.filter(comp => {
         const deadlineDate = new Date(comp.registration_deadline);
