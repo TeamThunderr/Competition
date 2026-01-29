@@ -5,7 +5,10 @@
 const express = require('express');
 const router = express.Router();
 const approvalController = require('../../controllers/core/approval.controller');
-// const checkRole = require('../middleware/role.middleware'); // Removed for public access
+const authMiddleware = require('../../middleware/authMiddleware');
+
+// Apply auth middleware to all routes
+router.use(authMiddleware);
 
 // Student requests permission
 router.post('/request', approvalController.requestApproval);
