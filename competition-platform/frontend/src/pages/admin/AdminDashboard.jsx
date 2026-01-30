@@ -30,12 +30,14 @@ const AdminDashboard = () => {
                 totalVerified = json.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
             }
 
-            // 2. Fetch Competitions for Active Count
-            const comps = await api.get('/api/competitions');
-            let activeCount = 0;
-            let activities = [];
-            let closingSoon = 0;
-            let lastDate = "Never";
+                // 2. Fetch Competitions for Active Count
+                const compRes = await api.get('/api/competitions');
+                const comps = compRes?.data || (Array.isArray(compRes) ? compRes : []);
+
+                let activeCount = 0;
+                let activities = [];
+                let closingSoon = 0;
+                let lastDate = "Never";
 
             if (comps) {
 
