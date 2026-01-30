@@ -6,6 +6,10 @@ const supabase = require('../../config/supabaseClient');
 
 // Get all competitions (Public)
 // UPDATED: Removed participation table reference (table dropped)
+const { sendResponse, sendError } = require('../../utils/responseHelper');
+
+// Get all competitions (Public)
+// UPDATED: Removed participation table reference (table dropped)
 const getAllCompetitions = async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -14,7 +18,8 @@ const getAllCompetitions = async (req, res) => {
             .order('registration_deadline', { ascending: true });
 
         if (error) {
-            return res.status(500).json({ error: error.message });
+            console.error('[CompetitionController] DB Error:', error);
+            return sendError(res, 500, error.message);
         }
 
         // Use registrations count only (participation table was dropped)
@@ -27,10 +32,10 @@ const getAllCompetitions = async (req, res) => {
             };
         });
 
-        res.status(200).json(enrichedData);
+        sendResponse(res, 200, enrichedData, 'Fetched all competitions');
     } catch (err) {
-        console.error('Error fetching competitions:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error('[CompetitionController] Internal Error:', err);
+        sendError(res, 500, err.message);
     }
 };
 

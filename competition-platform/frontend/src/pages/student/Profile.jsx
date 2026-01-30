@@ -11,10 +11,6 @@ const Profile = () => {
     const [isEditingPhone, setIsEditingPhone] = useState(false);
     const [newPhone, setNewPhone] = useState('');
 
-    useEffect(() => {
-        fetchProfile();
-    }, []);
-
     const fetchProfile = async () => {
         try {
             const response = await api.get('/api/student/profile');
@@ -29,6 +25,9 @@ const Profile = () => {
             setLoading(false);
         }
     };
+    useEffect(() => {
+        fetchProfile();
+    }, []);
 
     const handleUpdatePhone = async () => {
         try {
