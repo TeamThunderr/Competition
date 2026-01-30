@@ -53,7 +53,7 @@ const syncSingleStudent = async (student, competition, lastSyncedAt, gmailServic
                 registered_at: new Date().toISOString()
             };
 
-            return { status: 'detected', upsertData };
+            return { status: 'detected', upsertData, email_meta: match.email_meta, score_breakdown: match.match_details?.score_breakdown };
         } else {
             return { status: 'no_match', lastSyncedAt: new Date().toISOString() };
         }
@@ -351,7 +351,12 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                         logs.detected.push({
                             email: student.email,
                             status: result.upsertData.status,
-                            remarks: result.upsertData.remarks
+                            remarks: result.upsertData.remarks,
+                            // Deep Log Details
+                            subject: result.email_meta?.subject,
+                            sender: result.email_meta?.sender,
+                            snippet: result.email_meta?.snippet,
+                            score_breakdown: result.score_breakdown
                         });
                     }
 
