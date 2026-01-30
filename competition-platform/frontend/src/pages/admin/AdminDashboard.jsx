@@ -32,7 +32,9 @@ const AdminDashboard = () => {
                 }
 
                 // 2. Fetch Competitions for Active Count
-                const comps = await api.get('/api/competitions');
+                const compRes = await api.get('/api/competitions');
+                const comps = compRes?.data || (Array.isArray(compRes) ? compRes : []);
+
                 let activeCount = 0;
                 let activities = [];
                 let closingSoon = 0;

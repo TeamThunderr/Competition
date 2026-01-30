@@ -18,7 +18,9 @@ const ActivityLogs = () => {
     const fetchLogs = async () => {
         try {
             // Fetch all competitions to act as "logs" since we track creations
-            const data = await api.get('/api/competitions');
+            const response = await api.get('/api/competitions');
+            const data = (response?.success && Array.isArray(response.data)) ? response.data : (Array.isArray(response) ? response : []);
+
             if (Array.isArray(data)) {
                 // Sort by created_at desc (newest first)
                 const sorted = data.sort((a, b) => {
