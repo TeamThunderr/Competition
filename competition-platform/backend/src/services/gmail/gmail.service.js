@@ -75,7 +75,7 @@ const analyzeEmail = (emailData, competitionTitle, knownPlatform = null) => {
     // Check Exact (+40)
     for (const signal of INTENT_EXACT) {
         if (cleanSubject.includes(signal) || cleanBody.includes(signal)) {
-            intentScore = 40;
+            intentScore = 50;
             foundIntent = `Exact: "${signal}"`;
             break;
         }
@@ -84,7 +84,7 @@ const analyzeEmail = (emailData, competitionTitle, knownPlatform = null) => {
     if (intentScore === 0) {
         for (const signal of INTENT_STRONG) {
             if (cleanSubject.includes(signal) || cleanBody.includes(signal)) {
-                intentScore = 30;
+                intentScore = 40;
                 foundIntent = `Strong: "${signal}"`;
                 break;
             }
@@ -94,7 +94,7 @@ const analyzeEmail = (emailData, competitionTitle, knownPlatform = null) => {
     if (intentScore === 0) {
         for (const signal of INTENT_WEAK) {
             if (cleanSubject.includes(signal) || cleanBody.includes(signal)) {
-                intentScore = 20;
+                intentScore = 30;
                 foundIntent = `Weak: "${signal}"`;
                 break;
             }
@@ -105,18 +105,15 @@ const analyzeEmail = (emailData, competitionTitle, knownPlatform = null) => {
     score_breakdown.intent = intentScore;
     if (foundIntent) reasoning.push(`(+${intentScore}) Intent found: ${foundIntent}`);
     else reasoning.push(`(0) No intent signal found`);
-
     // 2. PLATFORM / SENDER SIGNAL (Max 30)
     let platformScore = 0;
     let foundPlatform = null;
-
     // Check Platform Domain/Sender (+30)
     const platformsToCheck = [...KNOWN_PLATFORMS];
     if (knownPlatform) platformsToCheck.push(knownPlatform.toLowerCase());
-
     for (const p of platformsToCheck) {
         if (cleanFrom.includes(p)) {
-            platformScore = 30;
+            platformScore = 20;
             foundPlatform = `Sender Domain: ${p}`;
             break;
         }
@@ -126,7 +123,7 @@ const analyzeEmail = (emailData, competitionTitle, knownPlatform = null) => {
     if (platformScore === 0) {
         for (const p of platformsToCheck) {
             if (cleanSubject.includes(p) || cleanBody.includes(p)) {
-                platformScore = 20;
+                platformScore = 10;
                 foundPlatform = `Mentioned: ${p}`;
                 break;
             }
@@ -376,7 +373,7 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
         // Map 'classification' to 'suggested_status'
         // HARDENED RULES: >= 80 is REGISTERED (Was 90). score 85 should pass.
         let suggested_status = 'PENDING';
-        if (bestScore >= 80) suggested_status = 'REGISTERED';
+        if (bestScore >= 70) suggested_status = 'REGISTERED';
         else if (bestScore >= 60) suggested_status = 'PENDING';
 
         return {
