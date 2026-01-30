@@ -28,7 +28,8 @@ const INTENT_SIGNALS = [
     'welcome to',
     'ticket',
     'finalize your registration',
-    'complete your registration'
+    'complete your registration',
+    'ready to hack'
 ];
 
 const PLATFORM_SIGNALS = [
@@ -178,25 +179,29 @@ const analyzeEmail = (emailData, studentEmail = '') => {
         user_identity_match: false
     };
 
-    let score = 0;
+    const score_breakdown = {
+        intent: 0,
+        platform: 0,
+        action: 0,
+        identity: 0,
+        event_name: 0,
+        date: 0,
+        title_match: 0, // Will be updated by caller
+        negative: 0
+    };
 
     // 1. INTENT DETECTION (+30)
     for (const signal of INTENT_SIGNALS) {
         if (cleanSubject.includes(signal) || cleanBody.includes(signal)) {
             if (!signals_detected.intent_keywords.includes(signal)) {
                 signals_detected.intent_keywords.push(signal);
-                // Only add score once for intent category to avoid double counting synonyms
-                if (score < 30) {
-                    // Check if we already added intent score? 
-                    // Actually, let's just add it if signals_detected.intent_keywords was empty
-                }
             }
         }
     }
-
     if (signals_detected.intent_keywords.length > 0) {
         score += 30;
-        reasoning.push(`Detected registration intent signals: ${signals_detected.intent_keywords.join(', ')}`);
+        score_breakdown.intent = 30;
+        reasoning.push(`(+30) Intent keywords: ${signals_detected.intent_keywords.join(', ')}`);
     }
 
     // 2. PLATFORM / ORGANIZATION SIGNALS (+20)
@@ -213,7 +218,8 @@ const analyzeEmail = (emailData, studentEmail = '') => {
 
     if (signals_detected.platform_indicators.length > 0) {
         score += 20;
-        reasoning.push(`Identified platform/organization: ${signals_detected.platform_indicators.join(', ')}`);
+        score_breakdown.platform = 20;
+        reasoning.push(`(+20) Platform found: ${signals_detected.platform_indicators.join(', ')}`);
     }
 
     // 3. ACTION INDICATORS (+15)
@@ -227,36 +233,40 @@ const analyzeEmail = (emailData, studentEmail = '') => {
 
     if (signals_detected.action_indicators.length > 0) {
         score += 15;
-        reasoning.push(`Found actionable next steps: ${signals_detected.action_indicators.join(', ')}`);
+        score_breakdown.action = 15;
+        reasoning.push(`(+15) Action items: ${signals_detected.action_indicators.join(', ')}`);
     }
 
     // 4. IDENTITY MATCH (+10)
     if (cleanStudentEmail && cleanBody.includes(cleanStudentEmail)) {
         signals_detected.user_identity_match = true;
         score += 10;
-        reasoning.push('Email body contains student email address, high confidence of personal relevance.');
+        score_breakdown.identity = 10;
+        reasoning.push('(+10) Student email in body');
     }
 
     // 5. EVENT NAME (+15)
     const eventName = extractEventName(subject, body);
-    if (eventName && eventName !== subject) { // If extraction did something meaningful
+    if (eventName && eventName !== subject) {
         score += 15;
-        reasoning.push(`Extracted event name: "${eventName}"`);
+        score_breakdown.event_name = 15;
+        reasoning.push(`(+15) Event name extracted: "${eventName}"`);
     }
 
     // 6. DATE DETECTED (+10)
-    // Simple verification if "date" or month names appear near numbers
     const dateRegex = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]* \d{1,2}/i;
     if (dateRegex.test(cleanBody)) {
         signals_detected.date_detected = true;
         score += 10;
-        reasoning.push('Date/Deadline detected in content.');
+        score_breakdown.date = 10;
+        reasoning.push('(+10) Date/Deadline found');
     }
 
-    // NEGATIVE SIGNALS (Sanity Check)
+    // NEGATIVE SIGNALS
     if (NEGATIVE_SIGNALS.some(ns => cleanSubject.includes(ns))) {
-        score -= 50; // Heavily penalize promos
-        reasoning.push('Detected promotional/newsletter signals.');
+        score -= 50;
+        score_breakdown.negative = -50;
+        reasoning.push('(-50) Promotional content detected');
     }
 
     // CLASSIFICATION
@@ -272,12 +282,13 @@ const analyzeEmail = (emailData, studentEmail = '') => {
     if (cleanSubject.includes('shortlisted') || cleanSubject.includes('congratulations')) {
         classification = 'confirmed';
         score = Math.max(score, 90);
-        reasoning.push('Explicit shortlist/congratulation signal overrides score.');
+        reasoning.push('(+BOOST) Shortlist/Congrats signal');
     }
 
     return {
         is_registration_related: ['confirmed', 'probable'].includes(classification),
         confidence_score: score,
+        score_breakdown, // Return the breakdown
         classification,
         event_name: eventName,
         organization_or_platform: detectedPlatform || 'Other',
@@ -419,6 +430,16 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
                 body: extractBodyFromPayload(msgDetails.data.payload)
             };
 
+            // Explicit Time Window Check (Gmail API 'after' is only Day-level precision)
+            const msgTimestamp = parseInt(msgDetails.data.internalDate);
+            if (lastSyncedAt) {
+                const syncFromTs = new Date(lastSyncedAt).getTime();
+                if (msgTimestamp < syncFromTs) {
+                    console.log(`[GmailService] Skipping valid match due to precise time window. Msg: ${msgTimestamp} < SyncFrom: ${syncFromTs}`);
+                    continue;
+                }
+            }
+
             const analysis = analyzeEmail(emailData); // Pass student email if avail
 
             // Check if this email is actually about THE competition we are syncing
@@ -429,7 +450,13 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
             if (emailData.subject.toLowerCase().includes(competition.title.toLowerCase()) ||
                 emailData.body.toLowerCase().includes(competition.title.toLowerCase())) {
                 analysis.confidence_score += 20; // Boost for specific match
+                if (analysis.score_breakdown) analysis.score_breakdown.title_match = 20;
             }
+
+            // Attach metadata to analysis for upstream matching
+            analysis.subject = emailData.subject;
+            analysis.from = emailData.from;
+            analysis.snippet = emailData.snippet;
 
             if (analysis.confidence_score > bestScore) {
                 bestScore = analysis.confidence_score;
@@ -442,16 +469,23 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
         }
 
         // Map 'classification' to 'suggested_status'
+        // HARDENED RULES: >= 90 is REGISTERED. Everything else is PENDING/REVIEW.
         let suggested_status = 'PENDING';
-        if (bestMatch.classification === 'confirmed') suggested_status = 'REGISTERED';
-        else if (bestMatch.classification === 'probable') suggested_status = 'REGISTERED'; // Optimistic
+        if (bestScore >= 90) suggested_status = 'REGISTERED';
+        else if (bestScore >= 60) suggested_status = 'PENDING'; // Was 'REGISTERED' (Probable) before. Now strictly Pending.
 
         return {
             suggested_status,
             confidence: bestScore,
             detected_at: new Date().toISOString(),
             source: 'AUTO_GMAIL',
-            match_details: bestMatch
+            match_details: bestMatch,
+            // Deep Log Details
+            email_meta: {
+                subject: bestMatch?.subject || "N/A", // We need to fix this, analyzeEmail doesn't return subject.
+                sender: bestMatch?.from || "N/A",
+                snippet: bestMatch?.snippet || "N/A"
+            }
         };
 
     } catch (error) {
