@@ -61,6 +61,7 @@ const insertBulkCompetitions = async (rows) => {
     description: row.Description || row.description,
     organizer: row.Organizer || row.organizer,
     platform: row.Platform || row.platform,
+    venue: row.Venue || row.venue,
     external_link: row["Registration Link"] || row.Link || row.external_link,
     registration_deadline: excelDateToJSDate(row["Registration Deadline"] || row.Deadline || row.registration_deadline),
     event_date: excelDateToJSDate(row["Event Date"] || row.event_date),

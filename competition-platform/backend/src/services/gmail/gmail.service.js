@@ -12,7 +12,7 @@ const SCOPES = [
  * ------------------------------------------------------------------
  */
 
-const INTENT_EXACT = ['registered', 'shortlisted', 'selected', 'confirmed', 'you’re in', 'congratulations', 'ticket'];
+const INTENT_EXACT = ['registered', 'shortlisted', 'selected', 'confirmed', 'you’re in', 'congratulations', 'ticket','Ready To Hack?'];
 const INTENT_STRONG = ['successfully applied', 'application received', 'submission received', 'registration details', 'payment received', 'welcome to'];
 const INTENT_WEAK = ['reference id', 'thank you', 'complete your', 'dashboard', 'next steps', 'updates', 'reminder'];
 

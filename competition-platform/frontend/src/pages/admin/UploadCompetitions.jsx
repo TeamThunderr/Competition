@@ -11,6 +11,7 @@ const UploadCompetitions = () => {
         organizer: '',
         platform: 'Unstop',
         mode: 'Online',
+        venue: '',
         deadline: '',
         event_date: '',
         link: '',
@@ -139,6 +140,7 @@ const UploadCompetitions = () => {
                     organizer: '',
                     platform: 'Unstop',
                     mode: 'Online',
+                    venue: '',
                     deadline: '',
                     event_date: '',
                     link: '',
@@ -289,6 +291,18 @@ const UploadCompetitions = () => {
                             </div>
 
                             <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Venue</label>
+                                <input
+                                    type="text"
+                                    name="venue"
+                                    value={formData.venue}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                    placeholder="e.g. Main Auditorium (if offline)"
+                                />
+                            </div>
+
+                            <div className="mb-6">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Target Departments <span className="text-red-500">*</span></label>
                                 <div className="flex flex-wrap gap-2">
                                     {['All', 'CSE', 'AIDS', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'].map(dept => (
@@ -296,8 +310,8 @@ const UploadCompetitions = () => {
                                             key={dept}
                                             onClick={() => toggleDepartment(dept)}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${(formData.departments || []).includes(dept)
-                                                    ? 'bg-blue-600 text-white border-blue-600'
-                                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                                                 }`}
                                         >
                                             {dept === 'All' ? 'All Departments' : dept}

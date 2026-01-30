@@ -277,16 +277,18 @@ const getDashboardStats = async (req, res) => {
 
         // 1. Registered Count: COUNT(DISTINCT user_id) from registrations
         let participationCount = 0;
+        let regData = []; // SCOPE FIX: Declare here
         try {
             console.log('[Faculty] Fetching registration stats from REGISTRATIONS...');
-            const { data: regData, error: regError } = await supabase
+            const { data, error: regError } = await supabase
                 .from('registrations')
-                .select('user_id')
+                .select('user_id, competition_id') // Fetch competition_id for debugging
                 .in('user_id', myStudentIds);
 
             if (regError) throw regError;
+            regData = data; // Assign to outer variable
 
-            // Calculate Count Distinct User ID
+            // Calculate Count Distinct User ID (Reverted based on user feedback)
             const uniqueStudents = new Set(regData?.map(r => r.user_id)).size;
             participationCount = uniqueStudents;
             console.log(`[Faculty] Participation Count (Unique): ${participationCount}`);
@@ -343,7 +345,8 @@ const getDashboardStats = async (req, res) => {
             comp_won: wonCount || 0,
             od_requests: odCount || 0,
             section_label: assigned_sections?.join(', ') || 'N/A',
-            batch_label: batchLabel
+            batch_label: batchLabel,
+            registered_details: regData // Debug info
         };
 
         console.log('[Faculty] Dashboard Stats:', stats);
@@ -605,16 +608,22 @@ const getMyStudentIds = async (facultyId, deptId, assignedSections) => {
             }
         }
 
-        // Robust Filtering (Case Insensitive)
-        const allowedSections = assignedSections.map(s => {
-            const parts = s ? s.split('-') : [];
-            const sec = parts.length > 1 ? parts[1] : (s ? s : '');
-            return sec.trim().toUpperCase();
-        }).filter(s => s !== '');
+        // Robust Filtering (Case Insensitive & Format Flexible)
+        const allowedSections = new Set();
+        (assignedSections || []).forEach(s => {
+            if (!s) return;
+            const full = s.trim().toUpperCase();
+            allowedSections.add(full); // Add 'CSE-A'
+
+            const parts = s.split('-');
+            if (parts.length > 1) {
+                allowedSections.add(parts.pop().trim().toUpperCase()); // Add 'A'
+            }
+        });
 
         const filteredStudents = allStudents.filter(student => {
             const studentSec = (student.section || '').trim().toUpperCase();
-            return allowedSections.includes(studentSec);
+            return allowedSections.has(studentSec);
         });
 
         console.log(`[Faculty] getMyStudentIds: Found ${filteredStudents.length} students out of ${allStudents.length} in dept.`);
