@@ -29,7 +29,9 @@ const FacultyDashboard = () => {
                 ]);
 
                 setStats(statsData);
-                setCompetitions(competitionsData || []);
+                // Handle standardized response wrapper
+                const comps = Array.isArray(competitionsData) ? competitionsData : (competitionsData.data || []);
+                setCompetitions(comps);
             } catch (error) {
                 console.error("Failed to load dashboard data", error);
             } finally {
