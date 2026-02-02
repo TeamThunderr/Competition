@@ -58,20 +58,16 @@ export const syncActiveCompetitions = async () => {
 
 // Reports
 export const downloadParticipationReport = async () => {
-    try {
-        const response = await api.get('/api/faculty/competitions/export-report', {
-            responseType: 'blob'
-        });
-        const url = window.URL.createObjectURL(new Blob([response]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `Participation_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-    } catch (e) {
-        throw e;
-    }
+    const response = await api.get('/api/faculty/competitions/export-report', {
+        responseType: 'blob'
+    });
+    const url = window.URL.createObjectURL(new Blob([response]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Participation_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 };
 
 export default {

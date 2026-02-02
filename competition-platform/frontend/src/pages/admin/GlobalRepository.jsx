@@ -173,17 +173,17 @@ const GlobalRepository = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="min-h-screen bg-background flex">
             <Sidebar />
             <div className="flex-1 md:ml-64 p-4 md:p-6 pt-16 md:pt-6 min-w-0">
                 <div className="w-[95%] mx-auto">
                     <div className="mb-8 text-center">
-                        <h1 className="text-2xl font-bold text-gray-900">Global Repository</h1>
+                        <h1 className="text-2xl font-bold text-foreground">Global Repository</h1>
                         <p className="text-gray-500 mt-1">Master list of all competitions managed by CIT.</p>
                     </div>
 
                     {/* Content Card */}
-                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex flex-col">
+                    <div className="bg-card rounded-xl border border-gray-100 shadow-sm flex flex-col">
                         {/* Filter Bar */}
                         <div className="p-6 border-b border-gray-100">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-wrap">
@@ -197,7 +197,7 @@ const GlobalRepository = () => {
                                             placeholder="Search competitions..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            className="w-full pl-10 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                         <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
                                     </div>
@@ -207,15 +207,15 @@ const GlobalRepository = () => {
                                         <div className="relative">
                                             <button
                                                 onClick={() => { setDeptOpen(!deptOpen); setPlatformOpen(false); }}
-                                                className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 w-44 justify-between transition-colors"
+                                                className="flex items-center gap-2 bg-card border border-border px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-background w-44 justify-between transition-colors"
                                             >
                                                 {selectedDept}
                                                 <ChevronDown size={16} />
                                             </button>
                                             {deptOpen && (
-                                                <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+                                                <div className="absolute top-full left-0 mt-1 w-full bg-card border border-gray-100 rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
                                                     <button
-                                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-medium"
+                                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-background font-medium"
                                                         onClick={() => { setSelectedDept('All Departments'); setDeptOpen(false); }}
                                                     >
                                                         All Departments
@@ -223,7 +223,7 @@ const GlobalRepository = () => {
                                                     {['CSE', 'AIDS', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'].map(dept => (
                                                         <button
                                                             key={dept}
-                                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-background"
                                                             onClick={() => { setSelectedDept(dept); setDeptOpen(false); }}
                                                         >
                                                             {dept}
@@ -236,15 +236,15 @@ const GlobalRepository = () => {
                                         <div className="relative">
                                             <button
                                                 onClick={() => { setPlatformOpen(!platformOpen); setDeptOpen(false); }}
-                                                className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 w-40 justify-between transition-colors"
+                                                className="flex items-center gap-2 bg-card border border-border px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-background w-40 justify-between transition-colors"
                                             >
                                                 {selectedPlatform}
                                                 <ChevronDown size={16} />
                                             </button>
                                             {platformOpen && (
-                                                <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+                                                <div className="absolute top-full left-0 mt-1 w-full bg-card border border-gray-100 rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
                                                     <button
-                                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-medium"
+                                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-background font-medium"
                                                         onClick={() => { setSelectedPlatform('All Platforms'); setPlatformOpen(false); }}
                                                     >
                                                         All Platforms
@@ -252,7 +252,7 @@ const GlobalRepository = () => {
                                                     {['Unstop', 'Devfolio', 'Devpost', 'Hack2skill', 'Others'].map(plat => (
                                                         <button
                                                             key={plat}
-                                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-background"
                                                             onClick={() => { setSelectedPlatform(plat); setPlatformOpen(false); }}
                                                         >
                                                             {plat}
@@ -265,14 +265,14 @@ const GlobalRepository = () => {
                                 </div>
 
                                 {/* Tabs */}
-                                <div className="flex bg-white rounded-lg p-1 border border-gray-200 shadow-sm ml-auto self-start">
+                                <div className="flex bg-card rounded-lg p-1 border border-border shadow-sm ml-auto self-start">
                                     {tabs.map((tab) => (
                                         <button
                                             key={tab}
                                             onClick={() => handleTabChange(tab)}
                                             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab
                                                 ? 'bg-blue-100 text-blue-700'
-                                                : 'text-gray-600 hover:bg-gray-50'
+                                                : 'text-gray-600 hover:bg-background'
                                                 }`}
                                         >
                                             {tab}
@@ -286,7 +286,7 @@ const GlobalRepository = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left min-w-[900px]">
                                 <thead>
-                                    <tr className="bg-gray-50 border-b border-gray-100">
+                                    <tr className="bg-background border-b border-gray-100">
                                         <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-[280px]">Competition Name</th>
                                         <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-[130px]">Platform</th>
                                         <th className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-[120px]">Deadline</th>
@@ -307,11 +307,11 @@ const GlobalRepository = () => {
                                         filteredCompetitions.map((comp) => (
                                             <tr
                                                 key={comp.id}
-                                                className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                                                className="hover:bg-background transition-colors cursor-pointer group"
                                                 onClick={() => handleViewStats(comp)}
                                             >
                                                 <td className="px-4 py-4">
-                                                    <div className="font-medium text-gray-900 truncate max-w-[200px] group-hover:text-blue-600 transition-colors" title={comp.title}>{comp.title || 'Untitled'}</div>
+                                                    <div className="font-medium text-foreground truncate max-w-[200px] group-hover:text-blue-600 transition-colors" title={comp.title}>{comp.title || 'Untitled'}</div>
                                                     <div className="text-xs text-gray-500">{comp.organizer}</div>
                                                 </td>
                                                 <td className="px-4 py-4 text-sm text-gray-600 truncate">{comp.platform}</td>
