@@ -15,9 +15,9 @@ const RoleBasedLoader = ({ role = 'STUDENT' }) => {
         'STUDENT': {
             icon: Rocket,
             secondaryIcon: Code,
-            color: 'text-blue-600',
-            bgColor: 'bg-blue-50',
-            borderColor: 'border-blue-200',
+            color: 'text-blue-600 dark:text-blue-400',
+            bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+            borderColor: 'border-blue-200 dark:border-blue-800',
             animation: 'animate-bounce',
             quotes: [
                 "Dream it. Build it. Win it.",
@@ -30,9 +30,9 @@ const RoleBasedLoader = ({ role = 'STUDENT' }) => {
         'FACULTY': {
             icon: BookOpen,
             secondaryIcon: Brain,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
-            borderColor: 'border-purple-200',
+            color: 'text-purple-600 dark:text-purple-400',
+            bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+            borderColor: 'border-purple-200 dark:border-purple-800',
             animation: 'animate-pulse',
             quotes: [
                 "Shaping the minds of tomorrow.",
@@ -44,9 +44,9 @@ const RoleBasedLoader = ({ role = 'STUDENT' }) => {
         'HOD': {
             icon: BarChart3,
             secondaryIcon: Target,
-            color: 'text-indigo-600',
-            bgColor: 'bg-indigo-50',
-            borderColor: 'border-indigo-200',
+            color: 'text-indigo-600 dark:text-indigo-400',
+            bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
+            borderColor: 'border-indigo-200 dark:border-indigo-800',
             animation: 'animate-spin-slow', // Custom spin for radar feel
             quotes: [
                 "Vision without action is just a dream.",
@@ -58,9 +58,9 @@ const RoleBasedLoader = ({ role = 'STUDENT' }) => {
         'ADMIN': {
             icon: Settings,
             secondaryIcon: Shield,
-            color: 'text-gray-800',
-            bgColor: 'bg-gray-100',
-            borderColor: 'border-gray-300',
+            color: 'text-gray-800 dark:text-gray-200',
+            bgColor: 'bg-gray-100 dark:bg-gray-800',
+            borderColor: 'border-gray-300 dark:border-gray-700',
             animation: 'animate-spin',
             quotes: [
                 "Keeping the systems secure and stable.",
@@ -94,7 +94,7 @@ const RoleBasedLoader = ({ role = 'STUDENT' }) => {
 
                 {/* Orbiting Icon (Decorative) */}
                 <div className="absolute -top-2 -right-2">
-                    <div className={`w-8 h-8 rounded-full bg-white border shadow-sm flex items-center justify-center animate-bounce delay-100`}>
+                    <div className={`w-8 h-8 rounded-full bg-white dark:bg-card border dark:border-border shadow-sm flex items-center justify-center animate-bounce delay-100`}>
                         <SecondaryIcon size={14} className={currentConfig.color} />
                     </div>
                 </div>
@@ -104,7 +104,7 @@ const RoleBasedLoader = ({ role = 'STUDENT' }) => {
                 <h3 className={`text-lg font-bold ${currentConfig.color} tracking-tight`}>
                     Loading {role === 'HOD' ? 'Department Data' : role === 'FACULTY' ? 'Details' : 'Competitions'}...
                 </h3>
-                <p className="text-gray-500 font-medium italic max-w-xs mx-auto">
+                <p className="text-muted font-medium italic max-w-xs mx-auto">
                     "{quote}"
                 </p>
             </div>

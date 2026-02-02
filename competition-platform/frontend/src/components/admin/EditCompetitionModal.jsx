@@ -64,7 +64,7 @@ const EditCompetitionModal = ({ isOpen, onClose, competition, onUpdate }) => {
     const handleSubmit = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:5000/api/admin/competition/${competition.id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/competition/${competition.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

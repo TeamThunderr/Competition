@@ -96,7 +96,7 @@ const CompetitionListView = ({
         return dateA - dateB;
     });
 
-    const Content = () => (
+    const content = (
         <>
             {/* Header & Controls */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 space-y-4 md:space-y-0">
@@ -181,7 +181,7 @@ const CompetitionListView = ({
         // We still add some margin/padding context if needed, but the parent 'HodLayout' usually handles the main p-8
         return (
             <div className="w-full">
-                <Content />
+                {content}
             </div>
         );
     }
@@ -191,7 +191,7 @@ const CompetitionListView = ({
         <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
             <Sidebar />
             <div className="flex-1 ml-0 md:ml-64 p-4 md:p-8">
-                <Content />
+                {content}
             </div>
         </div>
     );

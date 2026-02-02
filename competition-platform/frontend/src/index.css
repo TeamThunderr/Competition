@@ -1,1 +1,120 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        /* Brand - Modern Indigo/Violet implementation */
+        --color-primary-50: 238 242 255;
+        --color-primary-100: 224 231 255;
+        --color-primary-200: 199 210 254;
+        --color-primary-300: 165 180 252;
+        --color-primary-400: 129 140 248;
+        --color-primary-500: 99 102 241;
+        --color-primary-600: 79 70 229;
+        --color-primary-700: 67 56 202;
+        --color-primary-800: 55 48 163;
+        --color-primary-900: 49 46 129;
+        --color-primary-950: 30 27 75;
+
+        /* Semantics */
+        --color-success: 34 197 94;
+        --color-warning: 234 179 8;
+        --color-danger: 239 68 68;
+        --color-info: 59 130 246;
+
+        /* Backgrounds */
+        --bg-app: 249 250 251;
+        /* gray-50 */
+        --bg-card: 255 255 255;
+        --bg-sidebar: 255 255 255;
+
+        /* Text */
+        --text-primary: 17 24 39;
+        /* gray-900 */
+        --text-secondary: 75 85 99;
+        /* gray-600 */
+        --text-muted: 107 114 128;
+        /* gray-500 */
+
+        /* Borders */
+        --border-color: 229 231 235;
+        /* gray-200 */
+    }
+
+    .dark {
+        /* Brand - Slightly desaturated for dark mode to reduce eye strain */
+        --color-primary-50: 49 46 129;
+        --color-primary-100: 55 48 163;
+        --color-primary-200: 67 56 202;
+        --color-primary-300: 79 70 229;
+        --color-primary-400: 99 102 241;
+        --color-primary-500: 129 140 248;
+        --color-primary-600: 165 180 252;
+        --color-primary-700: 199 210 254;
+        --color-primary-800: 224 231 255;
+        --color-primary-900: 238 242 255;
+        --color-primary-950: 255 255 255;
+
+        /* Backgrounds - Neutral/Bluish Dark Tones (Slate/Gray) */
+        --bg-app: 15 23 42;
+        /* slate-900 */
+        --bg-card: 30 41 59;
+        /* slate-800 */
+        --bg-sidebar: 30 41 59;
+        /* slate-800 */
+
+        /* Text */
+        --text-primary: 248 250 252;
+        /* slate-50 */
+        --text-secondary: 203 213 225;
+        /* slate-300 */
+        --text-muted: 148 163 184;
+        /* slate-400 */
+
+        /* Borders */
+        --border-color: 51 65 85;
+        /* slate-700 */
+    }
+
+    body {
+        @apply antialiased;
+        font-family: 'Inter', sans-serif;
+        background-color: rgb(var(--bg-app));
+        color: rgb(var(--text-primary));
+    }
+}
+
+/* Custom Scrollbar for nicer UI */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    /* gray-300 */
+    border-radius: 9999px;
+    /* rounded-full */
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background-color: #475569;
+    /* slate-600 */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #9ca3af;
+    /* gray-400 */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background-color: #64748b;
+    /* slate-500 */
+}
