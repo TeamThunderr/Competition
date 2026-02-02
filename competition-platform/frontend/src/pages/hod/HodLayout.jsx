@@ -7,7 +7,7 @@ const HodLayout = ({ children }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     return (
-        <div className="flex bg-gray-50 min-h-screen font-sans">
+        <div className="flex bg-background min-h-screen font-sans transition-colors duration-200">
             {/* Sidebar with mobile toggle props */}
             <HodSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 

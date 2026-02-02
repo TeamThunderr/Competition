@@ -179,10 +179,10 @@ const HodDashboard = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">
+                        <h1 className="text-2xl font-bold text-foreground">
                             {activeTab} Year Dashboard
                         </h1>
-                        <p className="text-gray-500 mt-1">
+                        <p className="text-muted mt-1">
                             {selectedSection === 'All Sections'
                                 ? `Overview of ${activeTab} Year Sections`
                                 : `Detailed View: ${selectedSection}`}
@@ -199,14 +199,14 @@ const HodDashboard = () => {
 
                 <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
                     {/* Year Tabs */}
-                    <div className="flex bg-white p-1 rounded-lg border border-gray-200 shadow-sm h-10 items-center justify-center sm:justify-start w-full sm:w-auto">
+                    <div className="flex bg-muted/10 p-1 rounded-lg border border-border shadow-sm h-10 items-center justify-center sm:justify-start w-full sm:w-auto">
                         {['2nd', '3rd', '4th'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => { setActiveTab(tab); setSelectedSection('All Sections'); }}
                                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab
-                                    ? 'bg-blue-50 text-blue-700 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                                    ? 'bg-blue-50 text-blue-700 shadow-sm dark:bg-blue-900/30 dark:text-blue-300'
+                                    : 'text-muted hover:text-foreground hover:bg-muted/10'
                                     }`}
                             >
                                 {tab} Year
@@ -217,17 +217,17 @@ const HodDashboard = () => {
                     <div className="relative w-full sm:w-auto">
                         <button
                             onClick={toggleDropdown}
-                            className="bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm text-gray-700 flex items-center justify-between space-x-2 shadow-sm hover:bg-gray-50 w-full sm:w-[200px] h-10"
+                            className="bg-card border border-border px-4 py-2 rounded-lg text-sm text-foreground flex items-center justify-between space-x-2 shadow-sm hover:bg-muted/10 w-full sm:w-[200px] h-10"
                         >
                             <span className="truncate">{selectedSection === 'All Sections' ? 'All Sections' : selectedSection}</span>
                             <ChevronDown size={16} />
                         </button>
 
                         {isDropdownOpen && (
-                            <div className="absolute right-0 mt-2 w-full bg-white border border-gray-100 rounded-lg shadow-lg z-10 py-1 max-h-60 overflow-y-auto">
+                            <div className="absolute right-0 mt-2 w-full bg-card border border-border rounded-lg shadow-lg z-10 py-1 max-h-60 overflow-y-auto">
                                 <button
                                     onClick={() => handleSectionSelect('All Sections')}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/10"
                                 >
                                     All Sections
                                 </button>
@@ -235,7 +235,7 @@ const HodDashboard = () => {
                                     <button
                                         key={section}
                                         onClick={() => handleSectionSelect(section)}
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                        className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/10"
                                     >
                                         {section}
                                     </button>
@@ -249,23 +249,23 @@ const HodDashboard = () => {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {currentStats.map((stat, index) => (
-                    <div key={index} className={`bg-white p-6 rounded-xl shadow-sm border border-gray-100 ${stat.borderLeft}`}>
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{stat.label}</h3>
-                        <div className="text-3xl font-bold text-gray-900 mb-2">{stat.value}</div>
-                        <p className="text-xs text-gray-400">{stat.subtext}</p>
+                    <div key={index} className={`bg-card p-6 rounded-xl shadow-sm border border-border ${stat.borderLeft}`}>
+                        <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{stat.label}</h3>
+                        <div className="text-3xl font-bold text-foreground mb-2">{stat.value}</div>
+                        <p className="text-xs text-muted/80">{stat.subtext}</p>
                     </div>
                 ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content Area (Table or Student List) */}
-                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="lg:col-span-2 bg-card rounded-xl shadow-sm border border-border p-6">
                     <div className="flex justify-between items-center mb-6">
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900 mb-1">
+                            <h2 className="text-lg font-bold text-foreground mb-1">
                                 {selectedSection === 'All Sections' ? 'Section-wise Performance' : `${selectedSection} Student List`}
                             </h2>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-muted">
                                 {selectedSection === 'All Sections' ? 'Participation & qualification overview' : 'Detailed performance report'}
                             </p>
                         </div>
@@ -288,34 +288,34 @@ const HodDashboard = () => {
                                         <div
                                             key={index}
                                             onClick={() => handleSectionSelect(row.section)}
-                                            className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
+                                            className="bg-card p-4 rounded-xl border border-border shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
                                         >
-                                            <div className="flex justify-between items-start mb-3 border-b border-gray-100 pb-3">
+                                            <div className="flex justify-between items-start mb-3 border-b border-border pb-3">
                                                 <div>
-                                                    <h3 className="text-lg font-bold text-gray-900">{row.section}</h3>
-                                                    <p className="text-xs text-gray-500">{row.batch}</p>
+                                                    <h3 className="text-lg font-bold text-foreground">{row.section}</h3>
+                                                    <p className="text-xs text-muted">{row.batch}</p>
                                                 </div>
-                                                <div className={`px-2 py-1 rounded-md text-xs font-medium ${row.pending > 0 ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                <div className={`px-2 py-1 rounded-md text-xs font-medium ${row.pending > 0 ? 'bg-red-50 text-red-600' : 'bg-muted/10 text-muted'}`}>
                                                     {row.pending} OD Pending
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
+                                            <div className="flex items-center gap-2 mb-3 text-sm text-muted">
                                                 <BookOpen size={16} className="text-blue-500" />
                                                 <span>{row.classAdvisor || 'Not Assigned'}</span>
                                             </div>
 
-                                            <div className="grid grid-cols-3 gap-2 text-center bg-gray-50 rounded-lg p-2">
+                                            <div className="grid grid-cols-3 gap-2 text-center bg-muted/10 rounded-lg p-2">
                                                 <div>
-                                                    <div className="text-xs text-gray-500 uppercase">Total</div>
-                                                    <div className="font-bold text-gray-900">{row.totalStudents}</div>
+                                                    <div className="text-xs text-muted uppercase">Total</div>
+                                                    <div className="font-bold text-foreground">{row.totalStudents}</div>
                                                 </div>
                                                 <div>
-                                                    <div className="text-xs text-gray-500 uppercase">Reg</div>
+                                                    <div className="text-xs text-muted uppercase">Reg</div>
                                                     <div className="font-bold text-blue-600">{row.registered}</div>
                                                 </div>
                                                 <div>
-                                                    <div className="text-xs text-gray-500 uppercase">Qual</div>
+                                                    <div className="text-xs text-muted uppercase">Qual</div>
                                                     <div className="font-bold text-green-600">{row.qualified}</div>
                                                 </div>
                                             </div>
@@ -327,29 +327,29 @@ const HodDashboard = () => {
                                 <table className="w-full hidden md:table">
                                     <thead>
                                         <tr className="text-left">
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/12">Section</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-2/12">Faculty</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-2/12">Batch</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Total Students</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Registered</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">Qualified</th>
-                                            <th className="pb-4 text-xs font-semibold text-gray-500 uppercase w-1/6 text-center">OD Pending</th>
+                                            <th className="pb-4 text-xs font-semibold text-muted uppercase w-1/12">Section</th>
+                                            <th className="pb-4 text-xs font-semibold text-muted uppercase w-2/12">Faculty</th>
+                                            <th className="pb-4 text-xs font-semibold text-muted uppercase w-2/12">Batch</th>
+                                            <th className="pb-4 text-xs font-semibold text-muted uppercase w-1/6 text-center">Total Students</th>
+                                            <th className="pb-4 text-xs font-semibold text-muted uppercase w-1/6 text-center">Registered</th>
+                                            <th className="pb-4 text-xs font-semibold text-muted uppercase w-1/6 text-center">Qualified</th>
+                                            <th className="pb-4 text-xs font-semibold text-muted uppercase w-1/6 text-center">OD Pending</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-50">
+                                    <tbody className="divide-y divide-border">
                                         {filteredSectionData.map((row, index) => (
                                             <tr
                                                 key={index}
-                                                className="group hover:bg-gray-50 transition-colors cursor-pointer"
+                                                className="group hover:bg-muted/10 transition-colors cursor-pointer"
                                                 onClick={() => handleSectionSelect(row.section)}
                                             >
-                                                <td className="py-4 text-sm font-semibold text-gray-900">{row.section}</td>
-                                                <td className="py-4 text-sm text-gray-600">{row.classAdvisor || 'Not Assigned'}</td>
-                                                <td className="py-4 text-sm text-gray-500">{row.batch}</td>
-                                                <td className="py-4 text-sm font-medium text-gray-900 text-center">{row.totalStudents}</td>
+                                                <td className="py-4 text-sm font-semibold text-foreground">{row.section}</td>
+                                                <td className="py-4 text-sm text-muted">{row.classAdvisor || 'Not Assigned'}</td>
+                                                <td className="py-4 text-sm text-muted/70">{row.batch}</td>
+                                                <td className="py-4 text-sm font-medium text-foreground text-center">{row.totalStudents}</td>
                                                 <td className="py-4 text-sm text-blue-600 font-medium text-center">{row.registered}</td>
                                                 <td className="py-4 text-sm text-green-600 font-medium text-center">{row.qualified}</td>
-                                                <td className={`py-4 text-sm font-medium text-center ${row.pending > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                                                <td className={`py-4 text-sm font-medium text-center ${row.pending > 0 ? 'text-red-500' : 'text-muted/50'}`}>
                                                     {row.pending}
                                                 </td>
                                             </tr>
@@ -372,9 +372,9 @@ const HodDashboard = () => {
                 </div >
 
                 {/* OD Actions Card */}
-                < div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit" >
+                < div className="bg-card rounded-xl shadow-sm border border-border p-6 h-fit" >
                     <div className="flex justify-between items-start mb-4">
-                        <h2 className="text-lg font-bold text-gray-900">OD Actions</h2>
+                        <h2 className="text-lg font-bold text-foreground">OD Actions</h2>
                         <span className="relative flex h-3 w-3">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>

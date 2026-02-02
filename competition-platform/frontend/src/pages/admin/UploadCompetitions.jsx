@@ -176,8 +176,8 @@ const UploadCompetitions = () => {
                             <button
                                 onClick={() => setActiveTab('excel')}
                                 className={`${activeTab === 'excel'
-                                    ? 'border-blue-500 text-blue-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                    : 'border-transparent text-muted hover:text-foreground hover:border-gray-300 dark:hover:border-gray-600'
                                     } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                             >
                                 Excel / CSV Upload
@@ -185,8 +185,8 @@ const UploadCompetitions = () => {
                             <button
                                 onClick={() => setActiveTab('manual')}
                                 className={`${activeTab === 'manual'
-                                    ? 'border-blue-500 text-blue-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                    : 'border-transparent text-muted hover:text-foreground hover:border-gray-300 dark:hover:border-gray-600'
                                     } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                             >
                                 Manual Entry
@@ -196,9 +196,9 @@ const UploadCompetitions = () => {
 
                     {/* Content */}
                     {activeTab === 'excel' && (
-                        <div className="bg-card p-12 rounded-xl border border-gray-100 shadow-sm text-center">
+                        <div className="bg-card p-12 rounded-xl border border-border shadow-sm text-center">
                             <div
-                                className="border-2 border-dashed border-gray-300 rounded-lg p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-background transition-colors"
+                                className="border-2 border-dashed border-border rounded-lg p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/5 transition-colors"
                                 onClick={handleFileSelect}
                             >
                                 <input
@@ -208,45 +208,45 @@ const UploadCompetitions = () => {
                                     ref={fileInputRef}
                                     onChange={handleFileUpload}
                                 />
-                                <div className="h-12 w-12 text-gray-400 mb-4">
+                                <div className="h-12 w-12 text-muted mb-4">
                                     <FileText className="w-full h-full" />
                                 </div>
                                 <h3 className="text-lg font-medium text-foreground">Drag and drop Excel file here</h3>
-                                <p className="text-gray-500 text-sm mt-1 mb-6">or click to browse from computer</p>
-                                <button className="bg-card border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-background transition-colors pointer-events-none">
+                                <p className="text-muted text-sm mt-1 mb-6">or click to browse from computer</p>
+                                <button className="bg-card border border-border text-foreground font-medium py-2 px-4 rounded-md hover:bg-muted/10 transition-colors pointer-events-none">
                                     Select File
                                 </button>
                             </div>
-                            <p className="text-xs text-gray-400 mt-6">
+                            <p className="text-xs text-muted mt-6">
                                 Supported columns: Name, Deadline, Platform, Description, Link
                             </p>
                         </div>
                     )}
 
                     {activeTab === 'manual' && (
-                        <div className="bg-card p-6 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="bg-card dark:bg-slate-800 p-6 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm transition-colors duration-200">
                             <div className="grid grid-cols-2 gap-6 mb-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Competition Name <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Competition Name <span className="text-red-500">*</span></label>
                                     <input
                                         type="text"
                                         name="title"
                                         required
                                         value={formData.title}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-400"
                                         placeholder="e.g. HackTheFuture 2025"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Platform <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Platform <span className="text-red-500">*</span></label>
                                     <div className="relative">
                                         <select
                                             name="platform"
                                             required
                                             value={formData.platform}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none bg-card"
+                                            className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
                                         >
                                             <option>Unstop</option>
                                             <option>Devfolio</option>
@@ -263,25 +263,25 @@ const UploadCompetitions = () => {
 
                             <div className="grid grid-cols-2 gap-6 mb-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Organizer <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Organizer <span className="text-red-500">*</span></label>
                                     <input
                                         type="text"
                                         name="organizer"
                                         required
                                         value={formData.organizer}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
                                         placeholder="e.g. Google, MLH"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Mode <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mode <span className="text-red-500">*</span></label>
                                     <select
                                         name="mode"
                                         required
                                         value={formData.mode}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-card"
+                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
                                     >
                                         <option>Online</option>
                                         <option>Offline</option>
@@ -291,19 +291,19 @@ const UploadCompetitions = () => {
                             </div>
 
                             <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Venue</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Venue</label>
                                 <input
                                     type="text"
                                     name="venue"
                                     value={formData.venue}
                                     onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                    className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
                                     placeholder="e.g. Main Auditorium (if offline)"
                                 />
                             </div>
 
                             <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Target Departments <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Target Departments <span className="text-red-500">*</span></label>
                                 <div className="flex flex-wrap gap-2">
                                     {['All', 'CSE', 'AIDS', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'].map(dept => (
                                         <button
@@ -311,55 +311,55 @@ const UploadCompetitions = () => {
                                             onClick={() => toggleDepartment(dept)}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${(formData.departments || []).includes(dept)
                                                 ? 'bg-blue-600 text-white border-blue-600'
-                                                : 'bg-card text-gray-600 border-border hover:bg-background'
+                                                : 'bg-white dark:bg-slate-900 text-gray-600 dark:text-gray-300 border-border dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800'
                                                 }`}
                                         >
                                             {dept === 'All' ? 'All Departments' : dept}
                                         </button>
                                     ))}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">Select "All Departments" for college-wide events.</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select "All Departments" for college-wide events.</p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-6 mb-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">One Registration Deadline <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">One Registration Deadline <span className="text-red-500">*</span></label>
                                     <input
                                         type="date"
                                         name="deadline"
                                         required
                                         value={formData.deadline}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Main Event Date</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Main Event Date</label>
                                     <input
                                         type="date"
                                         name="event_date"
                                         value={formData.event_date}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
                                     />
                                 </div>
                             </div>
 
                             <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">More Info Link <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">More Info Link <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     name="link"
                                     required
                                     value={formData.link}
                                     onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                    className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
                                     placeholder="https://"
                                 />
                             </div>
 
                             {/* Team Settings */}
-                            <div className="mb-6 bg-background p-4 rounded-lg border border-gray-100">
+                            <div className="mb-6 bg-background dark:bg-slate-900/50 p-4 rounded-lg border border-gray-100 dark:border-slate-700">
                                 <div className="flex items-center gap-2 mb-4">
                                     <input
                                         type="checkbox"
@@ -367,33 +367,33 @@ const UploadCompetitions = () => {
                                         id="team_allowed"
                                         checked={formData.team_allowed}
                                         onChange={(e) => setFormData(prev => ({ ...prev, team_allowed: e.target.checked }))}
-                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 transition-colors"
                                     />
-                                    <label htmlFor="team_allowed" className="text-sm font-medium text-gray-700">Allow Team Participation</label>
+                                    <label htmlFor="team_allowed" className="text-sm font-medium text-gray-700 dark:text-gray-300">Allow Team Participation</label>
                                 </div>
 
                                 {formData.team_allowed && (
                                     <div className="grid grid-cols-2 gap-6">
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-500 mb-1">Min Team Size</label>
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Min Team Size</label>
                                             <input
                                                 type="number"
                                                 name="min_team_size"
                                                 min="1"
                                                 value={formData.min_team_size}
                                                 onChange={handleInputChange}
-                                                className="w-full px-3 py-2 border border-border rounded-lg text-sm"
+                                                className="w-full px-3 py-2 border border-border dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-500 mb-1">Max Team Size</label>
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Max Team Size</label>
                                             <input
                                                 type="number"
                                                 name="max_team_size"
                                                 min="1"
                                                 value={formData.max_team_size}
                                                 onChange={handleInputChange}
-                                                className="w-full px-3 py-2 border border-border rounded-lg text-sm"
+                                                className="w-full px-3 py-2 border border-border dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
                                             />
                                         </div>
                                     </div>
@@ -401,19 +401,19 @@ const UploadCompetitions = () => {
                             </div>
 
                             <div className="mb-8">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Description <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description <span className="text-red-500">*</span></label>
                                 <textarea
                                     name="description"
                                     required
                                     value={formData.description}
                                     onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm h-32 resize-none"
+                                    className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm h-32 resize-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
                                     placeholder="Event details..."
                                 ></textarea>
                             </div>
 
                             <div className="flex justify-end gap-3">
-                                <button className="px-6 py-2 bg-card border border-border rounded-lg text-sm font-medium text-gray-600 hover:bg-background transition-colors">
+                                <button className="px-6 py-2 bg-card dark:bg-slate-700 border border-border dark:border-slate-600 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-background dark:hover:bg-slate-600 transition-colors">
                                     Cancel
                                 </button>
                                 <button

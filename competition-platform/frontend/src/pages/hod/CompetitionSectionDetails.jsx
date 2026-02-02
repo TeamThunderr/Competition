@@ -64,16 +64,16 @@ const CompetitionSectionDetails = () => {
             <div className="mb-6">
                 <button
                     onClick={() => navigate(-1)}
-                    className="flex items-center text-gray-500 hover:text-blue-600 transition-colors font-medium mb-2"
+                    className="flex items-center text-muted hover:text-blue-600 transition-colors font-medium mb-2"
                 >
                     <ArrowLeft className="w-5 h-5 mr-2" />
                     Back to Competition
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-                <p className="text-gray-500">View and manage students in this section.</p>
+                <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+                <p className="text-muted">View and manage students in this section.</p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[500px]">
+            <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden min-h-[500px]">
                 <SectionStudentList
                     students={students}
                 // title and onClose are handled by the parent page layout now
