@@ -1,4 +1,4 @@
-const supabase = require('./config/supabaseClient');
+const supabase = require('../config/supabaseClient');
 
 async function checkUser() {
     console.log('Checking user details...');

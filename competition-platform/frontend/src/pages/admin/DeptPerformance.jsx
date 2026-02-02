@@ -6,7 +6,7 @@ import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 const DeptPerformance = () => {
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [expandedSection, setExpandedSection] = useState(null);
+
 
     useEffect(() => {
         const fetchStats = async () => {

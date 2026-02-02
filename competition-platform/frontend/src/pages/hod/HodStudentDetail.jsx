@@ -65,10 +65,10 @@ const HodStudentDetail = () => {
             {/* Header with Back Button */}
             <div className="mb-8">
                 <button
-                    onClick={() => navigate('/hod')}
+                    onClick={() => navigate(-1)}
                     className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 transition-colors"
                 >
-                    <ArrowLeft size={18} /> Back to Dashboard
+                    <ArrowLeft size={18} /> Back
                 </button>
 
                 {/* HOD Specific Filter/Context if needed in future */}

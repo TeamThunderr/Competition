@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    Cell, Legend
+    Cell, Legend, LineChart, Line
 } from 'recharts';
 import { getDashboardAnalysis } from '../../services/hodService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
@@ -151,75 +151,120 @@ const HodAnalytics = () => {
                 />
             </div>
 
+            {/* 2. Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                {/* 2. Chart (Only show comparative chart in Overview, hide or specific chart for batch) */}
+                {/* Participation Trend (Line Chart) */}
                 <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-bold text-gray-900">
-                            {activeTab === 'Overview' ? 'Batch Distribution' : 'Batch Performance'}
-                        </h3>
-                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-6">Participation Trends (Last 6 Months)</h3>
                     <div className="w-full h-[300px] min-h-[300px]">
-                        {/* Render chart only if data exists to prevent dimension errors */}
-                        {(activeTab === 'Overview' ? data.batchStats : filteredOverview).length > 0 ? (
-                            <ResponsiveContainer width="99%" height="100%" minWidth={0}>
-                                <BarChart
-                                    data={activeTab === 'Overview' ? data.batchStats : filteredOverview}
-                                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                                >
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                                    <XAxis dataKey={activeTab === 'Overview' ? "name" : "batch"} axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#F3F4F6' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey={activeTab === 'Overview' ? "students" : "total"} name="Count" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={40} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="flex h-full items-center justify-center text-gray-400 text-sm">
-                                No chart data available for this view
-                            </div>
-                        )}
+                        <ResponsiveContainer width="99%" height="100%">
+                            <LineChart data={data.participationTrend || []} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} />
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                />
+                                <Line type="monotone" dataKey="count" stroke="#3B82F6" strokeWidth={3} dot={{ fill: '#3B82F6', strokeWidth: 2 }} activeDot={{ r: 8 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* 3. Academic Stats (Filtered) */}
+                {/* Top Competitions (Horizontal Bar Chart) */}
                 <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                        {activeTab === 'Overview' ? 'Academic Performance Summary' : `${activeTab} Year Performance`}
-                    </h3>
+                    <h3 className="text-lg font-bold text-gray-900 mb-6">Top Competitions by Participation</h3>
+                    <div className="w-full h-[300px] min-h-[300px]">
+                        <ResponsiveContainer width="99%" height="100%">
+                            <BarChart layout="vertical" data={data.topCompetitions || []} margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E5E7EB" />
+                                <XAxis type="number" hide />
+                                <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#4B5563', fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} />
+                                <Tooltip
+                                    cursor={{ fill: '#F9FAFB' }}
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                />
+                                <Bar dataKey="students" name="Participants" fill="#8B5CF6" radius={[0, 4, 4, 0]} barSize={20} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            {/* 3. Detailed Stats Grid (ROI & Risk) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                {/* ROI Table */}
+                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Engagement ROI</h3>
+                    <p className="text-sm text-gray-500 mb-4">Analysis of participation vs winners</p>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead>
-                                <tr className="border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase">
-                                    <th className="pb-3">Year</th>
-                                    <th className="pb-3 text-center">Student Count</th>
-                                    <th className="pb-3 text-right">Avg CGPA</th>
+                            <thead className="bg-gray-50/50">
+                                <tr>
+                                    <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Category</th>
+                                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Participants</th>
+                                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Winners</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Conversion</th>
                                 </tr>
                             </thead>
-                            <tbody className="text-sm divide-y divide-gray-50">
-                                {data.academicStats
-                                    .filter(year => activeTab === 'Overview' || year.year === `${activeTab} Year`)
-                                    .map((year) => (
-                                        <tr key={year.year} className="hover:bg-gray-50 transition-colors">
-                                            <td className="py-3 font-medium text-gray-900">{year.year}</td>
-                                            <td className="py-3 text-center text-gray-600">{year.count}</td>
-                                            <td className="py-3 text-right">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${year.avgCgpa !== 'N/A' && parseFloat(year.avgCgpa) >= 8.0 ? 'bg-green-50 text-green-700' :
-                                                    year.avgCgpa !== 'N/A' && parseFloat(year.avgCgpa) >= 7.0 ? 'bg-yellow-50 text-yellow-700' : 'bg-gray-100 text-gray-600'
-                                                    }`}>
-                                                    {year.avgCgpa}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                {data.academicStats.length === 0 && (
-                                    <tr><td colSpan="3" className="py-4 text-center text-gray-400">No data found</td></tr>
+                            <tbody className="divide-y divide-gray-50">
+                                {(data.roi || []).map((row, idx) => (
+                                    <tr key={idx} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.format}</td>
+                                        <td className="px-4 py-3 text-center text-sm text-gray-600">{row.participants}</td>
+                                        <td className="px-4 py-3 text-center text-sm text-gray-600">{row.winners}</td>
+                                        <td className="px-4 py-3 text-right text-sm">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${parseFloat(row.roi) > 15 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                {row.roi}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {(!data.roi || data.roi.length === 0) && (
+                                    <tr><td colSpan="4" className="px-4 py-8 text-center text-gray-400">No ROI data calculated yet.</td></tr>
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                {/* At Risk Students */}
+                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-red-400">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-900">At-Risk Students</h3>
+                            <p className="text-sm text-gray-500">Zero participation in current semester</p>
+                        </div>
+                        <AlertCircle className="text-red-400" />
+                    </div>
+
+                    <div className="overflow-y-auto max-h-[300px] pr-2">
+                        {(!data.atRiskStudents || data.atRiskStudents.length === 0) ? (
+                            <div className="flex flex-col items-center justify-center h-40 text-gray-400 text-sm">
+                                <UserCheck size={32} className="mb-2 text-green-400 opacity-50" />
+                                <span>Good job! No students flagged as 'At Risk'.</span>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {data.atRiskStudents.map((student, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-3 bg-red-50/50 rounded-lg border border-red-50 hover:border-red-100 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-xs">
+                                                {student.name.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                                                <div className="text-xs text-gray-500">{student.regNo} • {student.year} Yr</div>
+                                            </div>
+                                        </div>
+                                        <button className="text-xs font-semibold text-blue-600 hover:text-blue-700">View</button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-gray-100 text-center">
+                        <button className="text-sm text-gray-500 hover:text-gray-900 font-medium">View All Metrics</button>
                     </div>
                 </div>
             </div>

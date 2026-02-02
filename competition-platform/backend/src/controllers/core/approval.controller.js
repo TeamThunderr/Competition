@@ -7,12 +7,16 @@ const supabase = require('../../config/supabaseClient');
 // Student requests approval
 const requestApproval = async (req, res) => {
     try {
-        const { competition_id } = req.body;
+        const { competition_id, reason } = req.body;
         const userId = req.userId;
 
         const { data, error } = await supabase
-            .from('approvals')
-            .insert([{ user_id: userId, competition_id }])
+            .from('od_requests')
+            .insert([{
+                user_id: userId,
+                competition_id,
+                reason: reason || 'No reason provided'
+            }])
             .select();
 
         if (error) return res.status(500).json({ error: error.message });
@@ -27,11 +31,17 @@ const requestApproval = async (req, res) => {
 // Faculty updates approval status
 const updateFacultyStatus = async (req, res) => {
     try {
-        const { approval_id, status } = req.body; // status: APPROVED or REJECTED
+        const { approval_id, status, duration } = req.body; // status: APPROVED or REJECTED
+        const userId = req.userId;
 
         const { error } = await supabase
-            .from('approvals')
-            .update({ faculty_status: status })
+            .from('od_requests')
+            .update({
+                status: status, // Assuming status matches enum logic (APPROVED/REJECTED/PENDING)
+                approved_by: userId,
+                approved_at: new Date(),
+                approved_days: duration ? parseInt(duration) : 1
+            })
             .eq('id', approval_id);
 
         if (error) return res.status(500).json({ error: error.message });
@@ -46,11 +56,17 @@ const updateFacultyStatus = async (req, res) => {
 // HOD updates approval status
 const updateHodStatus = async (req, res) => {
     try {
-        const { approval_id, status } = req.body;
+        const { approval_id, status, duration } = req.body;
+        const userId = req.userId;
 
         const { error } = await supabase
-            .from('approvals')
-            .update({ hod_status: status })
+            .from('od_requests')
+            .update({
+                status: status,
+                approved_by: userId,
+                approved_at: new Date(),
+                approved_days: duration ? parseInt(duration) : 1
+            })
             .eq('id', approval_id);
 
         if (error) return res.status(500).json({ error: error.message });
@@ -79,12 +95,12 @@ const getDepartmentApprovals = async (req, res) => {
         }
 
         // 2. Get approvals for users in this department
-        // We perform a join (conceptually) by filtering users.
+        // Using explicit join syntax similar to od.controller.js for safety
         const { data, error } = await supabase
-            .from('approvals')
+            .from('od_requests')
             .select(`
                 *,
-                users!inner (
+                users:users!od_requests_user_id_fkey!inner (
                     full_name,
                     email,
                     department_id
