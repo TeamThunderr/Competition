@@ -40,10 +40,10 @@ const ManualVerification = () => {
     };
 
     return (
-        <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
+        <div className="flex bg-background min-h-screen font-sans text-foreground transition-colors duration-200">
             <Sidebar />
 
-            <main className="flex-1 ml-64 p-8">
+            <main className="flex-1 md:ml-sidebar p-8">
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">Manual Verification</h1>

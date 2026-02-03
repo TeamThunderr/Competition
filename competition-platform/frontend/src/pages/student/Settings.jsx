@@ -21,9 +21,9 @@ const Settings = () => {
     });
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="min-h-screen bg-background flex transition-colors duration-200">
             <StudentSidebar />
-            <div className="flex-1 ml-64 p-8">
+            <div className="flex-1 md:ml-sidebar p-8">
                 <div className="max-w-4xl mx-auto">
                     <div className="mb-8">
                         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
@@ -40,19 +40,19 @@ const Settings = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500 mb-1">Email Address</label>
-                                    <div className="text-gray-900 font-medium p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                    <div className="text-foreground font-medium p-3 bg-muted/5 rounded-lg border border-border">
                                         {userData.email}
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500 mb-1">Role</label>
-                                    <div className="text-gray-900 font-medium p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                    <div className="text-foreground font-medium p-3 bg-muted/5 rounded-lg border border-border">
                                         {userData.role}
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500 mb-1">User ID</label>
-                                    <div className="text-gray-900 font-medium p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                    <div className="text-foreground font-medium p-3 bg-muted/5 rounded-lg border border-border">
                                         {userData.id}
                                     </div>
                                 </div>
@@ -128,16 +128,16 @@ const Settings = () => {
                             <div className="grid grid-cols-1 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-                                    <input type="password" disabled className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50" placeholder="••••••••" />
+                                    <input type="password" disabled className="w-full px-4 py-2 border border-border rounded-lg bg-muted/5 text-muted cursor-not-allowed" placeholder="••••••••" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                                        <input type="password" disabled className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50" placeholder="••••••••" />
+                                        <input type="password" disabled className="w-full px-4 py-2 border border-border rounded-lg bg-muted/5 text-muted cursor-not-allowed" placeholder="••••••••" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-                                        <input type="password" disabled className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50" placeholder="••••••••" />
+                                        <input type="password" disabled className="w-full px-4 py-2 border border-border rounded-lg bg-muted/5 text-muted cursor-not-allowed" placeholder="••••••••" />
                                     </div>
                                 </div>
                                 <div className="pt-2">

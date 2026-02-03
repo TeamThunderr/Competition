@@ -10,6 +10,9 @@ export default {
             fontFamily: {
                 sans: ['Inter', 'sans-serif'],
             },
+            spacing: {
+                'sidebar': 'var(--sidebar-width)',
+            },
             colors: {
                 brand: {
                     50: 'rgb(var(--color-primary-50) / <alpha-value>)',
