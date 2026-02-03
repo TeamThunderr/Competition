@@ -251,8 +251,6 @@ const CompetitionDetails = () => {
                         </div>
 
                     </div>
-
-                    {/* Integrated Event Info Bar - REMOVED */}
                 </div>
             </div>
 
@@ -260,55 +258,11 @@ const CompetitionDetails = () => {
 
             {isFaculty || isHOD ? (
                 <div className="w-full">
-
-                    {/* Year Filter Dropdown (HOD Only) - REMOVED from here */}
-
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {/* Column 1: Event Information */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden h-fit">
-                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-indigo-500 rounded-full flex-shrink-0"></div>
-                                <span className="truncate">Event Information</span>
-                            </h3>
-                            <div className="space-y-4">
-                                <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                    <span className="text-gray-500 text-xs flex items-center gap-1 mb-1">
-                                        <Clock size={12} /> Registration Ends
-                                    </span>
-                                    <span className="font-medium text-gray-900 text-sm block truncate">
-                                        {competition.registration_deadline ? new Date(competition.registration_deadline).toLocaleDateString() : "TBA"}
-                                    </span>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                    <span className="text-gray-500 text-xs flex items-center gap-1 mb-1">
-                                        <Calendar size={12} /> Event Date
-                                    </span>
-                                    <span className="font-medium text-gray-900 text-sm block truncate">
-                                        {competition.event_date ? new Date(competition.event_date).toLocaleDateString() : "TBA"}
-                                    </span>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                    <span className="text-gray-500 text-xs flex items-center gap-1 mb-1">
-                                        <Users size={12} /> Team Size
-                                    </span>
-                                    <span className="font-medium text-gray-900 text-sm block truncate">
-                                        {competition.min_team_size} - {competition.max_team_size} Members
-                                    </span>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                    <span className="text-gray-500 text-xs flex items-center gap-1 mb-1">
-                                        <MessageSquare size={12} /> Mode
-                                    </span>
-                                    <span className="font-medium text-gray-900 text-sm block truncate">
-                                        {competition.mode || "Online"}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* Column 2: Unregistered Students */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden flex flex-col">
-                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        {/* Column 1: Unregistered Students */}
+                        <div className="bg-card rounded-xl border border-border shadow-sm p-6 overflow-hidden flex flex-col">
+                            <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                                 <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>
                                 <span className="truncate">Unregistered ({totalUnregisteredCount})</span>
                             </h3>
@@ -320,7 +274,7 @@ const CompetitionDetails = () => {
                                         <select
                                             value={selectedYear}
                                             onChange={(e) => setSelectedYear(e.target.value)}
-                                            className="w-full appearance-none bg-gray-100 border border-gray-200 text-gray-700 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                                            className="w-full appearance-none bg-muted border border-border text-foreground py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
                                         >
                                             <option value="2nd Year">2nd Year</option>
                                             <option value="3rd Year">3rd Year</option>
@@ -372,33 +326,35 @@ const CompetitionDetails = () => {
                                     )
                                 )}
                             </div>
-                        </div>
+                        </div >
 
-                        {/* Column 3: Registered Students */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden flex flex-col">
-                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        {/* Column 2: Registered Students */}
+                        < div className="bg-card rounded-xl border border-border shadow-sm p-6 overflow-hidden" >
+                            <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                                 <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
                                 <span className="truncate">Registered ({statsData.registered?.length || 0})</span>
                             </h3>
 
                             {/* Embedded Year Filter Dropdown */}
-                            {isHOD && (
-                                <div className="mb-3">
-                                    <div className="relative">
-                                        <select
-                                            value={selectedYear}
-                                            onChange={(e) => setSelectedYear(e.target.value)}
-                                            className="w-full appearance-none bg-gray-100 border border-gray-200 text-gray-700 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
-                                        >
-                                            <option value="2nd Year">2nd Year</option>
-                                            <option value="3rd Year">3rd Year</option>
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                            {
+                                isHOD && (
+                                    <div className="mb-3">
+                                        <div className="relative">
+                                            <select
+                                                value={selectedYear}
+                                                onChange={(e) => setSelectedYear(e.target.value)}
+                                                className="w-full appearance-none bg-gray-100 border border-gray-200 text-gray-700 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                                            >
+                                                <option value="2nd Year">2nd Year</option>
+                                                <option value="3rd Year">3rd Year</option>
+                                            </select>
+                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )
+                            }
 
                             <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {isHOD && statsData.registered_sections ? (
@@ -456,33 +412,52 @@ const CompetitionDetails = () => {
                                     )
                                 )}
                             </div>
-                        </div>
+                        </div >
+
+                        {/* Column 3: Shortlisted Students */}
+                        < div className="bg-card rounded-xl border border-border shadow-sm p-6 overflow-hidden" >
+                            <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
+                                <span className="truncate">Shortlisted ({statsData.shortlisted?.length || 0})</span>
+                            </h3>
+                            <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                                {statsData.shortlisted?.map(student => (
+                                    <div key={student.id} className="text-sm p-3 bg-purple-50 rounded-lg border border-purple-100 dark:bg-purple-900/20 dark:border-purple-800">
+                                        <div className="font-medium text-foreground truncate">{student.name}</div>
+                                        <div className="text-xs text-purple-600 truncate dark:text-purple-400">{student.regNo} {student.section && `(${student.section})`}</div>
+                                    </div>
+                                ))}
+                                {(!statsData.shortlisted || statsData.shortlisted.length === 0) && <div className="text-sm text-muted text-center py-4">No shortlisted students</div>}
+                            </div>
+                        </div >
 
                         {/* Column 4: Winners */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden flex flex-col">
-                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        < div className="bg-card rounded-xl border border-border shadow-sm p-6 overflow-hidden" >
+                            <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                                 <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
                                 <span className="truncate">Winners ({statsData.winners?.length || 0})</span>
                             </h3>
 
                             {/* Embedded Year Filter Dropdown */}
-                            {isHOD && (
-                                <div className="mb-3">
-                                    <div className="relative">
-                                        <select
-                                            value={selectedYear}
-                                            onChange={(e) => setSelectedYear(e.target.value)}
-                                            className="w-full appearance-none bg-gray-100 border border-gray-200 text-gray-700 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
-                                        >
-                                            <option value="2nd Year">2nd Year</option>
-                                            <option value="3rd Year">3rd Year</option>
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                            {
+                                isHOD && (
+                                    <div className="mb-3">
+                                        <div className="relative">
+                                            <select
+                                                value={selectedYear}
+                                                onChange={(e) => setSelectedYear(e.target.value)}
+                                                className="w-full appearance-none bg-gray-100 border border-gray-200 text-gray-700 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                                            >
+                                                <option value="2nd Year">2nd Year</option>
+                                                <option value="3rd Year">3rd Year</option>
+                                            </select>
+                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )
+                            }
 
                             <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {statsData.winners?.filter(student => selectedYear === 'All' || student.admission_year === selectedYear).length > 0 ? (
@@ -496,9 +471,9 @@ const CompetitionDetails = () => {
                                     <div className="text-sm text-gray-400 text-center py-4">No winners yet for {selectedYear}</div>
                                 )}
                             </div>
-                        </div>
-                    </div>
-                </div>
+                        </div >
+                    </div >
+                </div >
 
             ) : (
                 // STUDENT VIEW (Standard One with About & Timeline)
