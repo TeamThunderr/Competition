@@ -45,7 +45,7 @@ const FacultyVerify = () => {
         <div className="flex bg-background min-h-screen font-sans text-foreground">
             <Sidebar />
 
-            <main className="flex-1 ml-64 p-8">
+            <main className="flex-1 md:ml-sidebar p-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-foreground">Pending Actions</h1>
                     <p className="text-muted mt-2">Verify manual registration proofs uploaded by students.</p>

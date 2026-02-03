@@ -190,7 +190,7 @@ const CompetitionListView = ({
     return (
         <div className="flex bg-background min-h-screen font-sans text-foreground">
             <Sidebar />
-            <div className="flex-1 ml-0 md:ml-64 p-4 md:p-8">
+            <div className="flex-1 ml-0 md:ml-sidebar p-4 md:p-8">
                 {content}
             </div>
         </div>

@@ -171,8 +171,20 @@ const HodAnalytics = () => {
                                     <XAxis dataKey={activeTab === 'Overview' ? "name" : "batch"} axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
                                     <Tooltip
-                                        cursor={{ fill: '#F3F4F6' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                        cursor={{ fill: 'var(--bg-muted-10, rgba(156, 163, 175, 0.1))' }}
+                                        content={({ active, payload, label }) => {
+                                            if (active && payload && payload.length) {
+                                                return (
+                                                    <div className="bg-card p-3 border border-border shadow-lg rounded-lg">
+                                                        <p className="text-foreground font-medium text-sm mb-1">{`Batch: ${label}`}</p>
+                                                        <p className="text-blue-500 font-bold text-sm">
+                                                            {`Count : ${payload[0].value}`}
+                                                        </p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
                                     />
                                     <Bar dataKey={activeTab === 'Overview' ? "students" : "total"} name="Count" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={40} />
                                 </BarChart>

@@ -173,19 +173,19 @@ const GlobalRepository = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background dark:bg-slate-900 flex transition-colors duration-200">
+        <div className="min-h-screen bg-background flex transition-colors duration-200">
             <Sidebar />
-            <div className="flex-1 md:ml-64 p-4 md:p-6 pt-16 md:pt-6 min-w-0">
+            <div className="flex-1 md:ml-sidebar p-4 md:p-6 pt-16 md:pt-6 min-w-0">
                 <div className="w-[95%] mx-auto">
                     <div className="mb-8 text-center">
-                        <h1 className="text-2xl font-bold text-foreground dark:text-white">Global Repository</h1>
-                        <p className="text-gray-500 dark:text-gray-400 mt-1">Master list of all competitions managed by CIT.</p>
+                        <h1 className="text-2xl font-bold text-foreground">Global Repository</h1>
+                        <p className="text-muted mt-1">Master list of all competitions managed by CIT.</p>
                     </div>
 
                     {/* Content Card */}
-                    <div className="bg-card dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm flex flex-col transition-colors duration-200">
+                    <div className="bg-card rounded-xl border border-border shadow-sm flex flex-col transition-colors duration-200">
                         {/* Filter Bar */}
-                        <div className="p-6 border-b border-gray-100 dark:border-slate-700">
+                        <div className="p-6 border-b border-border">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-wrap">
 
                                 {/* Left Side: Search + Filters */}
@@ -197,9 +197,9 @@ const GlobalRepository = () => {
                                             placeholder="Search competitions..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2 border border-border dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-400"
+                                            className="w-full pl-10 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-background text-foreground placeholder-muted"
                                         />
-                                        <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                                        <Search className="absolute left-3 top-2.5 text-muted" size={16} />
                                     </div>
 
                                     {/* Dropdowns - Line 2 */}
@@ -207,15 +207,15 @@ const GlobalRepository = () => {
                                         <div className="relative">
                                             <button
                                                 onClick={() => { setDeptOpen(!deptOpen); setPlatformOpen(false); }}
-                                                className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-border dark:border-slate-600 px-4 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 w-44 justify-between transition-colors"
+                                                className="flex items-center gap-2 bg-background border border-border px-4 py-2 rounded-lg text-sm text-foreground hover:bg-muted/10 w-44 justify-between transition-colors"
                                             >
                                                 {selectedDept}
                                                 <ChevronDown size={16} />
                                             </button>
                                             {deptOpen && (
-                                                <div className="absolute top-full left-0 mt-1 w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+                                                <div className="absolute top-full left-0 mt-1 w-full bg-card border border-border rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
                                                     <button
-                                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 font-medium"
+                                                        className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/10 font-medium"
                                                         onClick={() => { setSelectedDept('All Departments'); setDeptOpen(false); }}
                                                     >
                                                         All Departments
@@ -223,7 +223,7 @@ const GlobalRepository = () => {
                                                     {['CSE', 'AIDS', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'].map(dept => (
                                                         <button
                                                             key={dept}
-                                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800"
+                                                            className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/10"
                                                             onClick={() => { setSelectedDept(dept); setDeptOpen(false); }}
                                                         >
                                                             {dept}
@@ -236,15 +236,15 @@ const GlobalRepository = () => {
                                         <div className="relative">
                                             <button
                                                 onClick={() => { setPlatformOpen(!platformOpen); setDeptOpen(false); }}
-                                                className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-border dark:border-slate-600 px-4 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 w-40 justify-between transition-colors"
+                                                className="flex items-center gap-2 bg-background border border-border px-4 py-2 rounded-lg text-sm text-foreground hover:bg-muted/10 w-40 justify-between transition-colors"
                                             >
                                                 {selectedPlatform}
                                                 <ChevronDown size={16} />
                                             </button>
                                             {platformOpen && (
-                                                <div className="absolute top-full left-0 mt-1 w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+                                                <div className="absolute top-full left-0 mt-1 w-full bg-card border border-border rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
                                                     <button
-                                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 font-medium"
+                                                        className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/10 font-medium"
                                                         onClick={() => { setSelectedPlatform('All Platforms'); setPlatformOpen(false); }}
                                                     >
                                                         All Platforms
@@ -252,7 +252,7 @@ const GlobalRepository = () => {
                                                     {['Unstop', 'Devfolio', 'Devpost', 'Hack2skill', 'Others'].map(plat => (
                                                         <button
                                                             key={plat}
-                                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800"
+                                                            className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/10"
                                                             onClick={() => { setSelectedPlatform(plat); setPlatformOpen(false); }}
                                                         >
                                                             {plat}
@@ -265,14 +265,14 @@ const GlobalRepository = () => {
                                 </div>
 
                                 {/* Tabs */}
-                                <div className="flex bg-gray-100 dark:bg-slate-900/50 rounded-lg p-1 border border-border dark:border-slate-700 shadow-sm ml-auto self-start">
+                                <div className="flex bg-muted/10 rounded-lg p-1 border border-border shadow-sm ml-auto self-start">
                                     {tabs.map((tab) => (
                                         <button
                                             key={tab}
                                             onClick={() => handleTabChange(tab)}
                                             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab
-                                                ? 'bg-white dark:bg-slate-600 text-blue-700 dark:text-blue-300 shadow-sm'
-                                                : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                                                ? 'bg-background text-blue-600 shadow-sm border border-border dark:text-blue-400'
+                                                : 'text-muted hover:text-foreground hover:bg-background/50'
                                                 }`}
                                         >
                                             {tab}
@@ -286,17 +286,17 @@ const GlobalRepository = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left min-w-[900px]">
                                 <thead>
-                                    <tr className="bg-gray-50 dark:bg-slate-700/50 border-b border-gray-100 dark:border-slate-700">
-                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[280px]">Competition Name</th>
-                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[130px]">Platform</th>
-                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[120px]">Deadline</th>
-                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[120px]">Event Date</th>
-                                        <th className="px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[150px]">Participating Depts</th>
-                                        <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[50px]">Reg</th>
-                                        <th className="px-4 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[70px]">Qualified</th>
+                                    <tr className="bg-muted/10 border-b border-border">
+                                        <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider w-[280px]">Competition Name</th>
+                                        <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider w-[130px]">Platform</th>
+                                        <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider w-[120px]">Deadline</th>
+                                        <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider w-[150px]">Event Date</th>
+                                        <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider w-[150px]">Participating Depts</th>
+                                        <th className="px-4 py-4 text-center text-xs font-semibold text-muted uppercase tracking-wider w-[50px]">Reg</th>
+                                        <th className="px-4 py-4 text-center text-xs font-semibold text-muted uppercase tracking-wider w-[70px]">Qualified</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+                                <tbody className="divide-y divide-border">
                                     {loading ? (
                                         <tr>
                                             <td colSpan="7" className="px-4 py-12">
@@ -307,30 +307,30 @@ const GlobalRepository = () => {
                                         filteredCompetitions.map((comp) => (
                                             <tr
                                                 key={comp.id}
-                                                className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group"
+                                                className="hover:bg-muted/5 transition-colors cursor-pointer group"
                                                 onClick={() => handleViewStats(comp)}
                                             >
                                                 <td className="px-4 py-4">
-                                                    <div className="font-medium text-gray-900 dark:text-gray-100 truncate max-w-[200px] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" title={comp.title}>{comp.title || 'Untitled'}</div>
-                                                    <div className="text-xs text-gray-500 dark:text-gray-400">{comp.organizer}</div>
+                                                    <div className="font-medium text-foreground truncate max-w-[200px] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" title={comp.title}>{comp.title || 'Untitled'}</div>
+                                                    <div className="text-xs text-muted">{comp.organizer}</div>
                                                 </td>
-                                                <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400 truncate">{comp.platform}</td>
-                                                <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">{new Date(comp.registration_deadline).toLocaleDateString()}</td>
-                                                <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                                <td className="px-4 py-4 text-sm text-foreground truncate">{comp.platform}</td>
+                                                <td className="px-4 py-4 text-sm text-foreground">{new Date(comp.registration_deadline).toLocaleDateString()}</td>
+                                                <td className="px-4 py-4 text-sm text-foreground">
                                                     {comp.event_date ? new Date(comp.event_date).toLocaleDateString() : 'TBA'}
                                                 </td>
-                                                <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400 truncate" title={Array.isArray(comp.departments) ? comp.departments.join(', ') : (comp.departments || 'All')}>
+                                                <td className="px-4 py-4 text-sm text-foreground truncate" title={Array.isArray(comp.departments) ? comp.departments.join(', ') : (comp.departments || 'All')}>
                                                     {Array.isArray(comp.departments)
                                                         ? comp.departments.join(', ')
                                                         : (comp.departments || 'All')}
                                                 </td>
-                                                <td className="px-4 py-4 text-center text-sm text-gray-600 dark:text-gray-400">-</td>
-                                                <td className="px-4 py-4 text-center text-sm text-gray-600 dark:text-gray-400">-</td>
+                                                <td className="px-4 py-4 text-center text-sm text-muted">-</td>
+                                                <td className="px-4 py-4 text-center text-sm text-muted">-</td>
                                             </tr>
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="7" className="px-4 py-12 text-center text-gray-500 dark:text-gray-400 text-sm">
+                                            <td colSpan="7" className="px-4 py-12 text-center text-muted text-sm">
                                                 No competitions found.
                                             </td>
                                         </tr>

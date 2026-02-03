@@ -52,7 +52,7 @@ const StudentSearch = () => {
     return (
         <div className="min-h-screen bg-background dark:bg-slate-900 flex transition-colors duration-200">
             <Sidebar />
-            <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8 w-full">
+            <div className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8 w-full">
                 <div className="w-[95%] mx-auto">
                     <div className="mb-8 text-center pt-8">
                         <h1 className="text-2xl font-bold text-foreground dark:text-white">Student Search</h1>

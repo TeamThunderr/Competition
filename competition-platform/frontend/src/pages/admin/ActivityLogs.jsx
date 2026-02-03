@@ -86,9 +86,9 @@ const ActivityLogs = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="min-h-screen bg-background flex transition-colors duration-200">
             <Sidebar />
-            <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
+            <div className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8">
                 <div className="w-[95%] mx-auto">
                     {/* Header */}
                     <div className="mb-8 relative text-center">
@@ -103,7 +103,7 @@ const ActivityLogs = () => {
                     </div>
 
                     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                        <div className="p-6 border-b border-border flex justify-between items-center bg-muted/5">
                             <div className="font-semibold text-gray-700">Total Activities: {logs.length}</div>
                             {/* Placeholder for future filtering if needed */}
                         </div>
@@ -124,7 +124,7 @@ const ActivityLogs = () => {
                                 {logs.map((log) => (
                                     <div
                                         key={log.id}
-                                        className="p-6 hover:bg-gray-50 transition-colors flex items-center justify-between group block relative"
+                                        className="p-6 hover:bg-muted/5 transition-colors flex items-center justify-between group block relative"
                                     >
                                         <div className="flex items-start gap-4 flex-1">
                                             <div className="mt-1 p-2 bg-blue-100 text-blue-600 rounded-lg group-hover:bg-blue-200 transition-colors">

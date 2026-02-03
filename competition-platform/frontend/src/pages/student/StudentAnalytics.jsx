@@ -6,7 +6,7 @@ const StudentAnalytics = () => {
         <div className="flex bg-background min-h-screen font-sans text-foreground transition-colors duration-200">
             <StudentSidebar isOpen={false} /> {/* Mobile toggle state management might be needed here usually, but for now simple render */}
 
-            <div className="flex-1 flex flex-col min-w-0 md:ml-64 p-8">
+            <div className="flex-1 flex flex-col min-w-0 md:ml-sidebar p-8">
                 <header className="mb-8">
                     <h1 className="text-3xl font-bold text-foreground">My Analytics</h1>
                     <p className="text-muted mt-1">Track your performance and participation stats.</p>

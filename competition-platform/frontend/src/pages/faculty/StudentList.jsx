@@ -40,7 +40,7 @@ const StudentList = () => {
         <div className="flex bg-background min-h-screen font-sans text-foreground">
             <Sidebar />
 
-            <main className="flex-1 ml-64 p-8">
+            <main className="flex-1 md:ml-sidebar p-8">
                 {/* Page Header */}
                 <div className="flex justify-between items-center mb-8">
                     <div>

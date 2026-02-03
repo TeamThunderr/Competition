@@ -114,7 +114,7 @@ const AdminDashboard = () => {
             <Sidebar />
 
             {/* Main Content */}
-            <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
+            <div className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8">
                 <div className="w-[95%] mx-auto">
                     {/* Header */}
                     <div className="mb-8 text-center">

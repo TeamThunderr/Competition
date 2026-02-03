@@ -44,7 +44,7 @@ const StudentDetail = () => {
         return (
             <div className="flex bg-background min-h-screen">
                 <Sidebar />
-                <main className="flex-1 ml-64 p-8">
+                <main className="flex-1 md:ml-sidebar p-8">
                     <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-2 dark:bg-red-900/10 dark:border-red-800 dark:text-red-400">
                         <AlertCircle size={20} />
                         {error}
@@ -64,7 +64,7 @@ const StudentDetail = () => {
         <div className="flex bg-background min-h-screen font-sans text-foreground">
             <Sidebar />
 
-            <main className="flex-1 ml-64 p-8">
+            <main className="flex-1 md:ml-sidebar p-8">
                 {/* Header with Back Button */}
                 <div className="mb-8">
                     <button

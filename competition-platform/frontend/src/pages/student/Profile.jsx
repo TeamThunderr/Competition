@@ -43,7 +43,7 @@ const Profile = () => {
 
     if (loading) {
         return (
-            <div className="flex bg-gray-50 min-h-screen items-center justify-center">
+            <div className="flex bg-background min-h-screen items-center justify-center transition-colors duration-200">
                 <RoleBasedLoader role="STUDENT" />
             </div>
         );
@@ -54,7 +54,7 @@ const Profile = () => {
     return (
         <div className="min-h-screen bg-background flex transition-colors duration-200">
             <StudentSidebar />
-            <div className="flex-1 ml-64 p-8">
+            <div className="flex-1 md:ml-sidebar p-8">
                 <div className="max-w-4xl mx-auto">
                     <div className="mb-8">
                         <h1 className="text-2xl font-bold text-foreground">My Profile</h1>
