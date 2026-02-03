@@ -228,6 +228,13 @@ const getCompetitionStudents = async (req, res) => {
                 })
         };
 
+        // Debug logging
+        console.log(`[FacultyComp] Competition ${competitionId}:`);
+        console.log(`  - Total students: ${myStudents.length}`);
+        console.log(`  - Registered: ${response.registered.length}`);
+        console.log(`  - Unregistered: ${response.unregistered.length}`);
+        console.log(`  - Shortlisted: ${response.shortlisted.length}`);
+
         res.status(200).json(response);
 
     } catch (err) {
