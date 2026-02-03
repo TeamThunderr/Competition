@@ -120,7 +120,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
     };
 
     return (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-6 relative overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow p-6 relative overflow-hidden">
             {my_status?.is_winner && (
                 <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-bl-lg shadow-sm z-10">
                     WINNER
@@ -151,11 +151,11 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
 
             <div className="flex justify-between items-start mb-4">
                 <div>
-                    <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-full">
+                    <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-full dark:bg-blue-900/30 dark:text-blue-300">
                         {competition.platform || 'Unknown Platform'}
                     </span>
 
-                    <h3 className="text-lg font-semibold text-gray-900 mt-2">{competition.title || 'Untitled Competition'}</h3>
+                    <h3 className="text-lg font-semibold text-foreground mt-2">{competition.title || 'Untitled Competition'}</h3>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -179,20 +179,20 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
                 </div>
             </div>
 
-            <p className="text-gray-500 text-sm mb-6 line-clamp-2">
+            <p className="text-muted text-sm mb-6 line-clamp-2">
                 {competition.description}
             </p>
 
             <div className="space-y-3 mb-6">
-                <div className="flex items-center text-sm text-gray-500">
+                <div className="flex items-center text-sm text-muted">
                     <Calendar className="w-4 h-4 mr-2" />
                     <span>Event Date: {competition.event_date ? new Date(competition.event_date).toLocaleDateString() : 'TBA'}</span>
                 </div>
-                <div className="flex items-center text-sm text-gray-500">
+                <div className="flex items-center text-sm text-muted">
                     <Calendar className="w-4 h-4 mr-2" />
                     <span>Deadline: {new Date(competition.registration_deadline || competition.created_at).toLocaleDateString()}</span>
                 </div>
-                <div className="flex items-center text-sm text-gray-500">
+                <div className="flex items-center text-sm text-muted">
                     <Users className="w-4 h-4 mr-2" />
                     <span>Team: {competition.min_team_size}-{competition.max_team_size}</span>
                 </div>
@@ -201,7 +201,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
             <div className="flex gap-3 flex-col sm:flex-row">
                 <Link
                     to={`/competitions/${competition.id}`}
-                    className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors text-center flex items-center justify-center"
+                    className="flex-1 bg-muted/10 text-foreground py-2 px-4 rounded-lg text-sm font-medium hover:bg-muted/20 transition-colors text-center flex items-center justify-center"
                 >
                     View Info
                 </Link>
@@ -210,7 +210,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
                 {/* Show Registration Count for Faculty/HOD */}
                 {!showRegister && (
                     <div className="flex gap-2">
-                        <div className="flex items-center text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100" title="Total Registrations">
+                        <div className="flex items-center text-sm text-muted bg-muted/10 px-3 py-2 rounded-lg border border-border" title="Total Registrations">
                             <Users className="w-4 h-4 mr-2" />
                             <span className="font-medium">
                                 {competition.registrations && competition.registrations[0]
@@ -219,7 +219,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
                             </span>
                         </div>
                         {!isClosed && (
-                            <div className={`flex items-center text-sm px-3 py-2 rounded-lg border ${daysLeft <= 3 ? 'bg-red-50 text-red-600 border-red-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`} title="Days Left">
+                            <div className={`flex items-center text-sm px-3 py-2 rounded-lg border ${daysLeft <= 3 ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/30' : 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900/50'}`} title="Days Left">
                                 <span className="font-medium">
                                     {daysLeft} days left
                                 </span>

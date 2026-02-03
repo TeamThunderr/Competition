@@ -25,54 +25,54 @@ const TotalSectionsStats = ({ data, onSectionClick }) => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-5 py-4 bg-white border-b border-gray-100 flex justify-between items-center">
+        <div className="flex flex-col h-full bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+            <div className="px-5 py-4 bg-card border-b border-border flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-gray-100 bg-opacity-80">
-                        <Layers className="w-5 h-5 text-gray-700" />
+                    <div className="p-2 rounded-lg bg-muted/10">
+                        <Layers className="w-5 h-5 text-foreground" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-gray-800 text-sm md:text-base">Total Sections In Dept</h3>
-                        <p className="text-xs text-gray-500 font-medium mt-0.5">Academic Years Overview</p>
+                        <h3 className="font-bold text-foreground text-sm md:text-base">Total Sections In Dept</h3>
+                        <p className="text-xs text-muted font-medium mt-0.5">Academic Years Overview</p>
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto max-h-[400px] p-4 space-y-3 bg-gray-50/50">
+            <div className="flex-1 overflow-y-auto max-h-[400px] p-4 space-y-3 bg-muted/5">
                 {data.map((group, idx) => {
                     const isOpen = openYears.includes(group.year);
                     return (
-                        <div key={idx} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow transition-shadow duration-200">
+                        <div key={idx} className="bg-card border border-border rounded-lg overflow-hidden shadow-sm hover:shadow transition-shadow duration-200">
                             <button
                                 onClick={() => toggleYear(group.year)}
-                                className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 transition-colors"
+                                className="w-full flex items-center justify-between px-4 py-3 bg-card hover:bg-muted/10 transition-colors"
                             >
                                 <div className="flex items-center gap-2">
-                                    {isOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
-                                    <span className="font-bold text-gray-700 text-sm">{group.year}</span>
+                                    {isOpen ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
+                                    <span className="font-bold text-foreground text-sm">{group.year}</span>
                                 </div>
-                                <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded-md border border-gray-200">
+                                <span className="text-xs font-semibold bg-muted/10 text-muted px-2 py-1 rounded-md border border-border">
                                     {group.totalStudents} Students
                                 </span>
                             </button>
 
                             {isOpen && (
-                                <div className="border-t border-gray-100 bg-gray-50/30">
+                                <div className="border-t border-border bg-muted/5">
                                     <div className="grid grid-cols-2 lg:grid-cols-2 gap-2 p-3">
                                         {group.sections.map((sec, sIdx) => (
                                             <button
                                                 key={sIdx}
                                                 onClick={() => onSectionClick(sec.students || [], `${group.year} - Section ${sec.name} Students`, sec.name)}
-                                                className="flex flex-col items-start p-2.5 rounded-md bg-white border border-gray-100 hover:border-blue-300 hover:shadow-sm hover:bg-blue-50/50 transition-all duration-200 group text-left"
+                                                className="flex flex-col items-start p-2.5 rounded-md bg-card border border-border hover:border-blue-300 hover:shadow-sm hover:bg-blue-50/10 transition-all duration-200 group text-left"
                                             >
                                                 <div className="flex w-full justify-between items-center mb-1">
-                                                    <span className="text-xs font-bold text-gray-500 group-hover:text-blue-600 uppercase tracking-wide">
+                                                    <span className="text-xs font-bold text-muted group-hover:text-blue-500 uppercase tracking-wide">
                                                         Sec {sec.name}
                                                     </span>
-                                                    <BookOpen className="w-3 h-3 text-gray-300 group-hover:text-blue-400" />
+                                                    <BookOpen className="w-3 h-3 text-muted/50 group-hover:text-blue-400" />
                                                 </div>
-                                                <div className="text-sm font-bold text-gray-800">
-                                                    {sec.count} <span className="text-[10px] font-normal text-gray-500">students</span>
+                                                <div className="text-sm font-bold text-foreground">
+                                                    {sec.count} <span className="text-[10px] font-normal text-muted">students</span>
                                                 </div>
                                             </button>
                                         ))}

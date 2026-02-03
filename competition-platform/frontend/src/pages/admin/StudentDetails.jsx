@@ -39,7 +39,7 @@ const StudentDetails = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center transition-colors duration-200">
                 <RoleBasedLoader role="ADMIN" />
             </div>
         );
@@ -47,16 +47,16 @@ const StudentDetails = () => {
 
     if (error) {
         return (
-            <div className="flex bg-gray-50 min-h-screen">
+            <div className="flex bg-background min-h-screen transition-colors duration-200">
                 <Sidebar />
-                <main className="flex-1 md:ml-64 p-8 pt-16 md:pt-8 w-full">
+                <main className="flex-1 md:ml-sidebar p-8 pt-16 md:pt-8 w-full">
                     <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-2">
                         <AlertCircle size={20} />
                         {error}
                     </div>
                     <button
                         onClick={() => navigate(backPath)}
-                        className="mt-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                        className="mt-4 flex items-center gap-2 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
                     >
                         <ArrowLeft size={20} /> {backLabel}
                     </button>
@@ -68,16 +68,16 @@ const StudentDetails = () => {
     if (!student) return null;
 
     return (
-        <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
+        <div className="flex bg-gray-50 dark:bg-slate-900 min-h-screen font-sans text-gray-900 dark:text-gray-100 transition-colors duration-200">
             <Sidebar />
 
-            <main className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8 w-full min-w-0">
+            <main className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8 w-full min-w-0">
                 <div className="w-[95%] mx-auto">
                     {/* Header with Back Button */}
                     <div className="mb-6">
                         <button
                             onClick={() => navigate(backPath)}
-                            className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 transition-colors"
+                            className="flex items-center gap-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 mb-4 transition-colors"
                         >
                             <ArrowLeft size={18} /> {backLabel}
                         </button>
