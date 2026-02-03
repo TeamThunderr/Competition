@@ -54,7 +54,7 @@ const FacultyDashboard = () => {
         <div className="flex bg-background min-h-screen text-foreground">
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-            <div className="flex-1 flex flex-col min-w-0 md:ml-sidebar">
+            <div className="flex-1 flex flex-col min-w-0 md:ml-64">
                 {/* Mobile Header */}
                 <div className="md:hidden bg-card border-b border-border p-4 flex items-center gap-4 sticky top-0 z-20">
                     <button

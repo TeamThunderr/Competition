@@ -61,13 +61,13 @@ const OdApprovals = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:justify-between items-start mb-8 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">OD Approval Queue</h1>
-                    <p className="text-muted mt-1">Verify official email evidence and grant On-Duty permissions.</p>
+                    <h1 className="text-2xl font-bold text-gray-900">OD Approval Queue</h1>
+                    <p className="text-gray-500 mt-1">Verify official email evidence and grant On-Duty permissions.</p>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg flex items-center space-x-2 w-full md:w-auto justify-center dark:bg-blue-900/30 dark:border-blue-900/50">
-                    <ShieldCheck size={18} className="text-blue-600 dark:text-blue-400" />
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Automated DKIM Verification Active</span>
+                <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg flex items-center space-x-2 w-full md:w-auto justify-center">
+                    <ShieldCheck size={18} className="text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700">Automated DKIM Verification Active</span>
                 </div>
             </div>
 
@@ -106,23 +106,33 @@ const OdApprovals = () => {
                     pendingApprovals.map(approval => (
                         <div
                             key={approval.id}
-                            onClick={() => setSelectedRequest(approval)}
-                            className="bg-card rounded-xl border border-border p-6 flex justify-between items-center shadow-sm cursor-pointer hover:border-blue-200 hover:shadow-md transition-all group"
+                            className={`group bg-white rounded-xl border p-6 flex gap-4 items-start shadow-sm transition-all hover:shadow-md ${selectedIds.includes(approval.id) ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10' : 'border-gray-100'}`}
                         >
-                            <div>
-                                <div className="flex items-center space-x-3 mb-1">
-                                    <h3 className="font-semibold text-foreground group-hover:text-blue-600 transition-colors">{approval.users?.full_name || 'Unknown Student'}</h3>
-                                    <span className="bg-muted/10 text-muted text-xs px-2 py-0.5 rounded-full border border-border">
-                                        {approval.users?.registration_no}
-                                    </span>
-                                    <span className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full border border-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50">
-                                        Sec {approval.users?.section}
-                                    </span>
-                                </div>
-                                <div className="text-sm text-muted flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                                    <span className="flex items-center space-x-1">
-                                        <ShieldCheck size={14} />
-                                        <span>{approval.competitions?.title || 'External Event'}</span>
+                            <div className="pt-1">
+                                <input
+                                    type="checkbox"
+                                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                    checked={selectedIds.includes(approval.id)}
+                                    onChange={(e) => {
+                                        e.stopPropagation();
+                                        toggleSelection(approval.id);
+                                    }}
+                                />
+                            </div>
+
+                            <div className="flex-1 cursor-pointer" onClick={() => setSelectedRequest(approval)}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex items-center space-x-3">
+                                        <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{approval.users?.full_name || 'Unknown Student'}</h3>
+                                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full border border-gray-200">
+                                            {approval.users?.registration_no}
+                                        </span>
+                                        <span className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full border border-blue-100">
+                                            Sec {approval.users?.section}
+                                        </span>
+                                    </div>
+                                    <span className="text-xs text-gray-400 font-medium group-hover:text-blue-500 flex items-center gap-1">
+                                        View Details <ChevronRight size={14} />
                                     </span>
                                 </div>
 
@@ -156,12 +166,12 @@ const OdApprovals = () => {
                         </div>
                     ))
                 ) : (
-                    <div className="bg-card rounded-xl border border-border p-12 text-center">
-                        <div className="mx-auto w-16 h-16 bg-muted/10 rounded-full flex items-center justify-center mb-4">
-                            <ShieldCheck size={32} className="text-muted" />
+                    <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
+                        <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                            <ShieldCheck size={32} className="text-gray-400" />
                         </div>
-                        <h3 className="text-lg font-medium text-foreground">No Pending Approvals</h3>
-                        <p className="text-muted mt-2">All OD requests have been processed.</p>
+                        <h3 className="text-lg font-medium text-gray-900">No Pending Approvals</h3>
+                        <p className="text-gray-500 mt-2">All OD requests have been processed.</p>
                     </div>
                 )}
             </div>
@@ -170,15 +180,15 @@ const OdApprovals = () => {
             {selectedRequest && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedRequest(null)}>
                     <div
-                        className="bg-card rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200"
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="p-6 border-b border-border flex justify-between items-center bg-muted/5">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                             <div>
-                                <h2 className="text-lg font-bold text-foreground">Request Details</h2>
-                                <p className="text-sm text-muted">Review request before approval</p>
+                                <h2 className="text-lg font-bold text-gray-900">Request Details</h2>
+                                <p className="text-sm text-gray-500">Review request before approval</p>
                             </div>
-                            <button onClick={() => setSelectedRequest(null)} className="text-muted hover:text-foreground p-1 bg-card rounded-full border border-border shadow-sm transition-colors">
+                            <button onClick={() => setSelectedRequest(null)} className="text-gray-400 hover:text-gray-600 p-1 bg-white rounded-full border border-gray-200 shadow-sm transition-colors">
                                 <X size={18} />
                             </button>
                         </div>
@@ -186,29 +196,29 @@ const OdApprovals = () => {
                         <div className="p-6 space-y-6">
                             {/* Student Info Block */}
                             <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg dark:bg-blue-900/30 dark:text-blue-300">
+                                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg">
                                     {selectedRequest.users?.full_name?.charAt(0) || 'U'}
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-foreground text-lg leading-tight">{selectedRequest.users?.full_name}</h3>
-                                    <div className="flex items-center gap-2 mt-1 text-sm text-muted">
+                                    <h3 className="font-semibold text-gray-900 text-lg leading-tight">{selectedRequest.users?.full_name}</h3>
+                                    <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
                                         <span>{selectedRequest.users?.registration_no}</span>
-                                        <span className="w-1 h-1 bg-muted/50 rounded-full"></span>
-                                        <span className="text-blue-600 font-medium dark:text-blue-400">Sec {selectedRequest.users?.section}</span>
+                                        <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                        <span className="text-blue-600 font-medium">Sec {selectedRequest.users?.section}</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Event Info & Approval Settings */}
-                            <div className="bg-muted/5 p-4 rounded-xl border border-border space-y-4">
+                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <span className="text-xs font-semibold text-muted uppercase tracking-wider">Event</span>
-                                        <p className="font-medium text-foreground mt-0.5">{selectedRequest.competitions?.title}</p>
+                                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Event</span>
+                                        <p className="font-medium text-gray-900 mt-0.5">{selectedRequest.competitions?.title}</p>
                                     </div>
                                     <div className="text-right">
-                                        <span className="text-xs font-semibold text-muted uppercase tracking-wider">Date</span>
-                                        <p className="font-medium text-foreground mt-0.5">
+                                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</span>
+                                        <p className="font-medium text-gray-900 mt-0.5">
                                             {selectedRequest.competitions?.event_date
                                                 ? new Date(selectedRequest.competitions.event_date).toLocaleDateString()
                                                 : <span className="text-orange-600">TBA</span>}
@@ -217,13 +227,12 @@ const OdApprovals = () => {
                                 </div>
 
                                 {/* HOD Overrides / Settings */}
-                                { /* HOD Overrides / Settings */}
-                                <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border">
+                                <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200/50">
                                     <div>
-                                        <label className="text-xs font-semibold text-muted uppercase tracking-wider block mb-1.5">Time Slot</label>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">Time Slot</label>
                                         <select
                                             id="od-time-slot"
-                                            className="w-full text-sm p-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full text-sm p-2 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                                             defaultValue="Full Day"
                                         >
                                             <option value="Full Day">Full Day</option>
@@ -236,13 +245,13 @@ const OdApprovals = () => {
 
                                     {!selectedRequest.competitions?.event_date && (
                                         <div>
-                                            <label className="text-xs font-semibold text-muted uppercase tracking-wider block mb-1.5">Duration (Days)</label>
+                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">Duration (Days)</label>
                                             <input
                                                 id="od-duration"
                                                 type="number"
                                                 min="1"
                                                 defaultValue="10"
-                                                className="w-full text-sm p-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-blue-500 outline-none"
+                                                className="w-full text-sm p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
                                             />
                                         </div>
                                     )}
@@ -251,17 +260,17 @@ const OdApprovals = () => {
 
                             {/* Reason Block */}
                             <div>
-                                <span className="text-xs font-semibold text-muted uppercase tracking-wider block mb-2">Detailed Reason</span>
-                                <div className="bg-blue-50/50 p-4 rounded-xl text-foreground text-sm leading-relaxed border border-blue-100 dark:bg-blue-900/20 dark:border-blue-900/30">
+                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2">Detailed Reason</span>
+                                <div className="bg-blue-50/50 p-4 rounded-xl text-gray-700 text-sm leading-relaxed border border-blue-100">
                                     {selectedRequest.reason || "No specific reason provided."}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-6 bg-muted/5 border-t border-border flex gap-3">
+                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
                             <button
                                 onClick={() => handleAction(selectedRequest.id, 'REJECTED')}
-                                className="flex-1 py-2.5 text-sm font-medium text-red-600 bg-card hover:bg-red-50 rounded-lg transition-colors border border-border shadow-sm dark:bg-card dark:hover:bg-red-900/20"
+                                className="flex-1 py-2.5 text-sm font-medium text-red-600 bg-white hover:bg-red-50 rounded-lg transition-colors border border-gray-200 shadow-sm"
                             >
                                 Reject Request
                             </button>

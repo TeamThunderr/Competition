@@ -49,16 +49,16 @@ const StudentSearch = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background dark:bg-slate-900 flex transition-colors duration-200">
+        <div className="min-h-screen bg-background flex">
             <Sidebar />
-            <div className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8 w-full">
+            <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
                 <div className="w-[95%] mx-auto">
                     <div className="mb-8 text-center pt-8">
-                        <h1 className="text-2xl font-bold text-foreground dark:text-white">Student Search</h1>
-                        <p className="text-gray-500 dark:text-gray-400 mt-1">Global directory lookup. View history and activity for any student.</p>
+                        <h1 className="text-2xl font-bold text-foreground">Student Search</h1>
+                        <p className="text-gray-500 mt-1">Global directory lookup. View history and activity for any student.</p>
                     </div>
 
-                    <div className="bg-card dark:bg-slate-800 p-6 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm min-h-[600px] transition-colors duration-200">
+                    <div className="bg-card p-6 rounded-xl border border-gray-100 shadow-sm min-h-[600px]">
                         {/* Search Bar */}
                         <div className="relative max-w-2xl mb-8 mx-auto">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -68,10 +68,13 @@ const StudentSearch = () => {
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="block w-full pl-10 pr-3 py-3 border border-border dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+
+                                className="block w-full pl-10 pr-3 py-3 border border-border rounded-lg leading-5 bg-card placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
                                 placeholder="Search by Name, Roll Number or Email..."
                             />
                         </div>
+
+
 
                         <div className="overflow-hidden">
                             {loading ? (
@@ -79,41 +82,41 @@ const StudentSearch = () => {
                                     <RoleBasedLoader role="ADMIN" />
                                 </div>
                             ) : students.length > 0 ? (
-                                <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-                                    <thead className="bg-gray-50 dark:bg-slate-700/50">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-background">
                                         <tr>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reg No</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Department</th>
-                                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Section</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reg No</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
+                                    <tbody className="bg-card divide-y divide-gray-200">
                                         {students.map((student) => (
                                             <tr
                                                 key={student.id}
                                                 onClick={() => handleStudentClick(student.id)}
-                                                className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+                                                className="hover:bg-background transition-colors cursor-pointer"
                                             >
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center">
-                                                        <div className="flex-shrink-0 h-8 w-8 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-full flex items-center justify-center font-bold text-xs">
+                                                        <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xs">
                                                             {student.full_name?.charAt(0)}
                                                         </div>
                                                         <div className="ml-4">
-                                                            <div className="text-sm font-medium text-foreground dark:text-gray-100">{student.full_name}</div>
+                                                            <div className="text-sm font-medium text-foreground">{student.full_name}</div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{student.registration_no}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{student.departments?.name || '-'}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-400">{student.section || '-'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.registration_no}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.departments?.name || '-'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">{student.section || '-'}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             ) : searchTerm ? (
-                                <div className="text-center py-10 text-gray-500 dark:text-gray-400">No students found matching "{searchTerm}"</div>
+                                <div className="text-center py-10 text-gray-500">No students found matching "{searchTerm}"</div>
                             ) : (
                                 <div className="text-center py-10 text-gray-400">Start typing to search for students</div>
                             )}
