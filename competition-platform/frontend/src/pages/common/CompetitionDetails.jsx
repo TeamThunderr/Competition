@@ -66,8 +66,13 @@ const CompetitionDetails = () => {
     }, [statsData.total_sections, statsData.registered]);
 
     const totalUnregisteredCount = useMemo(() => {
+        // Faculty view: uses flat unregistered array
+        if (isFaculty && statsData.unregistered) {
+            return statsData.unregistered.length;
+        }
+        // HOD view: uses grouped sections
         return unregisteredSections.reduce((sum, group) => sum + group.totalStudents, 0);
-    }, [unregisteredSections]);
+    }, [unregisteredSections, statsData.unregistered, isFaculty]);
 
     const handleSectionClick = (students, year, sectionName, type = 'Total') => {
         const title = `${year} - Section ${sectionName} (${type})`;
@@ -292,7 +297,6 @@ const CompetitionDetails = () => {
                                         >
                                             <option value="2nd Year">2nd Year</option>
                                             <option value="3rd Year">3rd Year</option>
-                                            <option value="4th Year">4th Year</option>
                                         </select>
                                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                                             <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
@@ -327,9 +331,17 @@ const CompetitionDetails = () => {
                                         ))
                                     ) : <div className="text-sm text-gray-400 text-center py-4">No unregistered sections found for {selectedYear}</div>
                                 ) : (
-                                    <div className="text-sm text-center py-4">
-                                        {totalUnregisteredCount} Unregistered
-                                    </div>
+                                    /* Faculty View - Show unregistered students list */
+                                    (statsData.unregistered && statsData.unregistered.length > 0) ? (
+                                        statsData.unregistered.map(student => (
+                                            <div key={student.id} className="text-sm p-3 rounded-lg border bg-gray-50 border-gray-200">
+                                                <div className="font-medium text-gray-900 truncate">{student.name}</div>
+                                                <div className="text-xs text-gray-600 truncate">{student.regNo}</div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-sm text-gray-400 text-center py-4">All students registered!</div>
+                                    )
                                 )}
                             </div>
                         </div>
@@ -352,7 +364,6 @@ const CompetitionDetails = () => {
                                         >
                                             <option value="2nd Year">2nd Year</option>
                                             <option value="3rd Year">3rd Year</option>
-                                            <option value="4th Year">4th Year</option>
                                         </select>
                                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                                             <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
@@ -437,7 +448,6 @@ const CompetitionDetails = () => {
                                         >
                                             <option value="2nd Year">2nd Year</option>
                                             <option value="3rd Year">3rd Year</option>
-                                            <option value="4th Year">4th Year</option>
                                         </select>
                                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                                             <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
