@@ -51,12 +51,12 @@ const FacultyDashboard = () => {
     ];
 
     return (
-        <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
+        <div className="flex bg-background min-h-screen text-foreground">
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
             <div className="flex-1 flex flex-col min-w-0 md:ml-64">
                 {/* Mobile Header */}
-                <div className="md:hidden bg-white border-b border-gray-200 p-4 flex items-center gap-4 sticky top-0 z-20">
+                <div className="md:hidden bg-card border-b border-border p-4 flex items-center gap-4 sticky top-0 z-20">
                     <button
                         onClick={() => setIsSidebarOpen(true)}
                         className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg"
@@ -69,8 +69,8 @@ const FacultyDashboard = () => {
                 <main className="flex-1 p-4 md:p-8 overflow-y-auto">
                     {/* Header */}
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 hidden md:block">Section Mentor Dashboard</h1>
-                        <div className="flex items-center gap-2 text-gray-600 mt-2 text-sm">
+                        <h1 className="text-3xl font-bold text-foreground hidden md:block">Section Mentor Dashboard</h1>
+                        <div className="flex items-center gap-2 text-muted mt-2 text-sm">
                             <span>Class {stats.section_label}</span>
                             <span>|</span>
                             <span>Batch : </span>
@@ -94,9 +94,9 @@ const FacultyDashboard = () => {
                             {/* Stats Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                                 {statsCards.map((stat, index) => (
-                                    <div key={index} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition-shadow hover:shadow-md">
+                                    <div key={index} className="bg-card p-6 rounded-xl border border-border shadow-sm transition-shadow hover:shadow-md">
                                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{stat.label}</h3>
-                                        <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
+                                        <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
                                         <div className="text-xs text-gray-400">{stat.subtext}</div>
                                     </div>
                                 ))}
@@ -106,8 +106,8 @@ const FacultyDashboard = () => {
                             <div>
                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                                     <div>
-                                        <h2 className="text-xl font-bold text-gray-900">Active Competitions</h2>
-                                        <p className="text-gray-500 mt-1">Ongoing and upcoming events available for students.</p>
+                                        <h2 className="text-xl font-bold text-foreground">Active Competitions</h2>
+                                        <p className="text-muted mt-1">Ongoing and upcoming events available for students.</p>
                                     </div>
                                     <div className="flex gap-3">
                                         <button
@@ -146,7 +146,7 @@ const FacultyDashboard = () => {
                                                     }
                                                 }
                                             }}
-                                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                                            className="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors shadow-sm"
                                         >
                                             🔄 Sync Comp
                                         </button>
@@ -159,7 +159,7 @@ const FacultyDashboard = () => {
                                                     alert("Download failed");
                                                 }
                                             }}
-                                            className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+                                            className="flex items-center gap-2 bg-card border border-border text-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-50/10 transition-colors shadow-sm"
                                         >
                                             📥 Download
                                         </button>
@@ -179,10 +179,10 @@ const FacultyDashboard = () => {
                                             ))}
                                     </div>
                                 ) : (
-                                    <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
+                                    <div className="bg-card rounded-xl border border-border p-12 text-center">
                                         <div className="text-4xl mb-4">🔍</div>
-                                        <h3 className="text-lg font-medium text-gray-900">No active competitions</h3>
-                                        <p className="text-gray-500 mt-1">Check back later for new events.</p>
+                                        <h3 className="text-lg font-medium text-foreground">No active competitions</h3>
+                                        <p className="text-muted mt-1">Check back later for new events.</p>
                                     </div>
                                 )}
                             </div>

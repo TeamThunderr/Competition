@@ -6,7 +6,7 @@ import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 const DeptPerformance = () => {
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [expandedSection, setExpandedSection] = useState(null);
+
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -35,12 +35,12 @@ const DeptPerformance = () => {
     const maxCount = Math.max(...stats.map(s => s.total_registrations), 1);
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="min-h-screen bg-background flex">
             <Sidebar />
             <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8 w-full">
                 <div className="w-[95%] mx-auto">
                     <div className="mb-8 text-center">
-                        <h1 className="text-2xl font-bold text-gray-900">Active Department Performance</h1>
+                        <h1 className="text-2xl font-bold text-foreground">Active Department Performance</h1>
                         <p className="text-gray-500 mt-1">Analytics for departments with active registrations.</p>
                     </div>
 
@@ -51,8 +51,8 @@ const DeptPerformance = () => {
                     ) : (
                         <>
                             {/* Chart Section */}
-                            <div className="bg-white p-4 md:p-8 rounded-xl border border-gray-100 shadow-sm mb-8 overflow-x-auto">
-                                <h2 className="text-base font-bold text-gray-900 mb-8">Department Registrations</h2>
+                            <div className="bg-card p-4 md:p-8 rounded-xl border border-gray-100 shadow-sm mb-8 overflow-x-auto">
+                                <h2 className="text-base font-bold text-foreground mb-8">Department Registrations</h2>
 
                                 <div className="space-y-8 w-full">
                                     {stats.length > 0 ? stats.map((dept) => (
@@ -63,7 +63,7 @@ const DeptPerformance = () => {
                                             </div>
 
                                             {/* Bar Container */}
-                                            <div className="flex-1 h-10 bg-gray-50 rounded-sm relative flex items-center">
+                                            <div className="flex-1 h-10 bg-background rounded-sm relative flex items-center">
                                                 <div
                                                     className="h-full bg-blue-500 rounded-l-sm transition-all duration-500"
                                                     style={{ width: `${(dept.total_registrations / maxCount) * 100}%` }}
@@ -92,8 +92,8 @@ const DeptPerformance = () => {
                             </div>
 
                             {/* Table Section */}
-                            <div className="bg-white p-4 md:p-8 rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                                <h2 className="text-base font-bold text-gray-900 mb-6">Detailed Department Stats</h2>
+                            <div className="bg-card p-4 md:p-8 rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                                <h2 className="text-base font-bold text-foreground mb-6">Detailed Department Stats</h2>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-sm text-gray-500">
                                         <thead>
@@ -108,8 +108,8 @@ const DeptPerformance = () => {
                                         <tbody>
                                             {stats.map(dept => (
                                                 <React.Fragment key={dept.department_id}>
-                                                    <tr className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
-                                                        <td className="py-4 pl-4 font-medium text-gray-900">{dept.department_name}</td>
+                                                    <tr className="border-b border-gray-50 last:border-0 hover:bg-background transition-colors">
+                                                        <td className="py-4 pl-4 font-medium text-foreground">{dept.department_name}</td>
                                                         <td className="py-4">
                                                             {dept.sections && dept.sections.length > 0
                                                                 ? dept.sections.map(s => `${s.name} (${s.count})`).join(', ')

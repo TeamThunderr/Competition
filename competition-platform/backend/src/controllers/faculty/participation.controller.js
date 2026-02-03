@@ -38,7 +38,6 @@ const syncSingleStudent = async (student, competition, lastSyncedAt, gmailServic
             if (dbStatus === 'QUALIFIED') dbStatus = 'SHORTLISTED';
             if (dbStatus === 'ACTION_REQUIRED') dbStatus = 'PENDING';
 
-            // SINGLE SOURCE OF TRUTH: Update 'registrations' table directly
             const upsertData = {
                 user_id: student.id,
                 competition_id: competition.id,
@@ -48,12 +47,20 @@ const syncSingleStudent = async (student, competition, lastSyncedAt, gmailServic
                 matched_keyword: match.matched_keyword,
                 confidence_score: match.confidence,
                 last_synced_at: match.detected_at,
-                remarks: `[${match.confidence_level}] Match: ${match.suggested_status}. Breakdown: ${match.match_breakdown?.join(', ')}`,
+                // FIX: Use match.match_details.reasoning for breakdown
+                remarks: `[${match.confidence}%] Match: ${match.suggested_status}. Breakdown: ${match.match_details?.reasoning?.join(' | ')}`,
                 verified: true,
                 registered_at: new Date().toISOString()
             };
 
-            return { status: 'detected', upsertData, email_meta: match.email_meta, score_breakdown: match.match_details?.score_breakdown };
+            return {
+                status: 'detected',
+                upsertData,
+                email_meta: match.email_meta,
+                score_breakdown: match.match_details?.score_breakdown,
+                reasoning: match.match_details?.reasoning,
+                total_score: match.confidence
+            };
         } else {
             return { status: 'no_match', lastSyncedAt: new Date().toISOString() };
         }
@@ -356,7 +363,10 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                             subject: result.email_meta?.subject,
                             sender: result.email_meta?.sender,
                             snippet: result.email_meta?.snippet,
-                            score_breakdown: result.score_breakdown
+                            score_breakdown: result.score_breakdown,
+                            // Deep Explanation
+                            total_score: result.total_score,
+                            matched_reasoning: result.reasoning
                         });
                     }
 

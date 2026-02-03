@@ -12,58 +12,13 @@ const SCOPES = [
  * ------------------------------------------------------------------
  */
 
-const INTENT_SIGNALS = [
-    'registered',
-    'successfully applied',
-    'application received',
-    'you’re in',
-    'shortlisted',
-    'selection round',
-    'submission received',
-    'dashboard access',
-    'team confirmation',
-    'registration confirmed',
-    'thank you for registering',
-    'you have registered',
-    'welcome to',
-    'ticket',
-    'finalize your registration',
-    'complete your registration',
-    'ready to hack'
-];
+const INTENT_EXACT = ['registered', 'shortlisted', 'selected', 'confirmed', 'you’re in', 'congratulations', 'ticket','Ready To Hack?'];
+const INTENT_STRONG = ['successfully applied', 'application received', 'submission received', 'registration details', 'payment received', 'welcome to'];
+const INTENT_WEAK = ['reference id', 'thank you', 'complete your', 'dashboard', 'next steps', 'updates', 'reminder'];
 
-const PLATFORM_SIGNALS = [
-    'Devfolio',
-    'Unstop',
-    'HackerRank',
-    'Internshala',
-    'Google',
-    'Microsoft',
-    'Amazon',
-    'MLH',
-    'Luma',
-    'Eventbrite'
+const KNOWN_PLATFORMS = [
+    'devfolio', 'unstop', 'hackerearth', 'hackerrank', 'internshala', 'google', 'microsoft', 'amazon', 'mlh', 'luma', 'eventbrite', 'typeform', 'cognitoforms'
 ];
-
-const ACTION_INDICATORS = [
-    'dashboard',
-    'complete your profile',
-    'view application',
-    'next steps',
-    'round 1',
-    'submission',
-    'deadline'
-];
-
-const NEGATIVE_SIGNALS = [
-    'newsletter',
-    'recommendation',
-    'apply now', // Usually promotional
-    'invitation to apply',
-    'last chance to register', // Promotional
-    'register now'
-];
-
 
 /**
  * ------------------------------------------------------------------
@@ -71,27 +26,21 @@ const NEGATIVE_SIGNALS = [
  * ------------------------------------------------------------------
  */
 
-/**
- * Simple tokenizer
- */
 const tokenize = (text) => {
     if (!text) return [];
     return text.toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .split(/[\s-]+/)
+        .replace(/[^a-z0-9\s]/g, '')
+        .split(/\s+/)
         .filter(t => t.length > 2);
 };
 
-/**
- * Extract plain text body from Gmail Payload
- */
 const extractBodyFromPayload = (payload) => {
     let body = '';
     if (payload.parts) {
         payload.parts.forEach(part => {
             if (part.mimeType === 'text/plain' && part.body && part.body.data) {
                 body += Buffer.from(part.body.data, 'base64').toString('utf-8');
-            } else if (part.parts) { // Recursive for nested parts
+            } else if (part.parts) {
                 body += extractBodyFromPayload(part);
             }
         });
@@ -102,198 +51,154 @@ const extractBodyFromPayload = (payload) => {
 };
 
 /**
- * Extract Event Name
- * Rule: clearly (title case / repeated) OR tied to dashboard/app reference
- */
-const extractEventName = (subject, body) => {
-    const genericTerms = [
-        'reminder', 'update', 'alert', 'notification', 'congratulations', 'invitation',
-        'complete your profile', 'complete your registration', 'action required'
-    ];
-
-    // Strategy 1: Subject extraction (Separators)
-    const separators = ['|', '–', '-', ':', '[', ']'];
-    for (const sep of separators) {
-        if (subject.includes(sep)) {
-            const parts = subject.split(sep);
-            // Look for Title Case-ish, length > 3, and NOT generic
-            const name = parts.find(p => {
-                const trimmed = p.trim();
-                return trimmed.length > 3 &&
-                    /^[A-Z]/.test(trimmed) &&
-                    !genericTerms.includes(trimmed.toLowerCase());
-            });
-            if (name) return name.trim();
-        }
-    }
-
-    // Strategy 2: Common Prefixes
-    const prefixes = [
-        'Welcome to ',
-        'Registration Confirmed: ',
-        'You are registered for ',
-        'Registered successfully for ',
-        'Application received for ',
-        'Successfully Registered'
-    ];
-
-    let finalName = subject;
-    for (const p of prefixes) {
-        if (finalName.toLowerCase().startsWith(p.toLowerCase())) {
-            finalName = finalName.substring(p.length);
-        }
-    }
-
-    // Clean emojis
-    finalName = finalName.replace(/^[\u{1F600}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]\s*/gu, '');
-    finalName = finalName.replace(/[!.]+$/, '').trim();
-
-    // Final check for generic subject
-    if (genericTerms.includes(finalName.toLowerCase())) {
-        return null; // Or return original subject if we want? But null acts as "not found"
-    }
-
-    return finalName;
-};
-
-/**
  * ------------------------------------------------------------------
- * CORE INTELLIGENCE ENGINE
+ * CORE INTELLIGENCE ENGINE (Redesigned)
  * ------------------------------------------------------------------
  */
 
-const analyzeEmail = (emailData, studentEmail = '') => {
+const analyzeEmail = (emailData, competitionTitle, knownPlatform = null) => {
     // INPUT: emailData = { subject, body, from, received_date }
-    const { subject, body, from, received_date } = emailData;
+    const { subject, body, from } = emailData;
     const cleanSubject = (subject || '').toLowerCase();
     const cleanBody = (body || '').toLowerCase();
     const cleanFrom = (from || '').toLowerCase();
-    const cleanStudentEmail = (studentEmail || '').toLowerCase();
+    const cleanTitle = (competitionTitle || '').toLowerCase();
 
+    let score = 0;
+    const score_breakdown = { intent: 0, platform: 0, title_match: 0 };
     const reasoning = [];
-    const signals_detected = {
-        intent_keywords: [],
-        platform_indicators: [],
-        action_indicators: [],
-        date_detected: false,
-        user_identity_match: false
-    };
 
-    const score_breakdown = {
-        intent: 0,
-        platform: 0,
-        action: 0,
-        identity: 0,
-        event_name: 0,
-        date: 0,
-        title_match: 0, // Will be updated by caller
-        negative: 0
-    };
+    // 1. INTENT SIGNAL (Max 40)
+    let intentScore = 0;
+    let foundIntent = null;
 
-    // 1. INTENT DETECTION (+30)
-    for (const signal of INTENT_SIGNALS) {
+    // Check Exact (+40)
+    for (const signal of INTENT_EXACT) {
         if (cleanSubject.includes(signal) || cleanBody.includes(signal)) {
-            if (!signals_detected.intent_keywords.includes(signal)) {
-                signals_detected.intent_keywords.push(signal);
+            intentScore = 50;
+            foundIntent = `Exact: "${signal}"`;
+            break;
+        }
+    }
+    // Check Strong (+30) if not exact
+    if (intentScore === 0) {
+        for (const signal of INTENT_STRONG) {
+            if (cleanSubject.includes(signal) || cleanBody.includes(signal)) {
+                intentScore = 40;
+                foundIntent = `Strong: "${signal}"`;
+                break;
             }
         }
     }
-    if (signals_detected.intent_keywords.length > 0) {
-        score += 30;
-        score_breakdown.intent = 30;
-        reasoning.push(`(+30) Intent keywords: ${signals_detected.intent_keywords.join(', ')}`);
-    }
-
-    // 2. PLATFORM / ORGANIZATION SIGNALS (+20)
-    let detectedPlatform = null;
-    for (const signal of PLATFORM_SIGNALS) {
-        const lowerSignal = signal.toLowerCase();
-        if (cleanFrom.includes(lowerSignal) || cleanBody.includes(lowerSignal) || cleanSubject.includes(lowerSignal)) {
-            if (!signals_detected.platform_indicators.includes(signal)) {
-                signals_detected.platform_indicators.push(signal);
-            }
-            if (!detectedPlatform) detectedPlatform = signal;
-        }
-    }
-
-    if (signals_detected.platform_indicators.length > 0) {
-        score += 20;
-        score_breakdown.platform = 20;
-        reasoning.push(`(+20) Platform found: ${signals_detected.platform_indicators.join(', ')}`);
-    }
-
-    // 3. ACTION INDICATORS (+15)
-    for (const signal of ACTION_INDICATORS) {
-        if (cleanBody.includes(signal)) {
-            if (!signals_detected.action_indicators.includes(signal)) {
-                signals_detected.action_indicators.push(signal);
+    // Check Weak (+20) if not strong
+    if (intentScore === 0) {
+        for (const signal of INTENT_WEAK) {
+            if (cleanSubject.includes(signal) || cleanBody.includes(signal)) {
+                intentScore = 30;
+                foundIntent = `Weak: "${signal}"`;
+                break;
             }
         }
     }
 
-    if (signals_detected.action_indicators.length > 0) {
-        score += 15;
-        score_breakdown.action = 15;
-        reasoning.push(`(+15) Action items: ${signals_detected.action_indicators.join(', ')}`);
+    score += intentScore;
+    score_breakdown.intent = intentScore;
+    if (foundIntent) reasoning.push(`(+${intentScore}) Intent found: ${foundIntent}`);
+    else reasoning.push(`(0) No intent signal found`);
+    // 2. PLATFORM / SENDER SIGNAL (Max 30)
+    let platformScore = 0;
+    let foundPlatform = null;
+    // Check Platform Domain/Sender (+30)
+    const platformsToCheck = [...KNOWN_PLATFORMS];
+    if (knownPlatform) platformsToCheck.push(knownPlatform.toLowerCase());
+    for (const p of platformsToCheck) {
+        if (cleanFrom.includes(p)) {
+            platformScore = 20;
+            foundPlatform = `Sender Domain: ${p}`;
+            break;
+        }
     }
 
-    // 4. IDENTITY MATCH (+10)
-    if (cleanStudentEmail && cleanBody.includes(cleanStudentEmail)) {
-        signals_detected.user_identity_match = true;
-        score += 10;
-        score_breakdown.identity = 10;
-        reasoning.push('(+10) Student email in body');
+    // Check Mention in Text (+20) if not sender
+    if (platformScore === 0) {
+        for (const p of platformsToCheck) {
+            if (cleanSubject.includes(p) || cleanBody.includes(p)) {
+                platformScore = 10;
+                foundPlatform = `Mentioned: ${p}`;
+                break;
+            }
+        }
     }
 
-    // 5. EVENT NAME (+15)
-    const eventName = extractEventName(subject, body);
-    if (eventName && eventName !== subject) {
-        score += 15;
-        score_breakdown.event_name = 15;
-        reasoning.push(`(+15) Event name extracted: "${eventName}"`);
+    score += platformScore;
+    score_breakdown.platform = platformScore;
+    if (foundPlatform) reasoning.push(`(+${platformScore}) Platform matched: ${foundPlatform}`);
+    else reasoning.push(`(0) No platform association found`);
+
+
+    // 3. COMPETITION TITLE MATCH (Max 30)
+    // Logic: Token overlap
+    let titleScore = 0;
+    const titleTokens = tokenize(cleanTitle);
+    const uniqueTitleTokens = [...new Set(titleTokens)];
+    const contentText = cleanSubject + " " + cleanBody.substring(0, 1000); // Check first 1000 chars of body
+
+    if (uniqueTitleTokens.length > 0) {
+        let matchedTokens = 0;
+        uniqueTitleTokens.forEach(t => {
+            if (contentText.includes(t)) matchedTokens++;
+        });
+
+        const matchRatio = matchedTokens / uniqueTitleTokens.length;
+
+        if (cleanSubject.includes(cleanTitle)) {
+            titleScore = 30;
+            reasoning.push(`(+30) Exact title match in subject`);
+        } else if (matchRatio >= 0.75) { // e.g. 3 out of 4 words
+            titleScore = 30; // Treat high partial as exact equivalent
+            reasoning.push(`(+30) Strong partial title match (${matchedTokens}/${uniqueTitleTokens.length} words)`);
+        } else if (matchRatio >= 0.5) {
+            titleScore = 20;
+            reasoning.push(`(+20) Major title words matched (${matchedTokens}/${uniqueTitleTokens.length} words)`);
+        } else if (matchRatio > 0) {
+            titleScore = 10;
+            reasoning.push(`(+10) Weak title match (${matchedTokens}/${uniqueTitleTokens.length} words)`);
+        } else {
+            reasoning.push(`(0) No title words matched`);
+        }
     }
 
-    // 6. DATE DETECTED (+10)
-    const dateRegex = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]* \d{1,2}/i;
-    if (dateRegex.test(cleanBody)) {
-        signals_detected.date_detected = true;
-        score += 10;
-        score_breakdown.date = 10;
-        reasoning.push('(+10) Date/Deadline found');
-    }
+    score += titleScore;
+    score_breakdown.title_match = titleScore;
 
-    // NEGATIVE SIGNALS
-    if (NEGATIVE_SIGNALS.some(ns => cleanSubject.includes(ns))) {
-        score -= 50;
-        score_breakdown.negative = -50;
-        reasoning.push('(-50) Promotional content detected');
-    }
+    // Caps
+    score = Math.min(100, score);
 
     // CLASSIFICATION
-    let classification = 'not_related';
-    if (score >= 80) classification = 'confirmed';
-    else if (score >= 60) classification = 'probable';
-    else if (score >= 40) classification = 'needs_review';
+    let detected = false;
+    let confidence = 'LOW';
 
-    // Cap score at 100, min 0
-    score = Math.max(0, Math.min(100, score));
-
-    // Special Case: Shortlisting -> Confirmed
-    if (cleanSubject.includes('shortlisted') || cleanSubject.includes('congratulations')) {
-        classification = 'confirmed';
-        score = Math.max(score, 90);
-        reasoning.push('(+BOOST) Shortlist/Congrats signal');
+    if (score >= 70) {
+        detected = true;
+        confidence = 'HIGH';
+    } else if (score >= 50) {
+        detected = true;
+        confidence = 'MEDIUM';
     }
 
     return {
-        is_registration_related: ['confirmed', 'probable'].includes(classification),
-        confidence_score: score,
-        score_breakdown, // Return the breakdown
-        classification,
-        event_name: eventName,
-        organization_or_platform: detectedPlatform || 'Other',
+        detected,
+        confidence,
+        total_score: score,
+        score_breakdown,
         reasoning,
-        signals_detected
+
+        // Backward compatibility for existing controller logic
+        confidence_score: score,
+        is_registration_related: detected,
+        suggested_status: detected ? (confidence === 'HIGH' ? 'REGISTERED' : 'PENDING') : 'NOT_FOUND',
+        event_name: cleanTitle, // Passthrough
+        classification: confidence.toLowerCase()
     };
 };
 
@@ -440,20 +345,17 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
                 }
             }
 
-            const analysis = analyzeEmail(emailData); // Pass student email if avail
+            // Pass title and platform for new logic
+            const analysis = analyzeEmail(emailData, competition.title, competition.platform);
 
             // Check if this email is actually about THE competition we are syncing
             // Simple check: does the email mention the competition title or similar?
             // The query was broad, so analysis score helps.
 
-            // Add extra weight if title matches explicitly
-            if (emailData.subject.toLowerCase().includes(competition.title.toLowerCase()) ||
-                emailData.body.toLowerCase().includes(competition.title.toLowerCase())) {
-                analysis.confidence_score += 20; // Boost for specific match
-                if (analysis.score_breakdown) analysis.score_breakdown.title_match = 20;
-            }
+            // Title match is now handled inside analyzeEmail
 
             // Attach metadata to analysis for upstream matching
+            analysis.id = msg.id; // Critical: Capture ID for DB
             analysis.subject = emailData.subject;
             analysis.from = emailData.from;
             analysis.snippet = emailData.snippet;
@@ -469,16 +371,17 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
         }
 
         // Map 'classification' to 'suggested_status'
-        // HARDENED RULES: >= 90 is REGISTERED. Everything else is PENDING/REVIEW.
+        // HARDENED RULES: >= 80 is REGISTERED (Was 90). score 85 should pass.
         let suggested_status = 'PENDING';
-        if (bestScore >= 90) suggested_status = 'REGISTERED';
-        else if (bestScore >= 60) suggested_status = 'PENDING'; // Was 'REGISTERED' (Probable) before. Now strictly Pending.
+        if (bestScore >= 70) suggested_status = 'REGISTERED';
+        else if (bestScore >= 60) suggested_status = 'PENDING';
 
         return {
             suggested_status,
             confidence: bestScore,
             detected_at: new Date().toISOString(),
             source: 'AUTO_GMAIL',
+            gmail_message_id: bestMatch.id, // Return the ID
             match_details: bestMatch,
             // Deep Log Details
             email_meta: {

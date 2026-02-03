@@ -166,27 +166,35 @@ const getDepartmentStats = async (req, res) => {
                 // Find Faculty Advisor
                 let facultyNames = [];
                 if (facultyData) {
-                    console.log(`[HodController] Debug: Looking for faculty for Section '${sec}' in`, facultyData.map(f => `${f.full_name}:[${f.assigned_sections}]`));
-
                     const advisors = facultyData.filter(f => {
                         const sections = f.assigned_sections || [];
                         return sections.some(s => {
-                            // Robust Parsing: "CSE-A", "A", "Section A", "III-A"
-                            // Strategy: Check if the section char (A, B, C) matches the END of the assigned string
-
                             if (!s) return false;
 
-                            const cleanAssigned = s.trim().toUpperCase();
-                            const cleanTarget = sec.trim().toUpperCase();
+                            // Normalize strings
+                            const cleanAssigned = s.toString().trim().toUpperCase();
+                            const cleanTarget = sec.toString().trim().toUpperCase(); // 'A', 'B', 'CSE-A'
 
-                            // Direct Match
+                            // 1. Direct Exact Match
                             if (cleanAssigned === cleanTarget) return true;
 
-                            // Suffix Match (e.g. "CSE-A" ends with "A")
-                            // Be careful of "AB" matching "B" (unlikely for section names usually)
-                            // Assuming section is usually single char A, B, C or A1, B1
-                            if (cleanAssigned.endsWith(`-${cleanTarget}`)) return true;
-                            if (cleanAssigned.endsWith(` ${cleanTarget}`)) return true;
+                            // 2. Suffix Match (Most common: 'CSE-A' matches 'A')
+                            // Check for separators: '-', ' ', '_'
+                            const separators = ['-', ' ', '_', ':'];
+                            for (const sep of separators) {
+                                if (cleanAssigned.endsWith(`${sep}${cleanTarget}`)) return true;
+                                if (cleanTarget.endsWith(`${sep}${cleanAssigned}`)) return true;
+                            }
+
+                            // 3. Last Word Match (e.g. "Year 2 Section A" matches "A")
+                            const assignedParts = cleanAssigned.split(/[\s-_]+/);
+                            const targetParts = cleanTarget.split(/[\s-_]+/);
+                            const lastAssigned = assignedParts[assignedParts.length - 1];
+                            const lastTarget = targetParts[targetParts.length - 1];
+
+                            if (lastAssigned === cleanTarget) return true;
+                            if (lastTarget === cleanAssigned) return true;
+                            if (lastAssigned === lastTarget) return true;
 
                             return false;
                         });
@@ -197,13 +205,9 @@ const getDepartmentStats = async (req, res) => {
                     }
                 }
 
-                // Requirement: 2 Faculties per section. If missing, show "Not Assigned".
-                let advisorString = '';
-                if (facultyNames.length === 0) {
-                    advisorString = 'Not Assigned, Not Assigned';
-                } else if (facultyNames.length === 1) {
-                    advisorString = `${facultyNames[0]}, Not Assigned`;
-                } else {
+                // Format Advisor String
+                let advisorString = 'Not Assigned';
+                if (facultyNames.length > 0) {
                     advisorString = facultyNames.join(', ');
                 }
 

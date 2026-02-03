@@ -11,6 +11,7 @@ const UploadCompetitions = () => {
         organizer: '',
         platform: 'Unstop',
         mode: 'Online',
+        venue: '',
         deadline: '',
         event_date: '',
         link: '',
@@ -69,7 +70,7 @@ const UploadCompetitions = () => {
                 return;
             }
 
-            const response = await fetch('http://localhost:5000/api/admin/competition/upload', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/competition/upload`, {
                 method: 'POST',
                 headers: {
                     'x-user-id': user.id
@@ -116,7 +117,7 @@ const UploadCompetitions = () => {
                 return;
             }
 
-            const response = await fetch('http://localhost:5000/api/competitions', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/competitions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -139,6 +140,7 @@ const UploadCompetitions = () => {
                     organizer: '',
                     platform: 'Unstop',
                     mode: 'Online',
+                    venue: '',
                     deadline: '',
                     event_date: '',
                     link: '',
@@ -158,18 +160,37 @@ const UploadCompetitions = () => {
         }
     };
 
+    const handleCancel = () => {
+        if (window.confirm("Are you sure you want to clear all fields?")) {
+            setFormData({
+                title: '',
+                organizer: '',
+                platform: 'Unstop',
+                mode: 'Online',
+                deadline: '',
+                event_date: '',
+                link: '',
+                description: '',
+                team_allowed: false,
+                min_team_size: 1,
+                max_team_size: 4,
+                departments: []
+            });
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="min-h-screen bg-background flex">
             <Sidebar />
             <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
                 <div className="w-[95%] mx-auto">
                     <div className="mb-8 text-center">
-                        <h1 className="text-2xl font-bold text-gray-900">Upload Competitions</h1>
+                        <h1 className="text-2xl font-bold text-foreground">Upload Competitions</h1>
                         <p className="text-gray-500 mt-1">Add new events to the global system via Excel or manual entry.</p>
                     </div>
 
                     {/* Tabs */}
-                    <div className="border-b border-gray-200 mb-6">
+                    <div className="border-b border-border mb-6">
                         <nav className="-mb-px flex space-x-8">
                             <button
                                 onClick={() => setActiveTab('excel')}
@@ -194,9 +215,9 @@ const UploadCompetitions = () => {
 
                     {/* Content */}
                     {activeTab === 'excel' && (
-                        <div className="bg-white p-12 rounded-xl border border-gray-100 shadow-sm text-center">
+                        <div className="bg-card p-12 rounded-xl border border-gray-100 shadow-sm text-center">
                             <div
-                                className="border-2 border-dashed border-gray-300 rounded-lg p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                className="border-2 border-dashed border-gray-300 rounded-lg p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-background transition-colors"
                                 onClick={handleFileSelect}
                             >
                                 <input
@@ -209,9 +230,9 @@ const UploadCompetitions = () => {
                                 <div className="h-12 w-12 text-gray-400 mb-4">
                                     <FileText className="w-full h-full" />
                                 </div>
-                                <h3 className="text-lg font-medium text-gray-900">Drag and drop Excel file here</h3>
+                                <h3 className="text-lg font-medium text-foreground">Drag and drop Excel file here</h3>
                                 <p className="text-gray-500 text-sm mt-1 mb-6">or click to browse from computer</p>
-                                <button className="bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition-colors pointer-events-none">
+                                <button className="bg-card border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-background transition-colors pointer-events-none">
                                     Select File
                                 </button>
                             </div>
@@ -222,7 +243,7 @@ const UploadCompetitions = () => {
                     )}
 
                     {activeTab === 'manual' && (
-                        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="bg-card p-6 rounded-xl border border-gray-100 shadow-sm">
                             <div className="grid grid-cols-2 gap-6 mb-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Competition Name <span className="text-red-500">*</span></label>
@@ -232,7 +253,7 @@ const UploadCompetitions = () => {
                                         required
                                         value={formData.title}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
                                         placeholder="e.g. HackTheFuture 2025"
                                     />
                                 </div>
@@ -244,7 +265,7 @@ const UploadCompetitions = () => {
                                             required
                                             value={formData.platform}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none bg-white"
+                                            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none bg-card"
                                         >
                                             <option>Unstop</option>
                                             <option>Devfolio</option>
@@ -268,7 +289,7 @@ const UploadCompetitions = () => {
                                         required
                                         value={formData.organizer}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
                                         placeholder="e.g. Google, MLH"
                                     />
                                 </div>
@@ -279,13 +300,25 @@ const UploadCompetitions = () => {
                                         required
                                         value={formData.mode}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white"
+                                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-card"
                                     >
                                         <option>Online</option>
                                         <option>Offline</option>
                                         <option>Hybrid</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Venue</label>
+                                <input
+                                    type="text"
+                                    name="venue"
+                                    value={formData.venue}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                    placeholder="e.g. Main Auditorium (if offline)"
+                                />
                             </div>
 
                             <div className="mb-6">
@@ -296,8 +329,8 @@ const UploadCompetitions = () => {
                                             key={dept}
                                             onClick={() => toggleDepartment(dept)}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${(formData.departments || []).includes(dept)
-                                                    ? 'bg-blue-600 text-white border-blue-600'
-                                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                                                 }`}
                                         >
                                             {dept === 'All' ? 'All Departments' : dept}
@@ -316,7 +349,7 @@ const UploadCompetitions = () => {
                                         required
                                         value={formData.deadline}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
                                     />
                                 </div>
                                 <div>
@@ -326,7 +359,7 @@ const UploadCompetitions = () => {
                                         name="event_date"
                                         value={formData.event_date}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
                                     />
                                 </div>
                             </div>
@@ -339,13 +372,13 @@ const UploadCompetitions = () => {
                                     required
                                     value={formData.link}
                                     onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
                                     placeholder="https://"
                                 />
                             </div>
 
                             {/* Team Settings */}
-                            <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                            <div className="mb-6 bg-background p-4 rounded-lg border border-gray-100">
                                 <div className="flex items-center gap-2 mb-4">
                                     <input
                                         type="checkbox"
@@ -368,7 +401,7 @@ const UploadCompetitions = () => {
                                                 min="1"
                                                 value={formData.min_team_size}
                                                 onChange={handleInputChange}
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                                className="w-full px-3 py-2 border border-border rounded-lg text-sm"
                                             />
                                         </div>
                                         <div>
@@ -379,7 +412,7 @@ const UploadCompetitions = () => {
                                                 min="1"
                                                 value={formData.max_team_size}
                                                 onChange={handleInputChange}
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                                className="w-full px-3 py-2 border border-border rounded-lg text-sm"
                                             />
                                         </div>
                                     </div>
@@ -393,13 +426,16 @@ const UploadCompetitions = () => {
                                     required
                                     value={formData.description}
                                     onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm h-32 resize-none"
+                                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm h-32 resize-none"
                                     placeholder="Event details..."
                                 ></textarea>
                             </div>
 
                             <div className="flex justify-end gap-3">
-                                <button className="px-6 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                                <button
+                                    onClick={handleCancel}
+                                    className="px-6 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                                >
                                     Cancel
                                 </button>
                                 <button

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import HodLayout from './HodLayout';
-import { ShieldCheck, Check, X, Calendar } from 'lucide-react';
+import { ShieldCheck, Check, X, Calendar, ChevronRight } from 'lucide-react';
 import { getPendingODRequests, manageODRequest } from '../../services/hodService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
@@ -8,6 +8,29 @@ const OdApprovals = () => {
     const [pendingApprovals, setPendingApprovals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState(null);
+    const [selectedIds, setSelectedIds] = useState([]);
+
+    const toggleSelection = (id) => {
+        setSelectedIds(prev =>
+            prev.includes(id)
+                ? prev.filter(item => item !== id)
+                : [...prev, id]
+        );
+    };
+
+    const handleBulkAction = async (status) => {
+        if (window.confirm(`Are you sure you want to ${status} ${selectedIds.length} requests?`)) {
+            try {
+                // Execute in parallel
+                await Promise.all(selectedIds.map(id => manageODRequest(id, status)));
+                setPendingApprovals(prev => prev.filter(od => !selectedIds.includes(od.id)));
+                setSelectedIds([]);
+            } catch (error) {
+                console.error(`Bulk ${status} failed`, error);
+                alert(`Failed to complete bulk action. Please try again.`);
+            }
+        }
+    };
 
     useEffect(() => {
         const fetchODs = async () => {
@@ -50,6 +73,31 @@ const OdApprovals = () => {
 
             {/* Content */}
             <div className="space-y-6">
+                {/* Bulk Actions Bar */}
+                {selectedIds.length > 0 && (
+                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl z-40 flex items-center gap-6 animate-in slide-in-from-bottom-5">
+                        <span className="text-sm font-medium">{selectedIds.length} selected</span>
+                        <div className="h-4 w-px bg-gray-700"></div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handleBulkAction('REJECTED')}
+                                className="px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-white/10 rounded-lg transition-colors"
+                            >
+                                REJECT ALL
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction('APPROVED')}
+                                className="px-3 py-1.5 text-xs font-bold text-green-400 hover:bg-white/10 rounded-lg transition-colors"
+                            >
+                                APPROVE ALL
+                            </button>
+                        </div>
+                        <button onClick={() => setSelectedIds([])} className="ml-2 text-gray-500 hover:text-white">
+                            <X size={16} />
+                        </button>
+                    </div>
+                )}
+
                 {loading ? (
                     <div className="flex justify-center p-12">
                         <RoleBasedLoader role="HOD" />
@@ -58,45 +106,61 @@ const OdApprovals = () => {
                     pendingApprovals.map(approval => (
                         <div
                             key={approval.id}
-                            onClick={() => setSelectedRequest(approval)}
-                            className="bg-white rounded-xl border border-gray-100 p-6 flex justify-between items-center shadow-sm cursor-pointer hover:border-blue-200 hover:shadow-md transition-all group"
+                            className={`group bg-white rounded-xl border p-6 flex gap-4 items-start shadow-sm transition-all hover:shadow-md ${selectedIds.includes(approval.id) ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10' : 'border-gray-100'}`}
                         >
-                            <div>
-                                <div className="flex items-center space-x-3 mb-1">
-                                    <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{approval.users?.full_name || 'Unknown Student'}</h3>
-                                    <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full border border-gray-200">
-                                        {approval.users?.registration_no}
-                                    </span>
-                                    <span className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full border border-blue-100">
-                                        Sec {approval.users?.section}
+                            <div className="pt-1">
+                                <input
+                                    type="checkbox"
+                                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                    checked={selectedIds.includes(approval.id)}
+                                    onChange={(e) => {
+                                        e.stopPropagation();
+                                        toggleSelection(approval.id);
+                                    }}
+                                />
+                            </div>
+
+                            <div className="flex-1 cursor-pointer" onClick={() => setSelectedRequest(approval)}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex items-center space-x-3">
+                                        <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{approval.users?.full_name || 'Unknown Student'}</h3>
+                                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full border border-gray-200">
+                                            {approval.users?.registration_no}
+                                        </span>
+                                        <span className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full border border-blue-100">
+                                            Sec {approval.users?.section}
+                                        </span>
+                                    </div>
+                                    <span className="text-xs text-gray-400 font-medium group-hover:text-blue-500 flex items-center gap-1">
+                                        View Details <ChevronRight size={14} />
                                     </span>
                                 </div>
-                                <div className="text-sm text-gray-500 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                                    <span className="flex items-center space-x-1">
-                                        <ShieldCheck size={14} />
-                                        <span>{approval.competitions?.title || 'External Event'}</span>
-                                    </span>
-                                    <span className="flex items-center space-x-1">
-                                        <Calendar size={14} />
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-500">
+                                    <div className="flex items-center space-x-2">
+                                        <ShieldCheck size={16} className="text-gray-400" />
+                                        <span className="truncate font-medium text-gray-700">{approval.competitions?.title || 'External Event'}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Calendar size={16} className="text-gray-400" />
                                         <span>{approval.competitions?.event_date ? new Date(approval.competitions.event_date).toLocaleDateString() : 'Date N/A'}</span>
-                                    </span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="flex items-center space-x-3">
-                                <span className="text-xs text-gray-400 font-medium mr-2 group-hover:text-blue-500 hidden sm:inline">View Details &rarr;</span>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleAction(approval.id, 'REJECTED'); }}
-                                    className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
-                                >
-                                    Reject
-                                </button>
+                            <div className="flex flex-col gap-2 border-l border-gray-100 pl-4 w-32">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleAction(approval.id, 'APPROVED'); }}
-                                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center space-x-2 shadow-sm"
+                                    className="w-full py-1.5 text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors flex items-center justify-center gap-1"
                                 >
-                                    <Check size={16} />
-                                    <span className="hidden sm:inline">Approve</span>
+                                    <Check size={14} />
+                                    Approve
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleAction(approval.id, 'REJECTED'); }}
+                                    className="w-full py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                >
+                                    Reject
                                 </button>
                             </div>
                         </div>

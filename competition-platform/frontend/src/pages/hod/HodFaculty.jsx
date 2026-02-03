@@ -58,9 +58,9 @@ const HodFaculty = () => {
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Faculty Details</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned Sections</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Mentorship</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
@@ -78,34 +78,46 @@ const HodFaculty = () => {
                                                 </div>
                                                 <div>
                                                     <div className="text-sm font-medium text-gray-900">{member.name}</div>
-                                                    <div className="text-xs text-gray-500">{member.designation}</div>
+                                                    <div className="text-xs text-gray-500">{member.designation || 'Faculty'}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-wrap gap-1">
+                                                {member.sections && member.sections.length > 0 ? (
+                                                    member.sections.map((sec, idx) => (
+                                                        <span key={idx} className="px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700 border border-blue-100">
+                                                            {sec}
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-xs text-gray-400 italic">No active sections</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-gray-900">
+                                                    {member.stats?.studentsCount || 0} Students
+                                                </span>
+                                                <div className="text-xs text-gray-500 flex gap-2 mt-0.5">
+                                                    {member.stats?.yearBreakdown && Object.entries(member.stats.yearBreakdown).map(([year, count]) => (
+                                                        <span key={year} title={`${year} Students`}>{count} in {year.replace(' Year', '')}Yr</span>
+                                                    ))}
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="space-y-1">
-                                                <div className="flex items-center text-sm text-gray-600">
-                                                    <Mail size={14} className="mr-2 text-gray-400" />
-                                                    {member.email}
+                                                <div className="flex items-center text-xs text-gray-600">
+                                                    <Mail size={12} className="mr-2 text-gray-400" />
+                                                    <span className="truncate max-w-[150px]" title={member.email}>{member.email}</span>
                                                 </div>
-                                                <div className="flex items-center text-sm text-gray-600">
-                                                    <Phone size={14} className="mr-2 text-gray-400" />
-                                                    {member.phone}
+                                                <div className="flex items-center text-xs text-gray-600">
+                                                    <Phone size={12} className="mr-2 text-gray-400" />
+                                                    {member.phone || 'N/A'}
                                                 </div>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-50 text-purple-700 border border-purple-100">
-                                                {member.role}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${member.status === 'Active'
-                                                ? 'bg-green-50 text-green-700 border-green-100'
-                                                : 'bg-gray-100 text-gray-600 border-gray-200'
-                                                }`}>
-                                                {member.status}
-                                            </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <button className="text-gray-400 hover:text-blue-600 transition-colors p-1 rounded-full hover:bg-blue-50">
