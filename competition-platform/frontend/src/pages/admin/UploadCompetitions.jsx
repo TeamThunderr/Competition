@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import { Upload, FileText } from 'lucide-react';
 
 const UploadCompetitions = () => {
-    const [activeTab, setActiveTab] = useState('excel');
+    const [activeTab, setActiveTab] = useState('manual');
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
     const [formData, setFormData] = useState({
@@ -174,15 +174,6 @@ const UploadCompetitions = () => {
                     <div className="border-b border-border mb-6">
                         <nav className="-mb-px flex space-x-8">
                             <button
-                                onClick={() => setActiveTab('excel')}
-                                className={`${activeTab === 'excel'
-                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                    : 'border-transparent text-muted hover:text-foreground hover:border-gray-300 dark:hover:border-gray-600'
-                                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-                            >
-                                Excel / CSV Upload
-                            </button>
-                            <button
                                 onClick={() => setActiveTab('manual')}
                                 className={`${activeTab === 'manual'
                                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -190,6 +181,15 @@ const UploadCompetitions = () => {
                                     } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                             >
                                 Manual Entry
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('excel')}
+                                className={`${activeTab === 'excel'
+                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                    : 'border-transparent text-muted hover:text-foreground hover:border-gray-300 dark:hover:border-gray-600'
+                                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                            >
+                                Excel / CSV Upload
                             </button>
                         </nav>
                     </div>
@@ -330,7 +330,7 @@ const UploadCompetitions = () => {
                                         required
                                         value={formData.deadline}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white dark:[color-scheme:dark]"
                                     />
                                 </div>
                                 <div>
@@ -340,7 +340,7 @@ const UploadCompetitions = () => {
                                         name="event_date"
                                         value={formData.event_date}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white dark:[color-scheme:dark]"
                                     />
                                 </div>
                             </div>

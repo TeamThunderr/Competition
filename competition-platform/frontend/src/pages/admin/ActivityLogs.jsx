@@ -97,14 +97,14 @@ const ActivityLogs = () => {
                             Back to Dashboard
                         </Link>
                         <div className="text-center pt-8">
-                            <h1 className="text-2xl font-bold text-gray-900">System Activity Logs</h1>
-                            <p className="text-gray-500 mt-1">Full history of system actions and uploads.</p>
+                            <h1 className="text-2xl font-bold text-foreground">System Activity Logs</h1>
+                            <p className="text-muted mt-1">Full history of system actions and uploads.</p>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-border flex justify-between items-center bg-muted/5">
-                            <div className="font-semibold text-gray-700">Total Activities: {logs.length}</div>
+                    <div className="bg-card dark:bg-slate-800 rounded-xl border border-border dark:border-slate-700 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-border dark:border-slate-700 flex justify-between items-center bg-muted/5 dark:bg-slate-900/50">
+                            <div className="font-semibold text-foreground">Total Activities: {logs.length}</div>
                             {/* Placeholder for future filtering if needed */}
                         </div>
 
@@ -120,7 +120,7 @@ const ActivityLogs = () => {
                         ) : logs.length === 0 ? (
                             <div className="p-12 text-center text-gray-500">No activity logs found.</div>
                         ) : (
-                            <div className="divide-y divide-gray-100">
+                            <div className="divide-y divide-border dark:divide-slate-700">
                                 {logs.map((log) => (
                                     <div
                                         key={log.id}
@@ -132,7 +132,7 @@ const ActivityLogs = () => {
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-3 mb-1">
-                                                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                    <h3 className="text-lg font-bold text-foreground group-hover:text-blue-600 transition-colors">
                                                         {log.title}
                                                     </h3>
                                                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${log.status === 'Success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -141,10 +141,10 @@ const ActivityLogs = () => {
                                                     </span>
                                                 </div>
 
-                                                <div className="flex items-center gap-4 text-sm text-gray-500">
+                                                <div className="flex items-center gap-4 text-sm text-muted">
                                                     <div className="flex items-center gap-1">
                                                         <span>By:</span>
-                                                        <span className="font-medium text-gray-700">{log.user}</span>
+                                                        <span className="font-medium text-foreground">{log.user}</span>
                                                     </div>
                                                     <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
                                                     <div>{new Date(log.timestamp).toLocaleDateString()}</div>
