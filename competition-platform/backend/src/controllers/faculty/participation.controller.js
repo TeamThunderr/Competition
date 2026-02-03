@@ -32,6 +32,14 @@ const syncSingleStudent = async (student, competition, lastSyncedAt, gmailServic
             lastSyncedAt
         );
 
+        // Check if Devpost filter rejected the email
+        if (match && match.devpost_filter && match.suggested_status === 'NOT_FOUND') {
+            return {
+                status: 'rejected',
+                reason: match.reasoning?.[0] || 'Devpost: Email filtered out'
+            };
+        }
+
         if (match && match.suggested_status && match.suggested_status !== 'NOT_FOUND') {
             let dbStatus = match.suggested_status;
 
@@ -392,6 +400,10 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                 } else if (result.status === 'error') {
                     stats.errors++;
                     logs.errors.push({ email: student.email, error: result.reason });
+                } else if (result.status === 'rejected') {
+                    // Devpost or other platform-specific rejection
+                    stats.skipped++;
+                    logs.skipped.push({ email: student.email, reason: result.reason || 'Email filtered out' });
                 } else {
                     // Should not happen, but safe fallback
                     stats.skipped++;

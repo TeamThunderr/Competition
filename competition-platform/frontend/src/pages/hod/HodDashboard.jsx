@@ -358,30 +358,30 @@ const HodDashboard = () => {
                 </div>
 
                 {/* OD Actions Card */}
-                <div className="bg-card rounded-xl shadow-sm border border-border p-6 h-fit">
-                    <div className="flex justify-between items-start mb-4">
-                        <h2 className="text-lg font-bold text-foreground">OD Actions</h2>
-                        <span className="relative flex h-3 w-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                        </span>
+                <div className="flex flex-col gap-6 w-full lg:w-[350px] shrink-0">
+                    <div className="bg-card rounded-xl shadow-sm border border-border p-6 h-fit">
+                        <div className="flex justify-between items-start mb-4">
+                            <h2 className="text-lg font-bold text-foreground">OD Actions</h2>
+                            <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                            </span>
+                        </div>
+
+                        <p className="text-sm text-muted mb-6 leading-relaxed">
+                            You have <span className="font-bold text-foreground">
+                                {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0)} pending OD {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0) === 1 ? 'request' : 'requests'}
+                            </span> that require {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0) === 1 ? 'validation' : 'validation'} against email evidence.
+                        </p>
+
+                        <button
+                            onClick={() => navigate('/hod/approvals')}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2 shadow-sm"
+                        >
+                            <span>Review Queue</span>
+                            <ChevronRight size={16} />
+                        </button>
                     </div>
-
-                    <p className="text-sm text-muted mb-6 leading-relaxed">
-                        You have <span className="font-bold text-foreground">
-                            {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0)} pending OD {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0) === 1 ? 'request' : 'requests'}
-                        </span> that require {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0) === 1 ? 'validation' : 'validation'} against email evidence.
-                    </p>
-
-                    <button
-                        onClick={() => navigate('/hod/approvals')}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2 shadow-sm"
-                    >
-                        <span>Review Queue</span>
-                        <ChevronRight size={16} />
-                    </button>
-                </div>
-            </div>
 
             {/* Quick Links or Stats */}
             <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl shadow-md p-6 text-white">
