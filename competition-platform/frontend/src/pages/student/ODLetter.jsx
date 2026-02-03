@@ -102,16 +102,16 @@ const ODLetter = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center transition-colors duration-200">
                 <RoleBasedLoader role="STUDENT" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="min-h-screen bg-background flex transition-colors duration-200">
             <StudentSidebar />
-            <div className="flex-1 ml-64 p-8">
+            <div className="flex-1 md:ml-sidebar p-8">
                 <div className="max-w-6xl mx-auto space-y-8">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">On-Duty (OD) Management</h1>

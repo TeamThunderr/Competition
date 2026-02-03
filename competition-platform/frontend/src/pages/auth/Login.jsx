@@ -106,18 +106,18 @@ const Login = () => {
     }, [navigate]);
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-transparent text-white">
-            <div className="p-8 bg-gray-900 bg-opacity-80 rounded-lg shadow-xl border border-gray-700 w-96 backdrop-blur-md">
-                <h2 className="text-3xl font-bold mb-6 text-center text-blue-400 glowing-text">Login</h2>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground transition-colors duration-200">
+            <div className="p-8 bg-card rounded-xl shadow-xl border border-border w-96 backdrop-blur-md">
+                <h2 className="text-3xl font-bold mb-6 text-center text-brand-600 dark:text-blue-400 glowing-text">Login</h2>
 
-                {error && <div className="mb-4 p-2 bg-red-900/50 border border-red-500 rounded text-red-200 text-sm text-center">{error}</div>}
+                {error && <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-500 rounded-lg text-red-600 dark:text-red-200 text-sm text-center font-medium">{error}</div>}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-gray-300 text-sm font-semibold mb-2">Email Address</label>
+                        <label className="block text-foreground text-sm font-semibold mb-2">Email Address</label>
                         <input
                             type="email"
-                            className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-500 transition-all duration-300 hover:border-blue-400"
+                            className="w-full px-4 py-2 bg-muted/5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground placeholder-muted transition-all duration-300 hover:border-brand-400"
                             placeholder="Enter your email..."
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -128,22 +128,22 @@ const Login = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full py-3 mt-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-md font-bold text-white shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-full py-3 mt-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-bold text-white shadow-lg transform transition-all duration-200 hover:scale-[1.02] active:scale-95 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         {loading ? 'Logging in...' : 'Login'}
                     </button>
 
                     <div className="relative flex py-5 items-center">
-                        <div className="flex-grow border-t border-gray-600"></div>
-                        <span className="flex-shrink-0 mx-4 text-gray-400">Or</span>
-                        <div className="flex-grow border-t border-gray-600"></div>
+                        <div className="flex-grow border-t border-border"></div>
+                        <span className="flex-shrink-0 mx-4 text-muted text-sm font-medium">Or</span>
+                        <div className="flex-grow border-t border-border"></div>
                     </div>
 
                     <button
                         type="button"
                         onClick={handleGoogleLogin}
                         disabled={loading}
-                        className={`w-full py-3 bg-white hover:bg-gray-100 text-gray-900 border border-gray-300 rounded-md font-bold shadow-sm flex items-center justify-center gap-3 transition-all duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-full py-3 bg-white dark:bg-white text-gray-900 border border-border rounded-lg font-bold shadow-sm flex items-center justify-center gap-3 transition-all duration-200 hover:bg-gray-50 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         <svg className="w-5 h-5" viewBox="0 0 24 24">
                             <path

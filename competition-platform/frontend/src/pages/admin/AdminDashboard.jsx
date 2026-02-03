@@ -119,7 +119,7 @@ const AdminDashboard = () => {
             <Sidebar />
 
             {/* Main Content */}
-            <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
+            <div className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8">
                 <div className="w-[95%] mx-auto">
                     {/* Header */}
                     <div className="mb-8 text-center">
@@ -131,7 +131,7 @@ const AdminDashboard = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                         {/* Active Competitions */}
                         <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
-                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Active Competitions (Accepting Entries)</h3>
+                            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Active Competitions (Accepting Entries)</h3>
                             <div className="text-3xl font-bold text-foreground mb-2">{stats.activeCompetitions}</div>
                             {stats.closingSoonCount > 0 && (
                                 <div className="text-xs text-red-600 font-medium bg-red-50 dark:bg-red-900/20 dark:text-red-400 px-2 py-1 rounded inline-block">
@@ -142,14 +142,14 @@ const AdminDashboard = () => {
 
                         {/* Total Participation */}
                         <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
-                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Total Student Registrations</h3>
+                            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Total Student Registrations</h3>
                             <div className="text-3xl font-bold text-foreground mb-4">{stats.totalParticipation}</div>
-                            <div className="text-xs text-gray-400">Across 8 Departments</div>
+                            <div className="text-xs text-muted">Across 8 Departments</div>
                         </div>
 
                         {/* Last Data Sync */}
                         <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
-                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Last Data Sync</h3>
+                            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Last Data Sync</h3>
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="text-xl font-bold text-foreground">{stats.lastSync}</div>
                                 <span className="flex items-center text-xs text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 px-2 py-1 rounded-full font-medium">
@@ -215,8 +215,8 @@ const AdminDashboard = () => {
                                             <span className="text-muted mx-1">–</span>
                                             <span className="text-muted">{activity.target}</span>
                                         </div>
-                                        <div className="text-xs text-gray-500 flex items-center gap-1">
-                                            <span className="font-medium text-gray-700">{activity.user}</span>
+                                        <div className="text-xs text-muted flex items-center gap-1">
+                                            <span className="font-medium text-foreground">{activity.user}</span>
                                             <span>·</span>
                                             <span>{activity.time}</span>
                                         </div>
@@ -224,7 +224,7 @@ const AdminDashboard = () => {
                                 ))}
 
                                 {recentActivity.length === 0 && (
-                                    <div className="text-gray-400 text-sm text-center py-4">No recent activity</div>
+                                    <div className="text-muted text-sm text-center py-4">No recent activity</div>
                                 )}
                             </div>
                         </div>

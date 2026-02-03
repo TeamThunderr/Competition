@@ -44,20 +44,20 @@ const StudentListTable = ({
     );
 
     return (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
             {/* Controls */}
-            <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-white">
+            <div className="p-6 border-b border-border flex justify-between items-center bg-card">
                 <div className="relative w-full max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={18} />
                     <input
                         type="text"
                         placeholder="Search by name, roll no, or email..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-gray-700"
+                        className="w-full pl-10 pr-4 py-2 bg-muted/5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-foreground placeholder-muted"
                     />
                 </div>
-                <div className="text-sm text-gray-500 font-medium ml-4 whitespace-nowrap">
+                <div className="text-sm text-muted font-medium ml-4 whitespace-nowrap">
                     Total: {sortedStudents.length} Students
                 </div>
             </div>
@@ -65,8 +65,8 @@ const StudentListTable = ({
             {/* Table */}
             <div className="min-h-[400px]">
                 <table className="w-full">
-                    <thead className="bg-gray-50/50">
-                        <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <thead className="bg-muted/5">
+                        <tr className="text-left text-xs font-semibold text-muted uppercase tracking-wider">
                             <th className="px-6 py-4 w-12">S.No</th>
                             <th className="px-6 py-4">Register No</th>
                             <th className="px-6 py-4">Name</th>
@@ -74,7 +74,7 @@ const StudentListTable = ({
                             <th className="px-6 py-4">Email</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50 bg-white">
+                    <tbody className="divide-y divide-border bg-card">
                         {loading ? (
                             <tr>
                                 <td colSpan={showSection ? 5 : 4} className="px-6 py-12">
@@ -83,7 +83,7 @@ const StudentListTable = ({
                             </tr>
                         ) : sortedStudents.length === 0 ? (
                             <tr>
-                                <td colSpan={showSection ? 5 : 4} className="px-6 py-12 text-center text-gray-500">
+                                <td colSpan="5" className="px-6 py-12 text-center text-muted">
                                     {emptyMessage}
                                 </td>
                             </tr>
@@ -92,30 +92,28 @@ const StudentListTable = ({
                                 <tr
                                     key={student.id || index}
                                     onClick={() => onRowClick && onRowClick(student)}
-                                    className={`hover:bg-gray-50/80 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+                                    className={`hover:bg-muted/5 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
                                 >
-                                    <td className="px-6 py-4 text-sm text-gray-500 font-medium whitespace-nowrap">
+                                    <td className="px-6 py-4 text-sm text-muted font-medium whitespace-nowrap">
                                         {index + 1}
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-600 font-medium whitespace-nowrap">
+                                    <td className="px-6 py-4 text-sm text-foreground font-medium whitespace-nowrap">
                                         {student.rollNo || student.regNo || student.reg || '-'}
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                                            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs">
                                                 {student.name ? student.name.charAt(0).toUpperCase() : <User size={14} />}
                                             </div>
-                                            <span className="font-semibold text-gray-900 text-sm">{student.name}</span>
+                                            <span className="font-semibold text-foreground text-sm">{student.name}</span>
                                         </div>
                                     </td>
-                                    {showSection && (
-                                        <td className="px-6 py-4 text-sm text-gray-500">
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                {student.section}
-                                            </span>
-                                        </td>
-                                    )}
-                                    <td className="px-6 py-4 text-sm text-gray-500">{student.email}</td>
+                                    <td className="px-6 py-4 text-sm text-muted">
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted/10 text-foreground">
+                                            {student.section}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-muted">{student.email}</td>
                                 </tr>
                             ))
                         )}

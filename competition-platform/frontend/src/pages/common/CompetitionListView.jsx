@@ -101,8 +101,8 @@ const CompetitionListView = ({
             {/* Header & Controls */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 space-y-4 md:space-y-0">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-                    <p className="text-gray-500 mt-1">{subtitle}</p>
+                    <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+                    <p className="text-muted mt-1">{subtitle}</p>
                 </div>
 
                 <div className="flex items-center space-x-3 w-full md:w-auto">
@@ -114,7 +114,7 @@ const CompetitionListView = ({
                             placeholder="Search events..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-blue-500 transition-colors"
+                            className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500 transition-colors placeholder-muted"
                         />
                     </div>
 
@@ -122,14 +122,14 @@ const CompetitionListView = ({
                     <div className="relative">
                         <button
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            className="flex items-center justify-between w-32 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            className="flex items-center justify-between w-32 px-4 py-2 bg-card border border-border rounded-lg text-sm text-foreground hover:bg-muted/10 transition-colors"
                         >
                             <span>{filter}</span>
-                            <ChevronDown size={16} className={`text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown size={16} className={`text-muted transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
 
                         {isDropdownOpen && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
+                            <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border py-1 z-10">
                                 {filters.map((f) => (
                                     <button
                                         key={f}
@@ -137,7 +137,7 @@ const CompetitionListView = ({
                                             setFilter(f);
                                             setIsDropdownOpen(false);
                                         }}
-                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                                        className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/10 hover:text-blue-600"
                                     >
                                         {f}
                                     </button>
@@ -165,10 +165,10 @@ const CompetitionListView = ({
                     ))
                 ) : (
                     <div className="col-span-full py-16 text-center">
-                        <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-12 inline-block">
-                            <Globe size={48} className="text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900">No competitions found</h3>
-                            <p className="text-gray-500 mt-2">Try adjusting your filters.</p>
+                        <div className="bg-card rounded-2xl border border-dashed border-border p-12 inline-block">
+                            <Globe size={48} className="text-muted mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-foreground">No competitions found</h3>
+                            <p className="text-muted mt-2">Try adjusting your filters.</p>
                         </div>
                     </div>
                 )}
@@ -188,9 +188,9 @@ const CompetitionListView = ({
 
     // Default Legacy Layout with Sidebar
     return (
-        <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
+        <div className="flex bg-background min-h-screen font-sans text-foreground">
             <Sidebar />
-            <div className="flex-1 ml-0 md:ml-64 p-4 md:p-8">
+            <div className="flex-1 ml-0 md:ml-sidebar p-4 md:p-8">
                 {content}
             </div>
         </div>
