@@ -446,6 +446,90 @@ const getCompetitionSyncStatus = async (req, res) => {
 };
 
 // ------------------------------------------------------------------
+// 3.5 Export Report (New)
+// ------------------------------------------------------------------
+
+const exportParticipationReport = async (req, res) => {
+    try {
+        const { assigned_sections, department_id, id } = req.user;
+
+        // 1. Get My Students
+        const myStudentIds = await getMyStudentIds(id, department_id, assigned_sections || []);
+
+        if (myStudentIds.length === 0) {
+            return res.status(404).send('No students found to export.');
+        }
+
+        // 2. Fetch All Registrations (Corrected Select)
+        const { data: registrations, error: regError } = await supabase
+            .from('registrations')
+            .select(`
+                user_id, competition_id, registered_at, verified,
+                users!registrations_user_id_fkey ( full_name, registration_no, section, email, departments ( name ) ),
+                competitions ( id, title, platform, organizer, venue )
+            `)
+            .in('user_id', myStudentIds)
+            .order('registered_at', { ascending: false });
+
+        if (regError) throw regError;
+
+        // 3. Fetch Statuses
+        const { data: statuses, error: statusError } = await supabase
+            .from('competition_status')
+            .select('user_id, competition_id, is_winner, is_shortlisted')
+            .in('user_id', myStudentIds);
+
+        if (statusError) throw statusError;
+
+        // 4. Map & Format Data
+        const csvRows = [];
+        csvRows.push(['Student Name', 'Reg No', 'Email ID', 'Department', 'Section', 'Competition', 'Venue', 'Platform', 'Organizer', 'Status', 'Verified', 'Registered At'].join(','));
+
+        registrations.forEach(reg => {
+            const student = reg.users;
+            const comp = reg.competitions;
+            const deptName = student.departments?.name || 'N/A';
+
+            // Determine Status
+            const statusEntry = statuses.find(s => s.user_id === reg.user_id && s.competition_id === (reg.competition_id || comp.id));
+
+            let status = 'Registered';
+            if (statusEntry?.is_winner) status = 'Won';
+            else if (statusEntry?.is_shortlisted) status = 'Qualified';
+
+            const row = [
+                `"${student.full_name || ''}"`,
+                `"${student.registration_no || ''}"`,
+                `"${student.email || ''}"`,
+                `"${deptName}"`,
+                `"${student.section || ''}"`,
+                `"${comp.title || ''}"`,
+                `"${comp.venue || 'N/A'}"`,
+                `"${comp.platform || ''}"`,
+                `"${comp.organizer || ''}"`,
+                status,
+                reg.verified ? 'Yes' : 'No',
+                new Date(reg.registered_at).toLocaleDateString()
+            ];
+
+            csvRows.push(row.join(','));
+        });
+
+        const csvString = csvRows.join('\n');
+
+        // 5. Send CSV
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="participation_report.csv"');
+        res.status(200).send(csvString);
+
+    } catch (error) {
+        console.error('[Faculty] Export Report Error:', error);
+        res.status(500).send('Internal Server Error during export');
+    }
+};
+
+
+// ------------------------------------------------------------------
 // 4. Student Details (V2 Status Resolution)
 // ------------------------------------------------------------------
 
@@ -656,5 +740,6 @@ module.exports = {
     getDashboardStats,
     syncCompetition,
     getCompetitionSyncStatus,
-    getStudentDetails
+    getStudentDetails,
+    exportParticipationReport
 };

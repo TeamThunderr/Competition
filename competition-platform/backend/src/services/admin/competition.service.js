@@ -26,9 +26,14 @@ const insertManualCompetition = async (data) => {
       platform: data.platform,
       external_link: data.external_link || data.link,
       registration_deadline: data.registration_deadline || data.deadline,
+      event_date: data.event_date,
+      mode: data.mode,
+      venue: data.venue, // Added venue
+      organizer: data.organizer,
       team_allowed: data.team_allowed,
       min_team_size: data.min_team_size,
-      max_team_size: data.max_team_size
+      max_team_size: data.max_team_size,
+      departments: data.departments // Ensure specific departments can be saved if schema supports
     }
   ]);
 };
@@ -115,6 +120,8 @@ const updateCompetition = async (id, data) => {
       min_team_size: data.min_team_size,
       max_team_size: data.max_team_size,
       organizer: data.organizer,
+      organizer: data.organizer,
+      venue: data.venue,
       departments: data.departments
     })
     .eq('id', id)

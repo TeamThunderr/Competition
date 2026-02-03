@@ -14,6 +14,9 @@ const EditCompetitionModal = ({ isOpen, onClose, competition, onUpdate }) => {
         team_allowed: false,
         min_team_size: 1,
         max_team_size: 4,
+        min_team_size: 1,
+        max_team_size: 4,
+        venue: '',
         departments: []
     });
     const [loading, setLoading] = useState(false);
@@ -32,6 +35,8 @@ const EditCompetitionModal = ({ isOpen, onClose, competition, onUpdate }) => {
                 team_allowed: competition.team_allowed || false,
                 min_team_size: competition.min_team_size || 1,
                 max_team_size: competition.max_team_size || 4,
+                max_team_size: competition.max_team_size || 4,
+                venue: competition.venue || '',
                 departments: Array.isArray(competition.departments) ? competition.departments : (competition.departments ? [competition.departments] : [])
             });
         }
@@ -64,12 +69,20 @@ const EditCompetitionModal = ({ isOpen, onClose, competition, onUpdate }) => {
     const handleSubmit = async () => {
         setLoading(true);
         try {
+            // Sanitize Payload: Convert empty strings to null for optional dates
+            const payload = {
+                ...formData,
+                event_date: formData.event_date === '' ? null : formData.event_date,
+                registration_deadline: formData.deadline === '' ? null : formData.deadline,
+                deadline: formData.deadline === '' ? null : formData.deadline
+            };
+
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/competition/${competition.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {
@@ -152,6 +165,19 @@ const EditCompetitionModal = ({ isOpen, onClose, competition, onUpdate }) => {
                                 ))}
                             </select>
                         </div>
+                    </div>
+
+                    {/* Venue */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Venue</label>
+                        <input
+                            type="text"
+                            name="venue"
+                            value={formData.venue}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Main Auditorium (if offline)"
+                            className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm"
+                        />
                     </div>
 
                     {/* Departments */}

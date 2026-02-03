@@ -57,6 +57,7 @@ const createCompetition = async (req, res) => {
             team_allowed,
             min_team_size,
             max_team_size,
+            venue, // Added venue
             departments = ['All'] // Default to All if missing
         } = req.body;
         const created_by = req.userId; // Retrieved from authMiddleware (x-user-id header)
@@ -80,6 +81,7 @@ const createCompetition = async (req, res) => {
                     team_allowed,
                     min_team_size,
                     max_team_size,
+                    venue,
                     departments, // Store departments
                     created_by
                 }

@@ -263,6 +263,14 @@ const CompetitionDetails = () => {
                                         {competition.mode || "Online"}
                                     </span>
                                 </div>
+                                <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                    <span className="text-gray-500 text-xs flex items-center gap-1 mb-1">
+                                        <Globe size={12} /> Venue
+                                    </span>
+                                    <span className="font-medium text-gray-900 text-sm block truncate">
+                                        {competition.venue || "N/A"}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -510,6 +518,14 @@ const CompetitionDetails = () => {
                                     </span>
                                     <span className="font-medium text-gray-900">
                                         {competition.mode || "Online"}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between py-2">
+                                    <span className="text-gray-500 flex items-center gap-2">
+                                        <Globe size={16} /> Venue
+                                    </span>
+                                    <span className="font-medium text-gray-900">
+                                        {competition.venue || "N/A"}
                                     </span>
                                 </div>
                             </div>
