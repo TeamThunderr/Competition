@@ -26,6 +26,7 @@ router.get('/competition/:id/students', facultyCompetitionController.getCompetit
 
 // Report Export
 router.get('/competitions/export-report', facultyController.exportParticipationReport);
+router.get('/competition/:id/export', facultyCompetitionController.exportCompetitionReport);
 
 
 // V2 Sync Routes

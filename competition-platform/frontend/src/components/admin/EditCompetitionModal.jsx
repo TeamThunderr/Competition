@@ -14,8 +14,6 @@ const EditCompetitionModal = ({ isOpen, onClose, competition, onUpdate }) => {
         team_allowed: false,
         min_team_size: 1,
         max_team_size: 4,
-        min_team_size: 1,
-        max_team_size: 4,
         venue: '',
         departments: []
     });
@@ -34,7 +32,6 @@ const EditCompetitionModal = ({ isOpen, onClose, competition, onUpdate }) => {
                 description: competition.description || '',
                 team_allowed: competition.team_allowed || false,
                 min_team_size: competition.min_team_size || 1,
-                max_team_size: competition.max_team_size || 4,
                 max_team_size: competition.max_team_size || 4,
                 venue: competition.venue || '',
                 departments: Array.isArray(competition.departments) ? competition.departments : (competition.departments ? [competition.departments] : [])

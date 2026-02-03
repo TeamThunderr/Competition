@@ -243,8 +243,153 @@ const getCompetitionStudents = async (req, res) => {
     }
 };
 
+
+const exportCompetitionReport = async (req, res) => {
+    try {
+        const { id: competitionId } = req.params;
+        const { type } = req.query; // 'registered' or 'unregistered' (default: registered/all active)
+        const { assigned_sections, department_id, id: facultyId } = req.user;
+
+        // 1. Get Faculty's Student IDs (Reuse helper logic)
+        // Fetch ALL Students in Faculty's Sections
+        let allStudents = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+            const { data: pageData, error } = await supabase
+                .from('users')
+                .select('id, full_name, registration_no, section, email, departments ( name )')
+                .eq('role', 'STUDENT')
+                .eq('department_id', department_id)
+                .range(page * pageSize, (page + 1) * pageSize - 1);
+
+            if (error) throw error;
+
+            allStudents = [...allStudents, ...pageData];
+            page++;
+            if (pageData.length < pageSize) hasMore = false;
+        }
+
+        // Filter by assigned sections
+        const allowedSections = assigned_sections
+            ? assigned_sections.map(s => {
+                const parts = s.split('-');
+                return parts.length > 1 ? parts[parts.length - 1].trim().toUpperCase() : s.trim().toUpperCase();
+            })
+            : [];
+
+        const myStudents = allStudents.filter(s => {
+            if (allowedSections.length === 0) return true;
+            return allowedSections.includes((s.section || '').trim().toUpperCase());
+        });
+
+        const myStudentIds = myStudents.map(s => s.id);
+
+        if (myStudentIds.length === 0) {
+            return res.status(404).send('No students found to export.');
+        }
+
+        // 2. Fetch Registrations for this Competition
+        const { data: registrations, error: regError } = await supabase
+            .from('registrations')
+            .select(`
+                user_id, registered_at, verified, source,
+                competitions ( title, platform, organizer, venue )
+            `)
+            .eq('competition_id', competitionId)
+            .in('user_id', myStudentIds)
+            .order('registered_at', { ascending: false });
+
+        if (regError) throw regError;
+
+        // 3. Fetch Statuses
+        const { data: statuses, error: statusError } = await supabase
+            .from('competition_status')
+            .select('user_id, is_winner, is_shortlisted')
+            .eq('competition_id', competitionId)
+            .in('user_id', myStudentIds);
+
+        if (statusError) throw statusError;
+
+        // 4. Map & Format Data
+        const csvRows = [];
+        csvRows.push(['Student Name', 'Reg No', 'Email ID', 'Department', 'Section', 'Competition', 'Venue', 'Platform', 'Status', 'Verified', 'Registered At'].join(','));
+
+        const regMap = new Map(registrations.map(r => [r.user_id, r]));
+        const statusMap = new Map(statuses.map(s => [s.user_id, s]));
+
+
+
+        const activeStudentIds = new Set([...regMap.keys(), ...statusMap.keys()]);
+
+        let targetStudents = [];
+
+        if (type === 'unregistered') {
+            // Filter: Students NOT in active set
+            targetStudents = myStudents.filter(s => !activeStudentIds.has(s.id));
+        } else {
+            // Default/Registered: Students IN active set
+            targetStudents = myStudents.filter(s => activeStudentIds.has(s.id));
+        }
+
+        // Fetch ONE competition details (for title/venue if no reg found)
+        let compDetails = {};
+        if (targetStudents.length > 0) {
+            const { data: comp } = await supabase.from('competitions').select('title, platform, venue, organizer').eq('id', competitionId).single();
+            if (comp) compDetails = comp;
+        }
+
+        targetStudents.forEach(student => {
+            const reg = regMap.get(student.id);
+            const statusEntry = statusMap.get(student.id);
+
+            let status = 'Registered';
+            if (statusEntry?.is_winner) status = 'Won';
+            else if (statusEntry?.is_shortlisted) status = 'Qualified';
+            else if (!reg && !statusEntry) status = 'Not Registered';
+
+            // If unregistered, use fetched Comp Details. If registered, use Reg details (or fallback)
+            const title = reg?.competitions?.title || compDetails.title || '';
+            const venue = reg?.competitions?.venue || compDetails.venue || 'N/A';
+            const platform = reg?.competitions?.platform || compDetails.platform || '';
+
+            const row = [
+                `"${student.full_name || ''}"`,
+                `"${student.registration_no || ''}"`,
+                `"${student.email || ''}"`,
+                `"${student.departments?.name || ''}"`,
+                `"${student.section || ''}"`,
+                `"${title}"`,
+                `"${venue}"`,
+                `"${platform}"`,
+                status,
+                reg?.verified ? 'Yes' : 'No',
+                reg?.registered_at ? new Date(reg.registered_at).toLocaleDateString() : 'N/A'
+            ];
+
+            csvRows.push(row.join(','));
+        });
+
+        const csvString = csvRows.join('\n');
+
+        // 5. Send CSV
+        res.setHeader('Content-Type', 'text/csv');
+        const filePrefix = type === 'unregistered' ? 'Unregistered' : 'Registered';
+        res.setHeader('Content-Disposition', `attachment; filename="${filePrefix}_Report_${competitionId}.csv"`);
+        res.status(200).send(csvString);
+
+    } catch (err) {
+        console.error('Error exporting competition report:', err);
+        res.status(500).send('Internal Server Error');
+    }
+};
+
 module.exports = {
     getAllCompetitions,
     getCompetitionDetails,
-    getCompetitionStudents
+    getCompetitionStudents,
+    exportCompetitionReport
 };
+

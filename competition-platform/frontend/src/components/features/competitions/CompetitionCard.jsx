@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
+import { Calendar, Users, Trophy, ExternalLink, MapPin } from 'lucide-react';
 
 const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, showRegister = true }) => {
     const { my_registration, my_status, my_od } = competition;
@@ -195,6 +195,10 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
                 <div className="flex items-center text-sm text-gray-500">
                     <Users className="w-4 h-4 mr-2" />
                     <span>Team: {competition.min_team_size}-{competition.max_team_size}</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-500">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    <span>Venue: {competition.venue || 'N/A'}</span>
                 </div>
             </div>
 

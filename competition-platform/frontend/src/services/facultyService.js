@@ -70,6 +70,20 @@ export const downloadParticipationReport = async () => {
     link.remove();
 };
 
+export const downloadCompetitionReport = async (competitionId, title, type = 'registered') => {
+    const response = await api.get(`/api/faculty/competition/${competitionId}/export?type=${type}`, {
+        responseType: 'blob'
+    });
+    const url = window.URL.createObjectURL(new Blob([response]));
+    const link = document.createElement('a');
+    link.href = url;
+    const safeTitle = (title || 'Competition').replace(/[^a-zA-Z0-9]/g, '_');
+    link.setAttribute('download', `${safeTitle}_${type}_Report.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+};
+
 export default {
     getDashboardStats,
     getMyStudents,
@@ -80,5 +94,8 @@ export default {
     getCompetitionStudents,
     syncCompetition,
     syncActiveCompetitions,
-    downloadParticipationReport
+    syncActiveCompetitions,
+    downloadParticipationReport,
+    downloadCompetitionReport
 };
+
