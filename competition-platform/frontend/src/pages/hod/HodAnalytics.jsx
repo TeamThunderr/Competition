@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    Cell, Legend
+    Cell, Legend, LineChart, Line
 } from 'recharts';
 import { getDashboardAnalysis } from '../../services/hodService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
@@ -151,6 +151,7 @@ const HodAnalytics = () => {
                 />
             </div>
 
+            {/* 2. Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 {/* 2. Chart (Only show comparative chart in Overview, hide or specific chart for batch) */}
                 <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
@@ -159,6 +160,11 @@ const HodAnalytics = () => {
                             {activeTab === 'Overview' ? 'Batch Distribution' : 'Batch Performance'}
                         </h3>
                     </div>
+                </div>
+
+                {/* Top Competitions (Horizontal Bar Chart) */}
+                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                    <h3 className="text-lg font-bold text-gray-900 mb-6">Top Competitions by Participation</h3>
                     <div className="w-full h-[300px] min-h-[300px]">
                         {/* Render chart only if data exists to prevent dimension errors */}
                         {(activeTab === 'Overview' ? data.batchStats : filteredOverview).length > 0 ? (
@@ -232,6 +238,46 @@ const HodAnalytics = () => {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                {/* At Risk Students */}
+                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-red-400">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-900">At-Risk Students</h3>
+                            <p className="text-sm text-gray-500">Zero participation in current semester</p>
+                        </div>
+                        <AlertCircle className="text-red-400" />
+                    </div>
+
+                    <div className="overflow-y-auto max-h-[300px] pr-2">
+                        {(!data.atRiskStudents || data.atRiskStudents.length === 0) ? (
+                            <div className="flex flex-col items-center justify-center h-40 text-gray-400 text-sm">
+                                <UserCheck size={32} className="mb-2 text-green-400 opacity-50" />
+                                <span>Good job! No students flagged as 'At Risk'.</span>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {data.atRiskStudents.map((student, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-3 bg-red-50/50 rounded-lg border border-red-50 hover:border-red-100 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-xs">
+                                                {student.name.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                                                <div className="text-xs text-gray-500">{student.regNo} • {student.year} Yr</div>
+                                            </div>
+                                        </div>
+                                        <button className="text-xs font-semibold text-blue-600 hover:text-blue-700">View</button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-gray-100 text-center">
+                        <button className="text-sm text-gray-500 hover:text-gray-900 font-medium">View All Metrics</button>
                     </div>
                 </div>
             </div>

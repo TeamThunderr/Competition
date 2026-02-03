@@ -95,17 +95,28 @@ const HodFaculty = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-50 text-purple-700 border border-purple-100">
-                                                {member.role}
-                                            </span>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-gray-900">
+                                                    {member.stats?.studentsCount || 0} Students
+                                                </span>
+                                                <div className="text-xs text-gray-500 flex gap-2 mt-0.5">
+                                                    {member.stats?.yearBreakdown && Object.entries(member.stats.yearBreakdown).map(([year, count]) => (
+                                                        <span key={year} title={`${year} Students`}>{count} in {year.replace(' Year', '')}Yr</span>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${member.status === 'Active'
-                                                ? 'bg-green-50 text-green-700 border-green-100'
-                                                : 'bg-gray-100 text-gray-600 border-gray-200'
-                                                }`}>
-                                                {member.status}
-                                            </span>
+                                            <div className="space-y-1">
+                                                <div className="flex items-center text-xs text-gray-600">
+                                                    <Mail size={12} className="mr-2 text-gray-400" />
+                                                    <span className="truncate max-w-[150px]" title={member.email}>{member.email}</span>
+                                                </div>
+                                                <div className="flex items-center text-xs text-gray-600">
+                                                    <Phone size={12} className="mr-2 text-gray-400" />
+                                                    {member.phone || 'N/A'}
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <button className="text-gray-400 hover:text-blue-600 transition-colors p-1 rounded-full hover:bg-blue-50">

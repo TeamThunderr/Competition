@@ -37,10 +37,28 @@ const insertManualCompetition = async (data) => {
 const excelDateToJSDate = (serial) => {
   if (!serial) return null;
 
-  // Handle "TBA" or text strings
+  // Handle text strings (e.g. "2026-01-01", "01-17-2026 - 01-18-2026")
   if (typeof serial === 'string') {
-    if (serial.toLowerCase().includes('tba')) return null; // Convert TBA to null (empty date)
-    return serial; // Return other strings (like "2025-01-01") as is
+    if (serial.toLowerCase().includes('tba')) return null;
+
+    // Handle range: "01-17-2026 - 01-18-2026" -> iterate to find first valid date
+    if (serial.includes(' - ')) {
+      const parts = serial.split(' - ');
+      for (const part of parts) {
+        const date = new Date(part);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split('T')[0];
+        }
+      }
+      return null; // Fallback if no part is valid
+    }
+
+    // Attempt standard parse
+    const date = new Date(serial);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+    return serial;
   }
 
   // Handle Excel Serial Numbers
@@ -48,7 +66,7 @@ const excelDateToJSDate = (serial) => {
     const utc_days = Math.floor(serial - 25569);
     const utc_value = utc_days * 86400;
     const date_info = new Date(utc_value * 1000);
-    return date_info.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    return date_info.toISOString().split('T')[0];
   }
 
   return null;

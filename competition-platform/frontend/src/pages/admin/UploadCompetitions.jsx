@@ -160,6 +160,25 @@ const UploadCompetitions = () => {
         }
     };
 
+    const handleCancel = () => {
+        if (window.confirm("Are you sure you want to clear all fields?")) {
+            setFormData({
+                title: '',
+                organizer: '',
+                platform: 'Unstop',
+                mode: 'Online',
+                deadline: '',
+                event_date: '',
+                link: '',
+                description: '',
+                team_allowed: false,
+                min_team_size: 1,
+                max_team_size: 4,
+                departments: []
+            });
+        }
+    };
+
     return (
         <div className="min-h-screen bg-background flex">
             <Sidebar />
