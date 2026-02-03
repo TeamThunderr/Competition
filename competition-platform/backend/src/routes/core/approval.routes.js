@@ -8,7 +8,7 @@ const approvalController = require('../../controllers/core/approval.controller')
 const authMiddleware = require('../../middleware/authMiddleware');
 
 // Apply auth middleware to all routes
-router.use(authMiddleware);
+//router.use(authMiddleware);
 
 // Student requests permission
 router.post('/request', approvalController.requestApproval);

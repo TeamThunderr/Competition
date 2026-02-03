@@ -18,12 +18,14 @@ import RoleBasedLoader from '../../components/common/RoleBasedLoader';
  * @param {String} emptyMessage - Message to show when no students found
  * @param {String} role - 'STUDENT', 'FACULTY', 'HOD' for customized loader
  */
+// Force update
 const StudentListTable = ({
     students = [],
     loading = false,
     onRowClick,
     emptyMessage = "No students found.",
-    role = 'STUDENT'
+    role = 'STUDENT',
+    showSection = true
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -61,21 +63,21 @@ const StudentListTable = ({
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto min-h-[400px]">
+            <div className="min-h-[400px]">
                 <table className="w-full">
                     <thead className="bg-muted/5">
                         <tr className="text-left text-xs font-semibold text-muted uppercase tracking-wider">
                             <th className="px-6 py-4 w-12">S.No</th>
                             <th className="px-6 py-4">Register No</th>
                             <th className="px-6 py-4">Name</th>
-                            <th className="px-6 py-4">Section</th>
+                            {showSection && <th className="px-6 py-4">Section</th>}
                             <th className="px-6 py-4">Email</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border bg-card">
                         {loading ? (
                             <tr>
-                                <td colSpan="5" className="px-6 py-12">
+                                <td colSpan={showSection ? 5 : 4} className="px-6 py-12">
                                     <RoleBasedLoader role={role} />
                                 </td>
                             </tr>

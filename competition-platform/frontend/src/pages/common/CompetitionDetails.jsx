@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Users, ExternalLink, ArrowLeft, Globe, Clock, MessageSquare, Layers } from 'lucide-react';
 import { getCurrentUser } from '../../services/authService';
@@ -21,6 +21,9 @@ const CompetitionDetails = () => {
     const [competition, setCompetition] = useState(null);
     const [loading, setLoading] = useState(true);
     const [statsData, setStatsData] = useState({ total_sections: [], registered: [], shortlisted: [], winners: [], total: [] });
+    // NEW: Year Filter State - Default to 2nd Year
+    const [selectedYear, setSelectedYear] = useState('2nd Year');
+
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalTitle, setModalTitle] = useState('');
@@ -29,6 +32,42 @@ const CompetitionDetails = () => {
     const user = getCurrentUser();
     const isFaculty = user?.role === 'FACULTY';
     const isHOD = user?.role === 'HOD';
+
+    // Helper to filter sections by year
+    const filterByYear = (sections) => {
+        if (!sections) return [];
+        return sections.filter(group => group.year === selectedYear);
+    };
+
+    // Derived Data: Unregistered Students (Moved to top level)
+    const unregisteredSections = useMemo(() => {
+        // If data is missing (e.g. loading), return empty. But hook MUST run.
+        if (!statsData.total_sections || !statsData.registered) return [];
+
+        const registeredRegNos = new Set(statsData.registered.map(r => r.regNo));
+
+        return statsData.total_sections.map(group => ({
+            ...group,
+            sections: group.sections.map(sec => {
+                // Filter out students who are in the registered list
+                const unregisteredStudents = sec.students ? sec.students.filter(s => !registeredRegNos.has(s.regNo)) : [];
+                return {
+                    ...sec,
+                    students: unregisteredStudents,
+                    count: unregisteredStudents.length
+                };
+            }),
+            // Recalculate total students for the group
+            totalStudents: 0
+        })).map(group => ({
+            ...group,
+            totalStudents: group.sections.reduce((sum, sec) => sum + sec.count, 0)
+        }));
+    }, [statsData.total_sections, statsData.registered]);
+
+    const totalUnregisteredCount = useMemo(() => {
+        return unregisteredSections.reduce((sum, group) => sum + group.totalStudents, 0);
+    }, [unregisteredSections]);
 
     const handleSectionClick = (students, year, sectionName, type = 'Total') => {
         const title = `${year} - Section ${sectionName} (${type})`;
@@ -40,6 +79,12 @@ const CompetitionDetails = () => {
             }
         });
     };
+
+    // ... existing handleStatsClick and useEffect ... 
+
+    // ... inside return ...
+
+
 
     const handleStatsClick = (students, title, section) => {
         let finalTitle = title;
@@ -91,7 +136,7 @@ const CompetitionDetails = () => {
     }
     if (!competition) return <div className="p-8 text-center text-red-500">Competition not found</div>;
 
-    // derived data
+
 
 
     return (
@@ -296,10 +341,31 @@ const CompetitionDetails = () => {
                                 <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
                                 <span className="truncate">Registered ({statsData.registered?.length || 0})</span>
                             </h3>
+
+                            {/* Embedded Year Filter Dropdown */}
+                            {isHOD && (
+                                <div className="mb-3">
+                                    <div className="relative">
+                                        <select
+                                            value={selectedYear}
+                                            onChange={(e) => setSelectedYear(e.target.value)}
+                                            className="w-full appearance-none bg-gray-100 border border-gray-200 text-gray-700 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                                        >
+                                            <option value="2nd Year">2nd Year</option>
+                                            <option value="3rd Year">3rd Year</option>
+                                            <option value="4th Year">4th Year</option>
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {isHOD && statsData.registered_sections ? (
-                                    statsData.registered_sections.length > 0 ? (
-                                        statsData.registered_sections.map((group, gIdx) => (
+                                    filterByYear(statsData.registered_sections).length > 0 ? (
+                                        filterByYear(statsData.registered_sections).map((group, gIdx) => (
                                             <div key={gIdx} className="mb-3">
                                                 <details className="group" open={group.year === '2nd Year' || group.year === '3rd Year'}>
                                                     <summary className="flex justify-between items-center font-bold text-foreground cursor-pointer p-2 bg-muted/10 rounded-lg hover:bg-muted/20 transition-colors">
@@ -385,6 +451,27 @@ const CompetitionDetails = () => {
                                 <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
                                 <span className="truncate">Winners ({statsData.winners?.length || 0})</span>
                             </h3>
+
+                            {/* Embedded Year Filter Dropdown */}
+                            {isHOD && (
+                                <div className="mb-3">
+                                    <div className="relative">
+                                        <select
+                                            value={selectedYear}
+                                            onChange={(e) => setSelectedYear(e.target.value)}
+                                            className="w-full appearance-none bg-gray-100 border border-gray-200 text-gray-700 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                                        >
+                                            <option value="2nd Year">2nd Year</option>
+                                            <option value="3rd Year">3rd Year</option>
+                                            <option value="4th Year">4th Year</option>
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {statsData.winners?.map(student => (
                                     <div key={student.id} className="text-sm p-3 bg-green-50 rounded-lg border border-green-100 dark:bg-green-900/20 dark:border-green-800">
@@ -396,11 +483,8 @@ const CompetitionDetails = () => {
                             </div>
                         </div>
                     </div>
-
-
-
-
                 </div>
+
             ) : (
                 // STUDENT VIEW (Standard One with About & Timeline)
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
