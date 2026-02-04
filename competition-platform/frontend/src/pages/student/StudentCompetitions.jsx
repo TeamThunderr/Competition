@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import UploadProofModal from '../../components/common/UploadProofModal';
 import StudentSidebar from './Sidebar';
 import CompetitionListView from '../common/CompetitionListView';
@@ -10,6 +11,7 @@ const StudentCompetitions = () => {
     const [loading, setLoading] = useState(true);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedCompId, setSelectedCompId] = useState(null);
+    const [selectedTeamId, setSelectedTeamId] = useState(null);
 
     const fetchCompetitions = async () => {
         setLoading(true);
@@ -62,27 +64,29 @@ const StudentCompetitions = () => {
         setIsUploadModalOpen(true);
     };
 
-    const handleUploadProof = async (compId, proofUrl) => {
+
+
+    const navigate = useNavigate(); // Hook needs to be imported
+
+    const handleRequestOD = (compId) => {
+        navigate(`/student/od-request/${compId}`);
+    };
+
+    const handleUploadProofSubmit = async (compIdOrTeamId, proofUrl) => {
         try {
-            await studentService.uploadProof(compId, proofUrl);
-            alert("Proof uploaded! Waiting for faculty approval.");
+            if (selectedTeamId) {
+                // Team Mode
+                await studentService.uploadTeamProof(selectedTeamId, proofUrl);
+                alert("Team Proof uploaded! Waiting for faculty verification.");
+            } else {
+                // Individual Mode
+                await studentService.uploadProof(compIdOrTeamId, proofUrl);
+                alert("Proof uploaded! Waiting for faculty approval.");
+            }
             fetchCompetitions();
         } catch (err) {
             console.error("Upload process error:", err);
-            alert("An error occurred.");
-        }
-    };
-
-    const handleRequestOD = async (compId) => {
-        const reason = prompt("Enter reason for OD request:");
-        if (!reason) return;
-
-        try {
-            await studentService.requestOD(compId, reason);
-            alert("OD Request Sent to HOD.");
-            fetchCompetitions();
-        } catch (err) {
-            alert(`Request failed: ${err.message}`);
+            alert("An error occurred: " + err.message);
         }
     };
 
@@ -137,9 +141,10 @@ const StudentCompetitions = () => {
 
             <UploadProofModal
                 isOpen={isUploadModalOpen}
-                onClose={() => setIsUploadModalOpen(false)}
+                onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); }}
                 competitionId={selectedCompId}
-                onSubmit={handleUploadProof}
+                onSubmit={handleUploadProofSubmit}
+                title={selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof"}
             />
         </>
     );

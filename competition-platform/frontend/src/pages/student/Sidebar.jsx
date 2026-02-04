@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Globe, User, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, Globe, User, BarChart2, FileText } from 'lucide-react';
 import SharedSidebar from '../common/SharedSidebar';
 
 const StudentSidebar = ({ isOpen, onClose }) => {
@@ -7,9 +7,8 @@ const StudentSidebar = ({ isOpen, onClose }) => {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/student/dashboard' },
         { icon: Globe, label: 'Competitions', path: '/student/competitions' },
         { icon: User, label: 'Profile', path: '/student/profile' },
-        { icon: BarChart2, label: 'Analytics', path: '/student/stats' }, // Assuming Settings is moved or not primary
-        // Settings was in the original file imports but not used in menuItems loop in original file? 
-        // Original menuItems: Dashboard, Comp, Profile, Analytics. 
+        { icon: BarChart2, label: 'Analytics', path: '/student/stats' },
+        { icon: FileText, label: 'OD History', path: '/student/od-history' },
     ];
 
     return (

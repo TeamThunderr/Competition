@@ -3,6 +3,7 @@ const router = express.Router();
 const facultyController = require('../../controllers/faculty/faculty.controller');
 const verificationController = require('../../controllers/faculty/verification.controller');
 const facultyCompetitionController = require('../../controllers/faculty/competition.controller');
+const teamVerificationController = require('../../controllers/faculty/team_verification.controller');
 const authMiddleware = require('../../middleware/authMiddleware');
 const roleMiddleware = require('../../middleware/role.middleware');
 
@@ -33,8 +34,12 @@ router.get('/competition/:id/export', facultyCompetitionController.exportCompeti
 router.post('/competition/:competitionId/sync', facultyController.syncCompetition);
 router.get('/competition-sync-status', facultyController.getCompetitionSyncStatus); // New route if needed by frontend
 
-// Verification Routes
+// Verification Routes (Student Registration)
 router.get('/pending-verifications', verificationController.getPendingVerifications);
 router.post('/verify-registration', verificationController.verifyRegistration);
+
+// Team Verification Routes
+router.get('/pending-teams', teamVerificationController.getPendingTeamVerifications);
+router.post('/verify-team', teamVerificationController.verifyTeam);
 
 module.exports = router;

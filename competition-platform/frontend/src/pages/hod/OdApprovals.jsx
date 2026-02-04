@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import HodLayout from './HodLayout';
-import { ShieldCheck, Check, X, Calendar, ChevronRight } from 'lucide-react';
+import { ShieldCheck, Check, X, Calendar, ChevronRight, ExternalLink } from 'lucide-react';
 import { getPendingODRequests, manageODRequest } from '../../services/hodService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
@@ -209,20 +209,35 @@ const OdApprovals = () => {
                                 </div>
                             </div>
 
-                            {/* Event Info & Approval Settings */}
-                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Event</span>
-                                        <p className="font-medium text-gray-900 mt-0.5">{selectedRequest.competitions?.title}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</span>
-                                        <p className="font-medium text-gray-900 mt-0.5">
-                                            {selectedRequest.competitions?.event_date
-                                                ? new Date(selectedRequest.competitions.event_date).toLocaleDateString()
-                                                : <span className="text-orange-600">TBA</span>}
+                            {/* Event Info & OD Date Range */}
+                            <div className="bg-muted/5 p-4 rounded-xl border border-border space-y-4">
+                                <div>
+                                    <span className="text-xs font-semibold text-muted uppercase tracking-wider">Competition/Event</span>
+                                    <p className="font-medium text-foreground mt-1 text-base">{selectedRequest.competitions?.title || 'External Event'}</p>
+                                    {selectedRequest.competitions?.event_date && (
+                                        <p className="text-xs text-muted mt-0.5">
+                                            Event Date: {new Date(selectedRequest.competitions.event_date).toLocaleDateString()}
                                         </p>
+                                    )}
+                                </div>
+
+                                {/* OD Date Range */}
+                                <div className="pt-3 border-t border-border">
+                                    <span className="text-xs font-semibold text-muted uppercase tracking-wider block mb-2">Requested OD Period</span>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                                            <span className="text-xs text-muted block">From</span>
+                                            <span className="font-semibold text-foreground text-sm">
+                                                {selectedRequest.from_date ? new Date(selectedRequest.from_date).toLocaleDateString() : 'N/A'}
+                                            </span>
+                                        </div>
+                                        <span className="text-muted">→</span>
+                                        <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                                            <span className="text-xs text-muted block">To</span>
+                                            <span className="font-semibold text-foreground text-sm">
+                                                {selectedRequest.to_date ? new Date(selectedRequest.to_date).toLocaleDateString() : 'N/A'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -257,6 +272,37 @@ const OdApprovals = () => {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Team Context Block */}
+                            {selectedRequest.teams && (
+                                <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 space-y-2">
+                                    <h4 className="text-xs font-semibold text-purple-700 uppercase tracking-wider">Team Context</h4>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <div>
+                                            <span className="text-gray-500 block text-xs">Team Name</span>
+                                            <span className="font-medium text-gray-900">{selectedRequest.teams.team_name}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-gray-500 block text-xs">Verification</span>
+                                            <span className={`font-bold ${selectedRequest.teams.verification_status === 'VERIFIED' ? 'text-green-600' : 'text-orange-600'}`}>
+                                                {selectedRequest.teams.verification_status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {selectedRequest.teams.proof_url && (
+                                        <div className="pt-2">
+                                            <a
+                                                href={selectedRequest.teams.proof_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1 font-medium"
+                                            >
+                                                <ExternalLink size={12} /> View Team Proof
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Reason Block */}
                             <div>

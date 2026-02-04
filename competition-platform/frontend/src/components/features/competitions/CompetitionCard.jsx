@@ -76,20 +76,19 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
                 );
             }
 
-            // Check if Shortlisted -> Can Request OD
-            if (my_status?.is_shortlisted) {
+            // Allow OD Request ONLY for Shortlisted (or Winner)
+            if (my_status?.is_shortlisted || my_status?.is_winner) {
                 return (
                     <button
                         onClick={() => onRequestOD(competition.id)}
-                        className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors animate-pulse">
-                        Shortlisted! Request OD
+                        className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm">
+                        {my_status?.is_shortlisted ? "Shortlisted! Request OD" : "Request OD"}
                     </button>
                 );
             }
-
+            // If not shortlisted, show nothing (or maybe 'Registered')
             return (
-                <div className="flex-1 bg-green-50 text-green-700 py-2 px-4 rounded-lg text-sm font-medium text-center flex items-center justify-center gap-2">
-                    <Trophy className="w-4 h-4" />
+                <div className="flex-1 bg-green-50 text-green-700 py-2 px-4 rounded-lg text-sm font-medium text-center border border-green-200">
                     Registered
                 </div>
             );
