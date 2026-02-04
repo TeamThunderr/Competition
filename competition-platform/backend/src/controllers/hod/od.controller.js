@@ -14,10 +14,12 @@ const getPendingODRequests = async (req, res) => {
             .select(`
                 *,
                 users:users!od_requests_user_id_fkey!inner(full_name, registration_no, department_id, section),
-                competitions(title, event_date)
+                competitions(title, event_date),
+                teams!inner (team_name, proof_url, verification_status)
             `)
             .eq('status', 'PENDING')
-            .eq('users.department_id', hod_dept);
+            .eq('users.department_id', hod_dept)
+            .eq('teams.verification_status', 'VERIFIED'); // Strict: HOD only sees Faculty-verified requests
 
         if (error) throw error;
 
@@ -53,7 +55,7 @@ const manageODRequest = async (req, res) => {
 
         if (error) throw error;
 
-        res.status(200).json({ message: `OD Request ${status}`, data: data[0] });
+        res.status(200).json({ message: `OD Request ${status} `, data: data[0] });
 
     } catch (err) {
         console.error('Manage OD Error:', err);
