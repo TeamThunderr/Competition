@@ -86,16 +86,23 @@ const StudentCompetitions = () => {
         }
     };
 
-    // Filter Logic specific to Student View (Unregistered only)
-    const availableCompetitions = competitions.filter(c => !c.my_registration);
+    const [activeTab, setActiveTab] = useState('unregistered'); // 'unregistered' | 'registered'
+
+    // Filter Logic specific to Student View
+    const availableCompetitions = competitions.filter(c => {
+        if (activeTab === 'registered') {
+            return c.my_registration; // Show only if registered
+        }
+        return !c.my_registration; // Show only if NOT registered
+    });
 
     return (
         <>
             <CompetitionListView
                 Sidebar={StudentSidebar}
                 competitions={availableCompetitions}
-                title="All Competitions"
-                subtitle="Browse and register for upcoming events."
+                title={activeTab === 'registered' ? "My Registrations" : "All Competitions"}
+                subtitle={activeTab === 'registered' ? "Track your registered events." : "Browse and register for upcoming events."}
                 loading={loading}
                 showRegister={true} // Enable register buttons
                 role="STUDENT"
@@ -104,7 +111,29 @@ const StudentCompetitions = () => {
                     onRequestOD: handleRequestOD,
                     onVerifyGmail: handleCheckStatus
                 }}
-            />
+            >
+                {/* Tabs */}
+                <div className="flex space-x-4 mb-6 border-b border-gray-200">
+                    <button
+                        onClick={() => setActiveTab('unregistered')}
+                        className={`pb-2 text-sm font-medium transition-colors ${activeTab === 'unregistered'
+                                ? 'border-b-2 border-blue-600 text-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        Unregistered
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('registered')}
+                        className={`pb-2 text-sm font-medium transition-colors ${activeTab === 'registered'
+                                ? 'border-b-2 border-blue-600 text-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        Registered
+                    </button>
+                </div>
+            </CompetitionListView>
 
             <UploadProofModal
                 isOpen={isUploadModalOpen}

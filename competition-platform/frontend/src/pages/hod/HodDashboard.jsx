@@ -383,16 +383,18 @@ const HodDashboard = () => {
                         </button>
                     </div>
 
-            {/* Quick Links or Stats */}
-            <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl shadow-md p-6 text-white">
-                <h3 className="font-bold text-lg mb-2">Faculty Directory</h3>
-                <p className="text-purple-100 text-sm mb-4">Manage department staff and view section assignments.</p>
-                <button
-                    onClick={() => navigate('/hod/faculty')}
-                    className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-medium px-4 py-2 rounded-lg transition-all w-full flex items-center justify-center gap-2"
-                >
-                    View Directory
-                </button>
+                    {/* Quick Links or Stats */}
+                    <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl shadow-md p-6 text-white">
+                        <h3 className="font-bold text-lg mb-2">Faculty Directory</h3>
+                        <p className="text-purple-100 text-sm mb-4">Manage department staff and view section assignments.</p>
+                        <button
+                            onClick={() => navigate('/hod/faculty')}
+                            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-medium px-4 py-2 rounded-lg transition-all w-full flex items-center justify-center gap-2"
+                        >
+                            View Directory
+                        </button>
+                    </div>
+                </div>
             </div>
         </HodLayout>
     );

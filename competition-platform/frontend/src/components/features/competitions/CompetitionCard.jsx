@@ -2,23 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, Trophy, ExternalLink, MapPin } from 'lucide-react';
 
-const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, showRegister = true }) => {
+const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = true }) => {
     const { my_registration, my_status, my_od } = competition;
     const deadlineDate = new Date(competition.registration_deadline);
     deadlineDate.setHours(23, 59, 59, 999);
     const isClosed = deadlineDate < new Date();
-    const [isVerifying, setIsVerifying] = React.useState(false);
-
-    const handleVerifyClick = async () => {
-        setIsVerifying(true);
-        try {
-            await onVerifyGmail(competition.id);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsVerifying(false); // Restore state after (or let parent unmount/update logic handle it)
-        }
-    };
 
     const getDaysLeft = (deadline) => {
         const diffTime = deadline - new Date();
@@ -49,17 +37,8 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, onVerifyGmail, 
                 <div className="flex gap-2 flex-1">
                     <button
                         onClick={() => onRegister(competition.id)}
-                        disabled={isVerifying}
                         className="flex-1 bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors disabled:opacity-50">
-                        Mark Register
-                    </button>
-                    <button
-                        onClick={handleVerifyClick}
-                        disabled={isVerifying}
-                        className={`flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium shadow-sm transition-all ${isVerifying ? 'opacity-70 cursor-wait' : 'hover:from-red-600 hover:to-red-700'}`}
-                        title="Check Gmail for confirmation email"
-                    >
-                        {isVerifying ? 'Checking...' : 'Verify via Gmail'}
+                        Upload Proof
                     </button>
                 </div>
             );

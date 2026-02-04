@@ -30,7 +30,8 @@ const CompetitionListView = ({
     loading = false,
     showRegister = false,
     role = 'STUDENT',
-    cardActions = {}
+    cardActions = {},
+    children
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('All');
@@ -147,6 +148,9 @@ const CompetitionListView = ({
                     </div>
                 </div>
             </div>
+
+            {/* Extra Content (e.g. Tabs) */}
+            {children}
 
             {/* Content Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

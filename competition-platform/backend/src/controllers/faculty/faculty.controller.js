@@ -256,10 +256,16 @@ const getStats = async (req, res) => {
 
 const getDashboardStats = async (req, res) => {
     try {
+        console.log('[Faculty] getDashboardStats START');
         const { assigned_sections, department_id, id } = req.user;
 
+        // Robust Filtering for Assigned Sections
+        const safeAssignedSections = Array.isArray(assigned_sections)
+            ? assigned_sections.filter(s => typeof s === 'string')
+            : [];
+
         // Get faculty's students (Robust Filtering)
-        const myStudentIds = await getMyStudentIds(id, department_id, assigned_sections || []);
+        const myStudentIds = await getMyStudentIds(id, department_id, safeAssignedSections);
 
         if (myStudentIds.length === 0) {
             return sendResponse(res, 200, {
@@ -268,7 +274,7 @@ const getDashboardStats = async (req, res) => {
                 comp_qualified: 0,
                 comp_won: 0, // Added field
                 od_requests: 0,
-                section_label: assigned_sections?.[0] || 'N/A',
+                section_label: safeAssignedSections?.[0] || 'N/A',
                 batch_label: 'N/A'
             }, 'No students found');
         }
@@ -286,7 +292,7 @@ const getDashboardStats = async (req, res) => {
                 .in('user_id', myStudentIds);
 
             if (regError) throw regError;
-            regData = data; // Assign to outer variable
+            regData = data || []; // Ensure array
 
             // Calculate Count Distinct User ID (Reverted based on user feedback)
             const uniqueStudents = new Set(regData?.map(r => r.user_id)).size;
@@ -344,16 +350,17 @@ const getDashboardStats = async (req, res) => {
             comp_qualified: qualifiedCount || 0,
             comp_won: wonCount || 0,
             od_requests: odCount || 0,
-            section_label: assigned_sections?.join(', ') || 'N/A',
+            section_label: safeAssignedSections?.join(', ') || 'N/A',
             batch_label: batchLabel,
             registered_details: regData // Debug info
         };
 
-        console.log('[Faculty] Dashboard Stats:', stats);
+        console.log('[Faculty] Dashboard Stats: Success');
         sendResponse(res, 200, stats, 'Fetched dashboard stats');
 
     } catch (error) {
-        console.error('[Faculty] Stats error:', error);
+        console.error('[Faculty] Stats CRITICAL error:', error);
+        if (error.stack) console.error(error.stack);
         sendResponse(res, 500, null, 'Failed to fetch dashboard stats');
     }
 };
@@ -719,8 +726,10 @@ const getMyStudentIds = async (facultyId, deptId, assignedSections) => {
     }
 };
 
-const calculateBatchLabel = (registrationNo) => {
-    if (!registrationNo) return 'N/A';
+const calculateBatchLabel = (registrationNoInput) => {
+    if (!registrationNoInput) return 'N/A';
+    const registrationNo = String(registrationNoInput).trim(); // Ensure string
+
     let yearShort = null;
     const prefix = registrationNo.substring(0, 2);
     const mid = registrationNo.length >= 6 ? registrationNo.substring(4, 6) : null;
