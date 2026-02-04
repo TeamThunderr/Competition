@@ -53,13 +53,23 @@ const getAllCompetitions = async (req, res) => {
             const stat = statusList.find(s => s.competition_id === comp.id);
             const od = odRequests.find(o => o.competition_id === comp.id);
 
+            // Derive Shortlist Status from Registration 'status' column (Unified Logic)
+            // 'Qualified' in registrations table overrides or supplements competition_status table
+            const isShortlisted = (stat?.is_shortlisted) || (reg?.status === 'Qualified') || (reg?.status === 'SHORTLISTED');
+            const isWinner = stat?.is_winner || false;
+
+            const derivedStatus = {
+                is_shortlisted: isShortlisted,
+                is_winner: isWinner
+            };
+
             // Get count from registrations
             const totalCount = comp.registrations && comp.registrations[0] ? comp.registrations[0].count : 0;
 
             return {
                 ...comp,
                 my_registration: reg || null,
-                my_status: stat || null,
+                my_status: derivedStatus,
                 my_od: od || null,
                 registrations: [{ count: totalCount }]
             };

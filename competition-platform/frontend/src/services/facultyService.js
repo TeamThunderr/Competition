@@ -33,6 +33,11 @@ export const getPendingVerifications = async () => {
     return response.data || response;
 };
 
+export const getPendingTeamVerifications = async () => {
+    const response = await api.get('/api/faculty/pending-teams');
+    return response.data || response;
+};
+
 export const verifyRegistration = async (registrationId, action) => {
     return await api.post('/api/faculty/verify-registration', {
         registration_id: registrationId,
@@ -76,6 +81,7 @@ export default {
     getStudentDetails,
     getRecentRegistrations,
     getPendingVerifications,
+    getPendingTeamVerifications,
     verifyRegistration,
     getCompetitionStudents,
     syncCompetition,

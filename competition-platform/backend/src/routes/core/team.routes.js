@@ -11,5 +11,7 @@ const teamController = require('../../controllers/core/team.controller');
 router.post('/create', teamController.createTeam);
 router.post('/invite', teamController.inviteMember);
 router.post('/accept', teamController.acceptInvite);
+router.post('/upload-proof', teamController.uploadProof);
+router.post('/submit-verification', teamController.submitVerification);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import HodLayout from './HodLayout';
-import { ShieldCheck, Check, X, Calendar, ChevronRight } from 'lucide-react';
+import { ShieldCheck, Check, X, Calendar, ChevronRight, ExternalLink } from 'lucide-react';
 import { getPendingODRequests, manageODRequest } from '../../services/hodService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
@@ -248,6 +248,37 @@ const OdApprovals = () => {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Team Context Block */}
+                            {selectedRequest.teams && (
+                                <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 space-y-2">
+                                    <h4 className="text-xs font-semibold text-purple-700 uppercase tracking-wider">Team Context</h4>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <div>
+                                            <span className="text-gray-500 block text-xs">Team Name</span>
+                                            <span className="font-medium text-gray-900">{selectedRequest.teams.team_name}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-gray-500 block text-xs">Verification</span>
+                                            <span className={`font-bold ${selectedRequest.teams.verification_status === 'VERIFIED' ? 'text-green-600' : 'text-orange-600'}`}>
+                                                {selectedRequest.teams.verification_status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {selectedRequest.teams.proof_url && (
+                                        <div className="pt-2">
+                                            <a
+                                                href={selectedRequest.teams.proof_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1 font-medium"
+                                            >
+                                                <ExternalLink size={12} /> View Team Proof
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Reason Block */}
                             <div>
