@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
     :root {
@@ -40,6 +42,9 @@
         /* Borders */
         --border-color: 229 231 235;
         /* gray-200 */
+
+        /* Layout */
+        --sidebar-width: 16rem;
     }
 
     .dark {
