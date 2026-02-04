@@ -199,20 +199,35 @@ const OdApprovals = () => {
                                 </div>
                             </div>
 
-                            {/* Event Info & Approval Settings */}
+                            {/* Event Info & OD Date Range */}
                             <div className="bg-muted/5 p-4 rounded-xl border border-border space-y-4">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <span className="text-xs font-semibold text-muted uppercase tracking-wider">Event</span>
-                                        <p className="font-medium text-foreground mt-0.5">{selectedRequest.competitions?.title}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="text-xs font-semibold text-muted uppercase tracking-wider">Date</span>
-                                        <p className="font-medium text-foreground mt-0.5">
-                                            {selectedRequest.competitions?.event_date
-                                                ? new Date(selectedRequest.competitions.event_date).toLocaleDateString()
-                                                : <span className="text-orange-600">TBA</span>}
+                                <div>
+                                    <span className="text-xs font-semibold text-muted uppercase tracking-wider">Competition/Event</span>
+                                    <p className="font-medium text-foreground mt-1 text-base">{selectedRequest.competitions?.title || 'External Event'}</p>
+                                    {selectedRequest.competitions?.event_date && (
+                                        <p className="text-xs text-muted mt-0.5">
+                                            Event Date: {new Date(selectedRequest.competitions.event_date).toLocaleDateString()}
                                         </p>
+                                    )}
+                                </div>
+
+                                {/* OD Date Range */}
+                                <div className="pt-3 border-t border-border">
+                                    <span className="text-xs font-semibold text-muted uppercase tracking-wider block mb-2">Requested OD Period</span>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                                            <span className="text-xs text-muted block">From</span>
+                                            <span className="font-semibold text-foreground text-sm">
+                                                {selectedRequest.from_date ? new Date(selectedRequest.from_date).toLocaleDateString() : 'N/A'}
+                                            </span>
+                                        </div>
+                                        <span className="text-muted">→</span>
+                                        <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                                            <span className="text-xs text-muted block">To</span>
+                                            <span className="font-semibold text-foreground text-sm">
+                                                {selectedRequest.to_date ? new Date(selectedRequest.to_date).toLocaleDateString() : 'N/A'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 

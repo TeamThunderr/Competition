@@ -7,23 +7,55 @@ const supabase = require('../../config/supabaseClient');
 // Get pending OD requests for Department
 const getPendingODRequests = async (req, res) => {
     try {
-        const hod_dept = req.user.department_id;
+        const hod_dept = req.user ? req.user.department_id : null;
+        console.log(`[HOD Debug] User ID: ${req.userId}, Role: ${req.user?.role}`);
+        console.log(`[HOD Debug] Fetching Pending ODs for Dept ID: ${hod_dept}`);
 
+        if (!hod_dept) {
+            console.warn('[HOD Debug] Warning: HOD has no department_id assigned.');
+        }
+
+        // Simplified query - no joins
         const { data, error } = await supabase
             .from('od_requests')
-            .select(`
-                *,
-                users:users!od_requests_user_id_fkey!inner(full_name, registration_no, department_id, section),
-                competitions(title, event_date),
-                teams!inner (team_name, proof_url, verification_status)
-            `)
-            .eq('status', 'PENDING')
-            .eq('users.department_id', hod_dept)
-            .eq('teams.verification_status', 'VERIFIED'); // Strict: HOD only sees Faculty-verified requests
+            .select('*')
+            .eq('status', 'PENDING');
 
-        if (error) throw error;
+        if (error) {
+            console.error('[HOD Debug] Supabase Query Error:', JSON.stringify(error, null, 2));
+            throw error;
+        }
 
-        res.status(200).json(data);
+        console.log(`[HOD Debug] Raw query returned ${data ? data.length : 0} rows`);
+
+        // Manually fetch user data for each request
+        if (data && data.length > 0) {
+            for (let i = 0; i < data.length; i++) {
+                const req = data[i];
+                console.log(`[HOD Debug] Request #${i} user_id: ${req.user_id}`);
+
+                const { data: userData, error: userError } = await supabase
+                    .from('users')
+                    .select('full_name, registration_no, department_id, section')
+                    .eq('id', req.user_id)
+                    .maybeSingle();
+
+                if (userError) {
+                    console.error(`[HOD Debug] User lookup error for request #${i}:`, userError);
+                }
+
+                req.users = userData;
+                const match = userData?.department_id === hod_dept;
+                console.log(`[HOD Debug] Request #${i} User Dept: ${userData?.department_id} | User Name: ${userData?.full_name} | Match? ${match}`);
+            }
+
+            // Filter by department
+            const filtered = data.filter(req => req.users?.department_id === hod_dept);
+            console.log(`[HOD] Returning ${filtered.length} requests after department filter`);
+            return res.status(200).json(filtered);
+        }
+
+        res.status(200).json(data || []);
 
     } catch (err) {
         console.error('Get OD Requests Error:', err);

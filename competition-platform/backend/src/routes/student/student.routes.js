@@ -34,5 +34,6 @@ router.get('/od-requests', odController.getMyODRequests);
 const profileController = require('../../controllers/student/profile.controller');
 router.get('/profile', profileController.getProfile);
 router.put('/profile', profileController.updateProfile);
+router.get('/search', profileController.searchStudent);
 
 module.exports = router;

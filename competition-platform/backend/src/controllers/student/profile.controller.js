@@ -131,7 +131,32 @@ const updateProfile = async (req, res) => {
     }
 };
 
+// Search Students by Reg No (or Name)
+const searchStudent = async (req, res) => {
+    try {
+        const { query } = req.query; // e.g. ?query=7100
+        if (!query || query.length < 3) {
+            return sendResponse(res, 400, null, 'Search query must be at least 3 characters');
+        }
+
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, full_name, registration_no, department_id, section, departments(name)')
+            .ilike('registration_no', `%${query}%`)
+            .eq('role', 'student')
+            .limit(5); // Limit results
+
+        if (error) throw error;
+
+        sendResponse(res, 200, data, 'Students found');
+    } catch (err) {
+        console.error('[ProfileController] Search Error:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
+    }
+};
+
 module.exports = {
     getProfile,
-    updateProfile
+    updateProfile,
+    searchStudent
 };
