@@ -8,6 +8,7 @@ const StudentSidebar = ({ isOpen, onClose }) => {
         { icon: Globe, label: 'Competitions', path: '/student/competitions' },
         { icon: User, label: 'Profile', path: '/student/profile' },
         { icon: FileText, label: 'OD History', path: '/student/od-history' },
+        { icon: BarChart2, label: 'Analytics', path: '/student/stats' },
     ];
 
     return (
