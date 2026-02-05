@@ -18,10 +18,11 @@ export const checkStatus = async (competitionId, providerToken) => {
 };
 
 // Proof Upload
-export const uploadProof = async (competitionId, proofUrl) => {
+export const uploadProof = async (competitionId, proofUrl, proofType) => {
     return await api.post('/api/student/upload-proof', {
         competition_id: competitionId,
-        proof_url: proofUrl
+        proof_url: proofUrl,
+        proof_type: proofType
     });
 };
 

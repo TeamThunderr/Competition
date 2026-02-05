@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trophy, Users, ShieldCheck, ArrowRight, Sparkles, Zap, Award } from 'lucide-react';
 import Navbar from '../components/common/Navbar';
+import LoginForm from '../components/auth/LoginForm';
 
 const Home = () => {
     return (
@@ -62,82 +63,19 @@ const Home = () => {
                         </div>
                     </motion.div>
 
-                    {/* Right Content (Visual/Glass Card) */}
+                    {/* Right Content (Login Form) */}
                     <motion.div
                         initial={{ opacity: 0, x: 50 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.8, delay: 0.2 }}
-                        className="flex-1 w-full max-w-md lg:max-w-full relative"
+                        className="flex-1 w-full max-w-md lg:max-w-full relative justify-center flex"
                     >
-                        {/* Decorative background blob for the card */}
+                        {/* Decorative background blob for the form */}
                         <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-[2rem] blur-2xl opacity-20 transform rotate-6 scale-95" />
 
-                        {/* The Glass Card */}
-                        <div className="relative bg-white/70 dark:bg-[#1a1b26]/80 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-[2rem] p-8 shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5">
-                            {/* Card Header */}
-                            <div className="flex justify-between items-start mb-8">
-                                <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Current Top Competition</p>
-                                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">Hackathon 2025</h3>
-                                </div>
-                                <div className="p-3 bg-indigo-100 dark:bg-indigo-500/20 rounded-xl">
-                                    <Trophy className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
-                                </div>
-                            </div>
+                        {/* Embedded Login Form */}
+                        <LoginForm />
 
-                            {/* Stats Row */}
-                            <div className="grid grid-cols-2 gap-4 mb-8">
-                                <div className="p-4 bg-gray-50/50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
-                                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-1">
-                                        <Users className="w-4 h-4" /> Teams
-                                    </div>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">124</p>
-                                </div>
-                                <div className="p-4 bg-gray-50/50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
-                                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-1">
-                                        <Zap className="w-4 h-4" /> Status
-                                    </div>
-                                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">Live</p>
-                                </div>
-                            </div>
-
-                            {/* Participants Stack */}
-                            <div className="mb-6">
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Recent Registrations</p>
-                                <div className="flex items-center -space-x-4">
-                                    {[1, 2, 3, 4].map((i) => (
-                                        <div key={i} className={`w-10 h-10 rounded-full border-2 border-white dark:border-[#1a1b26] flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-500 text-xs font-bold text-white z-${10 - i} shadow-sm`}>
-                                            U{i}
-                                        </div>
-                                    ))}
-                                    <div className="w-10 h-10 rounded-full border-2 border-white dark:border-[#1a1b26] bg-gray-100 dark:bg-[#2a2b36] flex items-center justify-center text-xs text-gray-600 dark:text-gray-400 z-0 shadow-sm">
-                                        +42
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Simulated Progress Bar */}
-                            <div className="w-full bg-gray-200 dark:bg-white/10 h-2 rounded-full overflow-hidden">
-                                <div className="bg-indigo-500 h-full w-[75%] rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-                            </div>
-                        </div>
-
-                        {/* Floating Badge */}
-                        <motion.div
-                            animate={{ y: [0, -10, 0] }}
-                            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                            className="absolute -top-6 -right-6 lg:-right-12 bg-white/80 dark:bg-[#1a1b26] border border-white/20 dark:border-white/10 p-4 rounded-2xl shadow-xl backdrop-blur-md hidden sm:block ring-1 ring-black/5 dark:ring-white/5"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-yellow-100 dark:bg-yellow-500/20 rounded-lg">
-                                    <Award className="w-6 h-6 text-yellow-600 dark:text-yellow-500" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Prize Pool</p>
-                                    <p className="text-lg font-bold text-gray-900 dark:text-white">₹50,000</p>
-                                </div>
-                            </div>
-                        </motion.div>
                     </motion.div>
 
                 </div>

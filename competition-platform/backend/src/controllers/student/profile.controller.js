@@ -27,7 +27,7 @@ const getProfile = async (req, res) => {
 
         console.log('DEBUG: Fetched User for Profile:', JSON.stringify(user));
 
-        // 2. Fetch Competition Stats
+        // Fetch Competition Stats (Registrations)
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
             .select('id, verified, competition_id, status, competitions(title)')

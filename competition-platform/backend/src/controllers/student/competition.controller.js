@@ -31,12 +31,19 @@ const getAllCompetitions = async (req, res) => {
         if (regError) throw regError;
 
         // Fetch user's OD requests
-        const { data: odRequests, error: odError } = await supabase
-            .from('od_requests')
-            .select('competition_id, status')
-            .eq('user_id', userId);
+        let odRequests = [];
+        try {
+            const { data, error: odError } = await supabase
+                .from('od_requests')
+                .select('competition_id, status')
+                .eq('user_id', userId);
 
-        if (odError) throw odError;
+            if (odError) throw odError;
+            odRequests = data || [];
+        } catch (err) {
+            console.warn("Warning: Could not fetch od_requests", err.message);
+            odRequests = [];
+        }
 
         // Merge data
         const enrichedCompetitions = competitions.map(comp => {

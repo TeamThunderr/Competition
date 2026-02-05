@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UploadProofModal from '../../components/common/UploadProofModal';
 import StudentSidebar from './Sidebar';
 import CompetitionListView from '../common/CompetitionListView';
 import { supabase } from '../../services/supabaseClient';
 import { studentService } from '../../services/studentService';
+import { RefreshCw } from 'lucide-react';
 
 const StudentCompetitions = () => {
     const [competitions, setCompetitions] = useState([]);
@@ -30,13 +31,20 @@ const StudentCompetitions = () => {
         fetchCompetitions();
     }, []);
 
-
-
-
-
     const [activeTab, setActiveTab] = useState('unregistered');
 
+    const [appliedCompetitions, setAppliedCompetitions] = useState(() => {
+        const saved = localStorage.getItem('appliedCompetitions');
+        return saved ? JSON.parse(saved) : {};
+    });
 
+    const handleToggleApplied = (compId) => {
+        setAppliedCompetitions(prev => {
+            const newState = { ...prev, [compId]: !prev[compId] };
+            localStorage.setItem('appliedCompetitions', JSON.stringify(newState));
+            return newState;
+        });
+    };
 
     const handleRegisterClick = (compId, isShortlist = false) => {
         setSelectedCompId(compId);
@@ -44,15 +52,13 @@ const StudentCompetitions = () => {
         setIsUploadModalOpen(true);
     };
 
-
-
     const navigate = useNavigate(); // Hook needs to be imported
 
     const handleRequestOD = (compId) => {
         navigate(`/student/od-request/${compId}`);
     };
 
-    const handleUploadProofSubmit = async (compIdOrTeamId, proofUrl) => {
+    const handleUploadProofSubmit = async (compIdOrTeamId, proofUrl, proofType) => {
         try {
             if (isShortlistUpload) {
                 // Shortlist Verification Mode
@@ -64,7 +70,7 @@ const StudentCompetitions = () => {
                 alert("Team Proof uploaded! Waiting for faculty verification.");
             } else {
                 // Individual Mode
-                await studentService.uploadProof(compIdOrTeamId, proofUrl);
+                await studentService.uploadProof(compIdOrTeamId, proofUrl, proofType);
                 alert("Proof uploaded! Waiting for faculty approval.");
             }
             fetchCompetitions();
@@ -90,31 +96,54 @@ const StudentCompetitions = () => {
         }
     });
 
+    // Calculate Latest Sync Time
+    const latestSyncTime = useMemo(() => {
+        if (!competitions || competitions.length === 0) return null;
+        const times = competitions
+            .map(c => c.last_synced_at)
+            .filter(t => t) // Remove nulls
+            .map(t => new Date(t).getTime());
+
+        if (times.length === 0) return null;
+        return new Date(Math.max(...times));
+    }, [competitions]);
+
     return (
         <div className="flex bg-background min-h-screen font-sans text-foreground">
             <StudentSidebar />
             <div className="flex-1 ml-0 md:ml-sidebar p-4 md:p-8">
 
-                {/* Tab Navigation */}
-                <div className="flex space-x-1 mb-6 bg-muted/20 p-1 rounded-xl w-fit">
-                    <button
-                        onClick={() => setActiveTab('unregistered')}
-                        className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'unregistered'
-                            ? 'bg-card text-primary shadow-sm'
-                            : 'text-muted hover:text-foreground'
-                            }`}
-                    >
-                        Unregistered
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('registered')}
-                        className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'registered'
-                            ? 'bg-card text-primary shadow-sm'
-                            : 'text-muted hover:text-foreground'
-                            }`}
-                    >
-                        Registered
-                    </button>
+                {/* Header Section with Tabs and Sync Status */}
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    {/* Tab Navigation */}
+                    <div className="flex space-x-1 bg-muted/20 p-1 rounded-xl w-fit">
+                        <button
+                            onClick={() => setActiveTab('unregistered')}
+                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'unregistered'
+                                ? 'bg-card text-primary shadow-sm'
+                                : 'text-muted hover:text-foreground'
+                                }`}
+                        >
+                            Unregistered
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('registered')}
+                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'registered'
+                                ? 'bg-card text-primary shadow-sm'
+                                : 'text-muted hover:text-foreground'
+                                }`}
+                        >
+                            Registered
+                        </button>
+                    </div>
+
+                    {/* Sync Time Box */}
+                    {latestSyncTime && (
+                        <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100 shadow-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                            <RefreshCw className="w-4 h-4" />
+                            <span>Faculty Last Synced: {latestSyncTime.toLocaleString()}</span>
+                        </div>
+                    )}
                 </div>
 
                 <CompetitionListView
@@ -127,8 +156,10 @@ const StudentCompetitions = () => {
                     role="STUDENT"
                     cardActions={{
                         onRegister: handleRegisterClick,
-                        onRequestOD: handleRequestOD
+                        onRequestOD: handleRequestOD,
+                        onToggleApplied: handleToggleApplied
                     }}
+                    appliedCompetitions={appliedCompetitions}
                 />
             </div>
 

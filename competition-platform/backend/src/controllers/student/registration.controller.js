@@ -125,7 +125,7 @@ const checkRegistrationStatus = async (req, res) => {
 // 2. Upload Screenshot Proof (Manual) - V2 Implementation
 const uploadProof = async (req, res) => {
     try {
-        const { competition_id, proof_url } = req.body;
+        const { competition_id, proof_url, proof_type } = req.body;
         const student_id = req.userId;
 
         if (!competition_id || !proof_url) {
@@ -135,12 +135,16 @@ const uploadProof = async (req, res) => {
         // V2: Use single write path through service
         await ensureRegistrationExists(student_id, competition_id, 'MANUAL_SCREENSHOT');
 
+        // Determine Status
+        const status = (proof_type === 'QUALIFIED') ? 'Qualified' : 'Registered';
+
         // Update proof URL for manual registration
         const { data, error } = await supabase
             .from('registrations')
             .update({
                 proof_url: proof_url,
-                verified: false // Needs faculty approval
+                verified: false, // Needs faculty approval
+                status: status // Save the type of proof
             })
             .eq('user_id', student_id)
             .eq('competition_id', competition_id)
