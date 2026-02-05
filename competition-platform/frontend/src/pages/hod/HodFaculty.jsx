@@ -96,10 +96,10 @@ const HodFaculty = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-gray-900">
+                                                <span className="text-sm font-bold text-foreground">
                                                     {member.stats?.studentsCount || 0} Students
                                                 </span>
-                                                <div className="text-xs text-gray-500 flex gap-2 mt-0.5">
+                                                <div className="text-xs text-muted flex gap-2 mt-0.5">
                                                     {member.stats?.yearBreakdown && Object.entries(member.stats.yearBreakdown).map(([year, count]) => (
                                                         <span key={year} title={`${year} Students`}>{count} in {year.replace(' Year', '')}Yr</span>
                                                     ))}
@@ -108,12 +108,12 @@ const HodFaculty = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="space-y-1">
-                                                <div className="flex items-center text-xs text-gray-600">
-                                                    <Mail size={12} className="mr-2 text-gray-400" />
+                                                <div className="flex items-center text-xs text-muted">
+                                                    <Mail size={12} className="mr-2 text-muted/70" />
                                                     <span className="truncate max-w-[150px]" title={member.email}>{member.email}</span>
                                                 </div>
-                                                <div className="flex items-center text-xs text-gray-600">
-                                                    <Phone size={12} className="mr-2 text-gray-400" />
+                                                <div className="flex items-center text-xs text-muted">
+                                                    <Phone size={12} className="mr-2 text-muted/70" />
                                                     {member.phone || 'N/A'}
                                                 </div>
                                             </div>

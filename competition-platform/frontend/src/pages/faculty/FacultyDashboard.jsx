@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, RefreshCw, Download } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { getDashboardStats } from '../../services/facultyService';
 import { api } from '../../services/api';
@@ -66,7 +66,7 @@ const FacultyDashboard = () => {
                     <span className="font-bold text-lg">Mentor Dashboard</span>
                 </div>
 
-                <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+                <main className="flex-1 p-4 md:p-6 overflow-y-auto">
                     {/* Header */}
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-foreground hidden md:block">Section Mentor Dashboard</h1>
@@ -92,7 +92,7 @@ const FacultyDashboard = () => {
                     ) : (
                         <>
                             {/* Stats Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
                                 {statsCards.map((stat, index) => (
                                     <div key={index} className="bg-card p-6 rounded-xl border border-border shadow-sm transition-shadow hover:shadow-md">
                                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{stat.label}</h3>
@@ -148,7 +148,7 @@ const FacultyDashboard = () => {
                                             }}
                                             className="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors shadow-sm"
                                         >
-                                            🔄 Sync Comp
+                                            <RefreshCw size={18} /> Sync Comp
                                         </button>
                                         <button
                                             onClick={async () => {
@@ -161,13 +161,13 @@ const FacultyDashboard = () => {
                                             }}
                                             className="flex items-center gap-2 bg-card border border-border text-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-50/10 transition-colors shadow-sm"
                                         >
-                                            📥 Download
+                                            <Download size={18} /> Download
                                         </button>
                                     </div>
                                 </div>
 
                                 {competitions.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {competitions
                                             .filter(comp => new Date(comp.registration_deadline) >= new Date())
                                             .map(comp => (

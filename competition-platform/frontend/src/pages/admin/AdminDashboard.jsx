@@ -30,14 +30,14 @@ const AdminDashboard = () => {
                 totalVerified = json.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
             }
 
-                // 2. Fetch Competitions for Active Count
-                const compRes = await api.get('/api/competitions');
-                const comps = compRes?.data || (Array.isArray(compRes) ? compRes : []);
+            // 2. Fetch Competitions for Active Count
+            const compRes = await api.get('/api/competitions');
+            const comps = compRes?.data || (Array.isArray(compRes) ? compRes : []);
 
-                let activeCount = 0;
-                let activities = [];
-                let closingSoon = 0;
-                let lastDate = "Never";
+            let activeCount = 0;
+            let activities = [];
+            let closingSoon = 0;
+            let lastDate = "Never";
 
             if (comps) {
 
@@ -119,7 +119,7 @@ const AdminDashboard = () => {
             <Sidebar />
 
             {/* Main Content */}
-            <div className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8">
+            <div className="flex-1 md:ml-sidebar p-4 md:p-6 pt-16 md:pt-8 min-w-0">
                 <div className="w-[95%] mx-auto">
                     {/* Header */}
                     <div className="mb-8 text-center">
@@ -128,7 +128,7 @@ const AdminDashboard = () => {
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                         {/* Active Competitions */}
                         <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
                             <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Active Competitions (Accepting Entries)</h3>

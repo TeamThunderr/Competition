@@ -26,7 +26,7 @@ const Card = ({ title, value, subtext, icon: Icon, color }) => (
 
 const HodAnalytics = () => {
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('Overview'); // Overview, 2nd, 3rd, 4th
+    const [activeTab, setActiveTab] = useState('2nd'); // Overview, 2nd, 3rd, 4th
     const [data, setData] = useState({
         summary: { totalStudents: 0, totalFaculty: 0, totalCompetitions: 0, verifiedSubmissions: 0 },
         batchStats: [],
@@ -103,7 +103,7 @@ const HodAnalytics = () => {
                 {/* Simplified Tabs */}
                 <div className="flex bg-muted/10 p-1 rounded-lg border border-border shadow-sm w-full md:w-auto overflow-x-auto">
                     <div className="flex space-x-1 min-w-full md:min-w-0">
-                        {['Overview', '2nd', '3rd', '4th'].map((tab) => (
+                        {['2nd'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}

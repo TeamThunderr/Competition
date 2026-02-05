@@ -11,7 +11,8 @@ const HodDashboard = () => {
     const navigate = useNavigate();
     const [selectedSection, setSelectedSection] = useState('All Sections');
     const [activeTab, setActiveTab] = useState('2nd'); // 2nd, 3rd, 4th
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isTopDropdownOpen, setIsTopDropdownOpen] = useState(false);
+    const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
 
     // Feature State
@@ -166,11 +167,13 @@ const HodDashboard = () => {
         statusColor: 'text-green-600'
     }));
 
-    const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
+    const toggleTopDropdown = () => setIsTopDropdownOpen(!isTopDropdownOpen);
+    const toggleFilterDropdown = () => setIsFilterDropdownOpen(!isFilterDropdownOpen);
 
     const handleSectionSelect = (section) => {
         setSelectedSection(section);
-        setIsDropdownOpen(false);
+        setIsTopDropdownOpen(false);
+        setIsFilterDropdownOpen(false);
     };
 
     // Engagement Stats
@@ -211,7 +214,7 @@ const HodDashboard = () => {
                 <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto items-center">
                     {/* Year Tabs */}
                     <div className="flex bg-muted/10 p-1 rounded-lg border border-border shadow-sm h-10 items-center justify-center sm:justify-start w-full sm:w-auto">
-                        {['2nd', '3rd', '4th'].map((tab) => (
+                        {['2nd'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => { setActiveTab(tab); setSelectedSection('All Sections'); }}
@@ -227,15 +230,15 @@ const HodDashboard = () => {
 
                     <div className="relative w-full sm:w-auto">
                         <button
-                            onClick={toggleDropdown}
+                            onClick={toggleTopDropdown}
                             className="bg-card border border-border px-4 py-2 rounded-lg text-sm text-foreground flex items-center justify-between space-x-2 shadow-sm hover:bg-muted/10 w-full sm:w-[200px] h-10"
                         >
                             <span className="truncate">{selectedSection === 'All Sections' ? 'All Sections' : selectedSection}</span>
                             <ChevronDown size={16} />
                         </button>
 
-                        {isDropdownOpen && (
-                            <div className="absolute right-0 mt-2 w-full bg-card border border-border rounded-lg shadow-lg z-10 py-1 max-h-60 overflow-y-auto">
+                        {isTopDropdownOpen && (
+                            <div className="absolute right-0 mt-2 w-full bg-card border border-border rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto">
                                 <button
                                     onClick={() => handleSectionSelect('All Sections')}
                                     className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/10"
@@ -270,9 +273,9 @@ const HodDashboard = () => {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Main Content Area (Table or Student List) */}
-                <div className="lg:col-span-2 bg-card rounded-xl shadow-sm border border-border p-6">
+                <div className="lg:col-span-2 bg-card rounded-xl shadow-sm border border-border p-6 order-2 lg:order-1">
                     <div className="flex justify-between items-center mb-6">
                         <div>
                             <h2 className="text-lg font-bold text-foreground mb-1">
@@ -286,14 +289,14 @@ const HodDashboard = () => {
                         {selectedSection === 'All Sections' && (
                             <div className="relative">
                                 <button
-                                    onClick={toggleDropdown}
+                                    onClick={toggleFilterDropdown}
                                     className="flex items-center gap-2 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
                                 >
                                     <span>Filter Section</span>
                                     <ChevronDown size={14} />
                                 </button>
-                                {isDropdownOpen && (
-                                    <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-100 rounded-lg shadow-lg z-10 py-1">
+                                {isFilterDropdownOpen && (
+                                    <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-100 rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto">
                                         {sections.map((section) => (
                                             <button
                                                 key={section}
@@ -364,7 +367,7 @@ const HodDashboard = () => {
                                 </div>
 
                                 {/* Desktop Table View */}
-                                <table className="w-full">
+                                <table className="w-full hidden md:table">
                                     <thead>
                                         <tr className="text-left">
                                             <th className="pb-4 text-xs font-semibold text-muted uppercase w-1/12">Section</th>
@@ -413,7 +416,7 @@ const HodDashboard = () => {
                 </div >
 
                 {/* OD Actions Card */}
-                <div className="flex flex-col gap-6 w-full lg:w-[350px] shrink-0">
+                <div className="flex flex-col gap-6 w-full order-1 lg:order-2">
                     <div className="bg-card rounded-xl shadow-sm border border-border p-6 h-fit">
                         <div className="flex justify-between items-start mb-4">
                             <h2 className="text-lg font-bold text-foreground">OD Actions</h2>
