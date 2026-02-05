@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Sun, Moon, ChevronRight, ChevronLeft } from 'lucide-react';
+import { LogOut, Sun, Moon, ChevronRight, ChevronLeft, LayoutDashboard } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { logoutUser } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
@@ -26,7 +26,8 @@ const SharedSidebar = ({ menuItems, isOpen, onClose }) => {
 
     // Update global CSS variable for layout adjustment
     React.useEffect(() => {
-        const width = isCollapsed ? '5rem' : '16rem'; // w-20 vs w-64
+        // Sidebar width + margin offset (approx 2rem for m-4 + gap)
+        const width = isCollapsed ? '6.5rem' : '17.5rem';
         document.documentElement.style.setProperty('--sidebar-width', width);
     }, [isCollapsed]);
 
@@ -63,28 +64,24 @@ const SharedSidebar = ({ menuItems, isOpen, onClose }) => {
                 </button>
 
                 {/* Logo Section */}
-                <div className={`p-6 flex items-center justify-center border-b border-gray-100 dark:border-indigo-900/30 transition-all duration-300`}>
+                <div className={`h-32 flex items-center justify-center border-b border-gray-100 dark:border-indigo-900/30 transition-all duration-300 ${isCollapsed ? 'p-2' : 'p-4'}`}>
                     {!isCollapsed ? (
-                        <div className="flex items-center justify-center overflow-hidden w-full">
-                            {/* Full Logo for expanded state */}
+                        <div className="flex items-center gap-2 overflow-hidden w-full justify-center">
                             <img
                                 src={theme === 'dark' ? logoDark : logoLight}
-                                alt="Competition Dashboard"
-                                className={`w-48 h-auto object-contain transition-all duration-300 transform hover:scale-105 
-                                    ${theme === 'dark'
-                                        ? 'hover:drop-shadow-[0_0_25px_rgba(129,140,248,0.9)]'
-                                        : 'mix-blend-multiply hover:drop-shadow-[0_0_25px_rgba(6,182,212,0.8)]'
-                                    }`}
+                                alt="Competition Platform"
+                                className="h-32 object-contain transition-all duration-300"
                             />
                         </div>
                     ) : (
-                        // Simple Icon for collapsed state
                         <div className="flex items-center justify-center w-full">
-                            <img
-                                src="/logo.png"
-                                alt="Icon"
-                                className="w-10 h-10 object-contain hover:scale-110 transition-transform duration-200 drop-shadow-md"
-                            />
+                            <div className="bg-white p-1.5 rounded-xl shadow-md overflow-hidden hover:scale-105 transition-transform duration-300">
+                                <img
+                                    src="/logo.png"
+                                    alt="Logo"
+                                    className="h-12 w-auto object-contain"
+                                />
+                            </div>
                         </div>
                     )}
                 </div>

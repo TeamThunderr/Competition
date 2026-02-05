@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Menu } from 'lucide-react';
+import { Clock, Menu, Trophy } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 import StudentSidebar from './Sidebar';
 import { supabase } from '../../services/supabaseClient';
@@ -107,7 +107,7 @@ const StudentDashboard = () => {
                     <section className="mb-10">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-lg font-semibold text-foreground">Upcoming Deadlines (Next 2 Days)</h2>
-                            <button onClick={() => navigate('/student/competitions')} className="text-sm text-brand-600 hover:underline">View All</button>
+                            <button onClick={() => navigate('/student/competitions')} className="text-sm text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 px-3 py-1.5 rounded-lg transition-colors font-medium">View All</button>
                         </div>
 
                         {competitions.filter(comp => {
@@ -165,7 +165,7 @@ const StudentDashboard = () => {
                             ) : (
                                 <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden min-h-[300px] flex flex-col items-center justify-center p-8">
                                     <div className="w-16 h-16 bg-muted/10 dark:bg-slate-700/50 rounded-full flex items-center justify-center mb-3">
-                                        <span className="text-2xl">🏆</span>
+                                        <Trophy className="text-brand-500" size={32} />
                                     </div>
                                     <h3 className="text-foreground font-medium">No active competitions</h3>
                                     <p className="text-muted text-sm mt-1 mb-4">You haven't registered for any events yet.</p>

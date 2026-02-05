@@ -7,7 +7,7 @@ const StudentSidebar = ({ isOpen, onClose }) => {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/student/dashboard' },
         { icon: Globe, label: 'Competitions', path: '/student/competitions' },
         { icon: User, label: 'Profile', path: '/student/profile' },
-        { icon: BarChart2, label: 'Analytics', path: '/student/stats' }, // Assuming Settings is moved or not primary
+
         // Settings was in the original file imports but not used in menuItems loop in original file? 
         // Original menuItems: Dashboard, Comp, Profile, Analytics. 
     ];
