@@ -33,6 +33,10 @@ router.get('/competition-sync-status', facultyController.getCompetitionSyncStatu
 router.get('/pending-verifications', facultyController.getPendingVerifications);
 router.post('/verify-registration', facultyController.verifyRegistration);
 
+// Verification Routes (Shortlist)
+router.get('/pending-shortlists', facultyController.getPendingShortlistVerifications);
+router.post('/verify-shortlist', facultyController.verifyShortlist);
+
 // Team Verification Routes
 router.get('/pending-teams', teamVerificationController.getPendingTeamVerifications);
 router.post('/verify-team', teamVerificationController.verifyTeam);

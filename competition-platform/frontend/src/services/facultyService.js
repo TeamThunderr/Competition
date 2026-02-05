@@ -45,6 +45,18 @@ export const verifyRegistration = async (registrationId, action) => {
     });
 };
 
+export const getPendingShortlistVerifications = async () => {
+    const response = await api.get('/api/faculty/pending-shortlists');
+    return response.data || response;
+};
+
+export const verifyShortlist = async (registrationId, action) => {
+    return await api.post('/api/faculty/verify-shortlist', {
+        registration_id: registrationId,
+        action
+    });
+};
+
 // Competition Management
 export const getCompetitionStudents = async (competitionId) => {
     const response = await api.get(`/api/faculty/competition/${competitionId}/students`);

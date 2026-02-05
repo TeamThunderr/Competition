@@ -97,6 +97,32 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
 
             // Allow OD Request ONLY for Shortlisted (or Winner)
             if (my_status?.is_shortlisted || my_status?.is_winner) {
+
+                // CHECK: Has the user verified their shortlist status?
+                // Logic: Must look at 'my_registration' for qualification_verified column
+                const isQualificationVerified = my_registration.qualification_verified === true;
+                const hasUploadedShortlistProof = !!my_registration.shortlist_proof_url;
+
+                // 1. If Shortlisted but NOT verified -> Show Upload Button (or Pending Status)
+                if (!isQualificationVerified) {
+                    if (hasUploadedShortlistProof) {
+                        return (
+                            <div className="flex-1 bg-yellow-50 text-yellow-700 py-2 px-4 rounded-lg text-sm font-medium text-center border border-yellow-200">
+                                Shortlist Verification Pending
+                            </div>
+                        );
+                    } else {
+                        return (
+                            <button
+                                onClick={() => onRegister(competition.id, true)} // true = isShortlistProof
+                                className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm">
+                                Upload Shortlist Proof
+                            </button>
+                        );
+                    }
+                }
+
+                // 2. If Verified -> Show OD Request
                 return (
                     <button
                         onClick={() => onRequestOD(competition.id)}

@@ -25,6 +25,13 @@ export const uploadProof = async (competitionId, proofUrl) => {
     });
 };
 
+export const uploadShortlistProof = async (competitionId, proofUrl) => {
+    return await api.post('/api/student/upload-shortlist-proof', {
+        competition_id: competitionId,
+        proof_url: proofUrl
+    });
+};
+
 // OD Requests
 export const requestOD = async (competitionId, reason) => {
     return await api.post('/api/student/request-od', {

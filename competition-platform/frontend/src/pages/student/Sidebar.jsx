@@ -4,10 +4,9 @@ import SharedSidebar from '../common/SharedSidebar';
 
 const StudentSidebar = ({ isOpen, onClose }) => {
     const menuItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/student/dashboard' },
         { icon: Globe, label: 'Competitions', path: '/student/competitions' },
+        { icon: LayoutDashboard, label: 'Dashboard', path: '/student/dashboard' },
         { icon: User, label: 'Profile', path: '/student/profile' },
-        { icon: BarChart2, label: 'Analytics', path: '/student/stats' },
         { icon: FileText, label: 'OD History', path: '/student/od-history' },
     ];
 

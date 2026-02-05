@@ -25,18 +25,10 @@ const getAllCompetitions = async (req, res) => {
         // Fetch user's registrations for these competitions
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
-            .select('competition_id, source, verified, proof_url, status, gmail_message_id, confidence_score')
+            .select('competition_id, source, verified, proof_url, status, gmail_message_id, confidence_score, qualification_verified, shortlist_proof_url')
             .eq('user_id', userId);
 
         if (regError) throw regError;
-
-        // Fetch user's status (shortlist/winner)
-        const { data: statusList, error: statusError } = await supabase
-            .from('competition_status')
-            .select('competition_id, is_shortlisted, is_winner')
-            .eq('user_id', userId);
-
-        if (statusError) throw statusError;
 
         // Fetch user's OD requests
         const { data: odRequests, error: odError } = await supabase
@@ -49,14 +41,12 @@ const getAllCompetitions = async (req, res) => {
         // Merge data
         const enrichedCompetitions = competitions.map(comp => {
             const reg = registrations.find(r => r.competition_id === comp.id);
-
-            const stat = statusList.find(s => s.competition_id === comp.id);
             const od = odRequests.find(o => o.competition_id === comp.id);
 
             // Derive Shortlist Status from Registration 'status' column (Unified Logic)
-            // 'Qualified' in registrations table overrides or supplements competition_status table
-            const isShortlisted = (stat?.is_shortlisted) || (reg?.status === 'Qualified') || (reg?.status === 'SHORTLISTED');
-            const isWinner = stat?.is_winner || false;
+            const isShortlisted = (reg?.status === 'Qualified') || (reg?.status === 'SHORTLISTED');
+            // Assuming 'Winner' status might exist in registrations eventually, or defaulting false for now
+            const isWinner = (reg?.status === 'Winner');
 
             const derivedStatus = {
                 is_shortlisted: isShortlisted,
@@ -77,8 +67,9 @@ const getAllCompetitions = async (req, res) => {
 
         res.status(200).json(enrichedCompetitions);
     } catch (err) {
-        console.error('Error fetching competitions:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error('Error fetching competitions (FULL):', JSON.stringify(err, null, 2));
+        console.error('Error Stack:', err.stack);
+        res.status(500).json({ error: 'Internal Server Error', details: err.message });
     }
 };
 

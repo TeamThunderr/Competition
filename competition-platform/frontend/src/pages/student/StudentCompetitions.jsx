@@ -12,6 +12,7 @@ const StudentCompetitions = () => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedCompId, setSelectedCompId] = useState(null);
     const [selectedTeamId, setSelectedTeamId] = useState(null);
+    const [isShortlistUpload, setIsShortlistUpload] = useState(false);
 
     const fetchCompetitions = async () => {
         setLoading(true);
@@ -37,8 +38,9 @@ const StudentCompetitions = () => {
 
 
 
-    const handleRegisterClick = (compId) => {
+    const handleRegisterClick = (compId, isShortlist = false) => {
         setSelectedCompId(compId);
+        setIsShortlistUpload(isShortlist);
         setIsUploadModalOpen(true);
     };
 
@@ -52,7 +54,11 @@ const StudentCompetitions = () => {
 
     const handleUploadProofSubmit = async (compIdOrTeamId, proofUrl) => {
         try {
-            if (selectedTeamId) {
+            if (isShortlistUpload) {
+                // Shortlist Verification Mode
+                await studentService.uploadShortlistProof(compIdOrTeamId, proofUrl); // compIdOrTeamId is competitionId here
+                alert("Shortlist Proof uploaded! Waiting for faculty verification.");
+            } else if (selectedTeamId) {
                 // Team Mode
                 await studentService.uploadTeamProof(selectedTeamId, proofUrl);
                 alert("Team Proof uploaded! Waiting for faculty verification.");
@@ -73,7 +79,14 @@ const StudentCompetitions = () => {
         if (activeTab === 'registered') {
             return c.my_registration;
         } else {
-            return !c.my_registration;
+            // Unregistered Tab: ONLY show open competitions
+            if (!c.registration_deadline) return !c.my_registration; // Keep if no deadline
+
+            const deadline = new Date(c.registration_deadline);
+            deadline.setHours(23, 59, 59, 999);
+            const isClosed = deadline < new Date();
+
+            return !c.my_registration && !isClosed;
         }
     });
 
@@ -124,7 +137,7 @@ const StudentCompetitions = () => {
                 onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); }}
                 competitionId={selectedCompId}
                 onSubmit={handleUploadProofSubmit}
-                title={selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof"}
+                title={isShortlistUpload ? "Upload Shortlist Proof" : (selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof")}
             />
         </div>
     );

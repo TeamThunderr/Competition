@@ -25,6 +25,7 @@ router.get('/competition/:id', competitionController.getCompetitionDetails);
 // Registration / Verification Flow
 router.post('/check-status', registrationController.checkRegistrationStatus);
 router.post('/upload-proof', registrationController.uploadProof);
+router.post('/upload-shortlist-proof', registrationController.uploadShortlistProof);
 
 // OD Requests
 router.post('/request-od', odController.requestOD);

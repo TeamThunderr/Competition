@@ -30,24 +30,15 @@ const getProfile = async (req, res) => {
         // 2. Fetch Competition Stats
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
-            .select('id, verified, competition_id')
+            .select('id, verified, competition_id, status, competitions(title)')
             .eq('user_id', userId);
 
-        const { data: statuses, error: statusError } = await supabase
-            .from('competition_status')
-            .select('is_winner, is_shortlisted, competition_id, competitions(title)')
-            .eq('user_id', userId);
-
-        if (regError || statusError) throw regError || statusError;
-
-        // Filter statuses to only include those matching active registrations
-        const registeredCompIds = new Set(registrations.map(r => r.competition_id));
-        const validStatuses = statuses?.filter(s => registeredCompIds.has(s.competition_id)) || [];
+        if (regError) throw regError;
 
         // 3. Calculate Stats
         const totalCompetitions = registrations.length;
-        const wins = validStatuses.filter(s => s.is_winner).length;
-        const qualified = validStatuses.filter(s => s.is_shortlisted).length;
+        const wins = registrations.filter(r => r.status === 'Winner').length;
+        const qualified = registrations.filter(r => r.status === 'Qualified' || r.status === 'SHORTLISTED').length;
 
         // Simple participation points logic: 10 pts per reg, 50 pts per win
         const participationPoints = (totalCompetitions * 10) + (wins * 50);
@@ -92,15 +83,15 @@ const getProfile = async (req, res) => {
                 participation_points: participationPoints,
                 qualified: qualified
             },
-            competitionsWon: validStatuses.filter(s => s.is_winner).map(s => s.competitions.title),
-            competitionsQualified: validStatuses.filter(s => s.is_shortlisted).map(s => s.competitions.title)
+            competitionsWon: registrations.filter(r => r.status === 'Winner').map(r => r.competitions?.title || 'Unknown'),
+            competitionsQualified: registrations.filter(r => r.status === 'Qualified' || r.status === 'SHORTLISTED').map(r => r.competitions?.title || 'Unknown')
         };
 
         sendResponse(res, 200, profileData, 'Fetched profile successfully');
 
     } catch (err) {
-        console.error('[ProfileController] Get Profile Error:', err);
-        sendResponse(res, 500, null, 'Internal Server Error');
+        console.error('[ProfileController] Get Profile Error (FULL):', JSON.stringify(err, null, 2));
+        res.status(500).json({ error: 'Internal Server Error', details: err.message });
     }
 };
 

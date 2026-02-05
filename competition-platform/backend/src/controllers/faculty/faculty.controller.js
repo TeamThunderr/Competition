@@ -682,6 +682,76 @@ const getPendingVerifications = async (req, res) => {
     }
 };
 
+const getPendingShortlistVerifications = async (req, res) => {
+    try {
+        const { assigned_sections, department_id } = req.user;
+        const myStudentIds = await getMyStudentIds(req.user.id, department_id, assigned_sections || []);
+
+        if (myStudentIds.length === 0) {
+            return sendResponse(res, 200, [], 'No students found');
+        }
+
+        const { data: registrations, error } = await supabase
+            .from('registrations')
+            .select(`
+                id, registered_at, shortlist_proof_url, qualification_verified, status,
+                users!registrations_user_id_fkey!inner ( full_name, registration_no, section ),
+                competitions!inner ( title )
+            `)
+            .in('user_id', myStudentIds)
+            .eq('status', 'Qualified')
+            .eq('qualification_verified', false)
+            .not('shortlist_proof_url', 'is', null) // Only fetching those who UPLOADED
+            .order('registered_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Map to frontend expectation
+        const mappedRegs = registrations.map(r => ({
+            id: r.id,
+            competitions: { title: r.competitions.title },
+            users: {
+                full_name: r.users.full_name,
+                registration_no: r.users.registration_no,
+                section: r.users.section
+            },
+            proof_url: r.shortlist_proof_url, // Map new col to generic 'proof_url' for frontend reuse
+            created_at: r.registered_at,
+            type: 'SHORTLIST' // Tag for frontend
+        }));
+
+        sendResponse(res, 200, mappedRegs, 'Fetched pending shortlists');
+    } catch (err) {
+        console.error('[FacultyController] Pending Shortlist Error:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
+    }
+};
+
+const verifyShortlist = async (req, res) => {
+    const { registration_id, action } = req.body; // action: 'approve' or 'reject'
+
+    try {
+        if (action === 'approve') {
+            const { error } = await supabase
+                .from('registrations')
+                .update({ qualification_verified: true })
+                .eq('id', registration_id);
+            if (error) throw error;
+        } else if (action === 'reject') {
+            const { error } = await supabase
+                .from('registrations')
+                .update({ shortlist_proof_url: null, qualification_verified: false }) // Reset so they can re-upload
+                .eq('id', registration_id);
+            if (error) throw error;
+        }
+
+        sendResponse(res, 200, null, `Shortlist ${action}d successfully`);
+    } catch (err) {
+        console.error('[Faculty] Verify Shortlist Error:', err);
+        sendResponse(res, 500, null, 'Failed to verify');
+    }
+};
+
 const getPendingTeamVerifications = async (req, res) => {
     try {
         const { assigned_sections, department_id } = req.user;
@@ -776,5 +846,7 @@ module.exports = {
     getPendingVerifications,
     getPendingTeamVerifications,
     verifyRegistration,
+    getPendingShortlistVerifications,
+    verifyShortlist,
     downloadParticipationReport: () => { }
 };
