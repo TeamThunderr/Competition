@@ -13,6 +13,7 @@ const StudentCompetitions = () => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedCompId, setSelectedCompId] = useState(null);
     const [selectedTeamId, setSelectedTeamId] = useState(null);
+    const [isShortlistUpload, setIsShortlistUpload] = useState(false);
 
     const fetchCompetitions = async () => {
         setLoading(true);
@@ -45,8 +46,9 @@ const StudentCompetitions = () => {
         });
     };
 
-    const handleRegisterClick = (compId) => {
+    const handleRegisterClick = (compId, isShortlist = false) => {
         setSelectedCompId(compId);
+        setIsShortlistUpload(isShortlist);
         setIsUploadModalOpen(true);
     };
 
@@ -58,8 +60,12 @@ const StudentCompetitions = () => {
 
     const handleUploadProofSubmit = async (compIdOrTeamId, proofUrl, proofType) => {
         try {
-            if (selectedTeamId) {
-                // Team Mode - (Assuming Team Proofs are always 'Registered' for now, or update later if needed)
+            if (isShortlistUpload) {
+                // Shortlist Verification Mode
+                await studentService.uploadShortlistProof(compIdOrTeamId, proofUrl); // compIdOrTeamId is competitionId here
+                alert("Shortlist Proof uploaded! Waiting for faculty verification.");
+            } else if (selectedTeamId) {
+                // Team Mode
                 await studentService.uploadTeamProof(selectedTeamId, proofUrl);
                 alert("Team Proof uploaded! Waiting for faculty verification.");
             } else {
@@ -79,8 +85,10 @@ const StudentCompetitions = () => {
         if (activeTab === 'registered') {
             return c.my_registration;
         } else {
-            // For Unregistered: Hide if registered OR if Closed
-            const deadline = new Date(c.registration_deadline || c.deadline);
+            // Unregistered Tab: ONLY show open competitions
+            if (!c.registration_deadline) return !c.my_registration; // Keep if no deadline
+
+            const deadline = new Date(c.registration_deadline);
             deadline.setHours(23, 59, 59, 999);
             const isClosed = deadline < new Date();
 
@@ -160,7 +168,7 @@ const StudentCompetitions = () => {
                 onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); }}
                 competitionId={selectedCompId}
                 onSubmit={handleUploadProofSubmit}
-                title={selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof"}
+                title={isShortlistUpload ? "Upload Shortlist Proof" : (selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof")}
             />
         </div>
     );

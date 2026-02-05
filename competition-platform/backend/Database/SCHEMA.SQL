@@ -1,17 +1,6 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
-CREATE TABLE public.competition_status (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid,
-  competition_id uuid,
-  is_shortlisted boolean DEFAULT false,
-  is_winner boolean DEFAULT false,
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT competition_status_pkey PRIMARY KEY (id),
-  CONSTRAINT competition_status_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
-  CONSTRAINT competition_status_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id)
-);
 CREATE TABLE public.competitions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   title text NOT NULL,
@@ -110,8 +99,8 @@ CREATE TABLE public.teams (
   section text,
   academic_year text,
   department text,
-  leader_reg_no text,
   members_info jsonb,
+  leader_reg_no text,
   CONSTRAINT teams_pkey PRIMARY KEY (id),
   CONSTRAINT teams_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id),
   CONSTRAINT teams_leader_id_fkey FOREIGN KEY (leader_id) REFERENCES public.users(id),

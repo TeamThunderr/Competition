@@ -38,6 +38,28 @@ const requestOD = async (req, res) => {
             return res.status(400).json({ error: 'Proof of registration is required.' });
         }
 
+        // =====================================================
+        // CRITICAL: OD ELIGIBILITY CHECK
+        // =====================================================
+        const { data: registration, error: regError } = await supabase
+            .from('registrations')
+            .select('status, qualification_verified')
+            .eq('user_id', student_id)
+            .eq('competition_id', competition_id)
+            .single();
+
+        if (regError || !registration) {
+            return res.status(403).json({ error: 'You are not registered for this competition.' });
+        }
+
+        if (registration.status !== 'Qualified') {
+            return res.status(403).json({ error: 'You must be Qualified to request OD.' });
+        }
+
+        if (registration.qualification_verified !== true) {
+            return res.status(403).json({ error: 'Your shortlist proof must be verified by Faculty before requesting OD.' });
+        }
+
         console.log(`[OD Request] Student: ${student_id}, Comp: ${competition_id}, Solo: ${is_solo}`);
 
 
