@@ -27,22 +27,32 @@ const getProfile = async (req, res) => {
 
         console.log('DEBUG: Fetched User for Profile:', JSON.stringify(user));
 
-        // 2. Fetch Competition Stats
+        // Fetch Competition Stats (Registrations)
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
             .select('id, verified, competition_id')
             .eq('user_id', userId);
 
-        const { data: statuses, error: statusError } = await supabase
-            .from('competition_status')
-            .select('is_winner, is_shortlisted, competition_id, competitions(title)')
-            .eq('user_id', userId);
+        if (regError) throw regError;
 
-        if (regError || statusError) throw regError || statusError;
+        // Fetch Competition Status (Winners/Shortlisted) - Handle missing table gracefully
+        let statuses = [];
+        try {
+            const { data, error: statusError } = await supabase
+                .from('competition_status')
+                .select('is_winner, is_shortlisted, competition_id, competitions(title)')
+                .eq('user_id', userId);
+
+            if (statusError) throw statusError;
+            statuses = data || [];
+        } catch (err) {
+            console.warn("Warning: Could not fetch competition_status (Table might be missing)", err.message);
+            statuses = [];
+        }
 
         // Filter statuses to only include those matching active registrations
         const registeredCompIds = new Set(registrations.map(r => r.competition_id));
-        const validStatuses = statuses?.filter(s => registeredCompIds.has(s.competition_id)) || [];
+        const validStatuses = statuses.filter(s => registeredCompIds.has(s.competition_id));
 
         // 3. Calculate Stats
         const totalCompetitions = registrations.length;

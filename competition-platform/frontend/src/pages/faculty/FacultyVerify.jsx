@@ -13,14 +13,12 @@ const FacultyVerify = () => {
         setLoading(true);
         try {
             const regs = await getPendingVerifications();
-            const regs = await getPendingVerifications();
 
             // Normalize Data
             const normalizedRegs = (regs || []).map(r => ({ ...r, type: 'REGISTRATION' }));
 
             setPending(normalizedRegs);
 
-            setPending(normalizedRegs);
         } catch (err) {
             console.error(err);
         } finally {
