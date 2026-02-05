@@ -30,8 +30,8 @@ router.post('/competition/:competitionId/sync', facultyController.syncCompetitio
 router.get('/competition-sync-status', facultyController.getCompetitionSyncStatus); // New route if needed by frontend
 
 // Verification Routes (Student Registration)
-router.get('/pending-verifications', verificationController.getPendingVerifications);
-router.post('/verify-registration', verificationController.verifyRegistration);
+router.get('/pending-verifications', facultyController.getPendingVerifications);
+router.post('/verify-registration', facultyController.verifyRegistration);
 
 // Team Verification Routes
 router.get('/pending-teams', teamVerificationController.getPendingTeamVerifications);

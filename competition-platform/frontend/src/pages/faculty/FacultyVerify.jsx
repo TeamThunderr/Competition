@@ -1,42 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { CheckCircle, XCircle, ExternalLink, Users, FileText } from 'lucide-react';
-import { getPendingVerifications, getPendingTeamVerifications, verifyRegistration } from '../../services/facultyService';
+import { getPendingVerifications } from '../../services/facultyService';
 import { api } from '../../services/api'; // Direct API for team verification if service not unified
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const FacultyVerify = () => {
     const [pending, setPending] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [actionLoading, setActionLoading] = useState(null); // ID of item being processed
 
     const fetchPending = async () => {
         setLoading(true);
         try {
-            // USER REQUEST: Page must be blank. No fetching.
-            // const [regs, teams] = await Promise.all([
-            //     getPendingVerifications(),
-            //     getPendingTeamVerifications()
-            // ]);
+            const regs = await getPendingVerifications();
 
-            // // Normalize Data
-            // const normalizedRegs = (regs || []).map(r => ({ ...r, type: 'REGISTRATION' }));
-            // const normalizedTeams = (teams || []).map(t => ({
-            //     id: t.id,
-            //     competitions: { title: t.competitionName },
-            //     users: {
-            //         full_name: t.leaderName,
-            //         registration_no: t.leaderRollNo,
-            //         section: t.leaderSection
-            //     },
-            //     proof_url: t.proofUrl, // Or proof_urls[0]? Backwards compat.
-            //     created_at: t.submittedAt,
-            //     type: 'TEAM_PROOF',
-            //     raw: t // Keep raw data if needed
-            // }));
+            // Normalize Data
+            const normalizedRegs = (regs || []).map(r => ({ ...r, type: 'REGISTRATION' }));
 
-            // setPending([...normalizedRegs, ...normalizedTeams]);
-            setPending([]); // Force Empty
+            setPending(normalizedRegs);
         } catch (err) {
             console.error(err);
         } finally {
@@ -48,31 +29,6 @@ const FacultyVerify = () => {
         fetchPending();
     }, []);
 
-    const handleAction = async (item, status) => {
-        if (!window.confirm(`Are you sure you want to ${status} this request?`)) return;
-
-        setActionLoading(item.id);
-        try {
-            if (item.type === 'REGISTRATION') {
-                await verifyRegistration(item.id, status);
-            } else {
-                // Team Verification
-                const action = status === 'approve' ? 'VERIFIED' : 'REJECTED';
-                await api.post('/api/faculty/verify-team', {
-                    team_id: item.id,
-                    action: action
-                });
-            }
-
-            // Remove from list
-            setPending(prev => prev.filter(p => p.id !== item.id));
-        } catch (err) {
-            console.error(err);
-            alert("Failed to process request.");
-        } finally {
-            setActionLoading(false);
-        }
-    };
 
     return (
         <div className="flex bg-background min-h-screen font-sans text-foreground">
@@ -80,8 +36,8 @@ const FacultyVerify = () => {
 
             <main className="flex-1 md:ml-sidebar p-8">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Pending Actions</h1>
-                    <p className="text-gray-500 mt-2">Verify student team registrations.</p>
+                    <h1 className="text-3xl font-bold text-gray-900">Pending Verification</h1>
+                    <p className="text-gray-500 mt-2">Verify student registration proofs.</p>
                 </div>
 
                 {loading ? (
@@ -101,9 +57,8 @@ const FacultyVerify = () => {
                         {pending.map((item) => (
                             <div key={item.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col md:flex-row relative">
                                 {/* Type Badge */}
-                                <div className={`absolute top-0 right-0 px-3 py-1 text-xs font-bold rounded-bl-lg z-10 ${item.type === 'TEAM_PROOF' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                                    }`}>
-                                    {item.type === 'TEAM_PROOF' ? 'TEAM PROOF' : 'REGISTRATION'}
+                                <div className="absolute top-0 right-0 px-3 py-1 text-xs font-bold rounded-bl-lg z-10 bg-blue-100 text-blue-700">
+                                    REGISTRATION PROOF
                                 </div>
 
                                 {/* Proof Image Preview */}
@@ -151,12 +106,7 @@ const FacultyVerify = () => {
                                             <span className="text-gray-500 block">Class/Section</span>
                                             <span className="font-medium">{item.users?.section || 'N/A'}</span>
                                         </div>
-                                        {item.type === 'OD_REQUEST' && (
-                                            <div>
-                                                <span className="text-gray-500 block">Team Name</span>
-                                                <span className="font-medium text-purple-700">{item.raw?.teamName || 'Individual'}</span>
-                                            </div>
-                                        )}
+
                                         <div>
                                             <span className="text-gray-500 block">Submitted At</span>
                                             <span className="font-medium">{item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}</span>
@@ -164,25 +114,6 @@ const FacultyVerify = () => {
                                     </div>
                                 </div>
 
-                                {/* Actions */}
-                                <div className="p-6 bg-muted/5 border-t md:border-t-0 md:border-l border-border flex flex-row md:flex-col justify-center gap-3 w-full md:w-48">
-                                    <button
-                                        onClick={() => handleAction(item, 'approve')}
-                                        disabled={actionLoading === item.id}
-                                        className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        {actionLoading === item.id ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : <CheckCircle size={16} />}
-                                        Approve
-                                    </button>
-                                    <button
-                                        onClick={() => handleAction(item, 'reject')}
-                                        disabled={actionLoading === item.id}
-                                        className="flex-1 bg-card border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors flex items-center justify-center gap-2 dark:border-red-900 dark:bg-red-900/10 dark:text-red-400 dark:hover:bg-red-900/20"
-                                    >
-                                        <XCircle size={16} />
-                                        Reject
-                                    </button>
-                                </div>
                             </div>
                         ))}
                     </div>

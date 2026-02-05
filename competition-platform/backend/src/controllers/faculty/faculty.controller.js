@@ -640,13 +640,141 @@ const calculateBatchLabel = (registrationNo) => {
     return 'N/A';
 };
 
+const getPendingVerifications = async (req, res) => {
+    try {
+        const { assigned_sections, department_id } = req.user;
+        const myStudentIds = await getMyStudentIds(req.user.id, department_id, assigned_sections || []);
+
+        if (myStudentIds.length === 0) {
+            return sendResponse(res, 200, [], 'No students found');
+        }
+
+        const { data: registrations, error } = await supabase
+            .from('registrations')
+            .select(`
+                id, registered_at, proof_url, verified,
+                users!registrations_user_id_fkey!inner ( full_name, registration_no, section ),
+                competitions!inner ( title )
+            `)
+            .in('user_id', myStudentIds)
+            .eq('verified', false)
+            .order('registered_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Map to frontend expectation
+        const mappedRegs = registrations.map(r => ({
+            id: r.id,
+            competitions: { title: r.competitions.title },
+            users: {
+                full_name: r.users.full_name,
+                registration_no: r.users.registration_no,
+                section: r.users.section
+            },
+            proof_url: r.proof_url,
+            created_at: r.registered_at
+        }));
+
+        sendResponse(res, 200, mappedRegs, 'Fetched pending registrations');
+    } catch (err) {
+        console.error('[FacultyController] Pending Regs Error:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
+    }
+};
+
+const getPendingTeamVerifications = async (req, res) => {
+    try {
+        const { assigned_sections, department_id } = req.user;
+        const myStudentIds = await getMyStudentIds(req.user.id, department_id, assigned_sections || []);
+
+        if (myStudentIds.length === 0) {
+            return sendResponse(res, 200, [], 'No students found');
+        }
+
+        // Teams where leader is my student AND status is PENDING
+        // Note: 'teams' table structure: id, team_name, leader_id, verification_status, competition_id, proof_url
+        const { data: teams, error } = await supabase
+            .from('teams')
+            .select(`
+                id, team_name, verification_status, proof_url, created_at,
+                users!teams_leader_id_fkey!inner ( full_name, registration_no, section ),
+                competitions!inner ( title )
+            `)
+            .in('leader_id', myStudentIds)
+            .eq('verification_status', 'PENDING')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Map to frontend expectation
+        const mappedTeams = teams.map(t => ({
+            id: t.id,
+            competitionName: t.competitions.title,
+            leaderName: t.users.full_name,
+            leaderRollNo: t.users.registration_no,
+            leaderSection: t.users.section,
+            teamName: t.team_name,
+            proofUrl: t.proof_url,
+            submittedAt: t.created_at
+        }));
+
+        sendResponse(res, 200, mappedTeams, 'Fetched pending team verifications');
+
+    } catch (err) {
+        console.error('[FacultyController] Pending Teams Error:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
+    }
+};
+
+const verifyRegistration = async (req, res) => {
+    try {
+        const { registration_id, action } = req.body; // action: 'approve' | 'reject'
+
+        if (!['approve', 'reject'].includes(action)) {
+            return sendResponse(res, 400, null, 'Invalid action');
+        }
+
+        const updates = { verified: action === 'approve' };
+        // If rejecting, maybe remove the row? Or keep it as verified=false? 
+        // Typically verify=false is default. 
+        // If rejected, usually we delete the registration or have a 'REJECTED' status.
+        // For 'registrations' table with boolean 'verified', 'reject' might mean deleting it to allow re-upload?
+        // Or we need a status column. Current schema seems to be boolean verified.
+        // Let's assume verified=true (approve). If reject, maybe delete?
+
+        // Use verifyRegistration logic from v2 controller if available, otherwise:
+        if (action === 'approve') {
+            const { error } = await supabase
+                .from('registrations')
+                .update({ verified: true })
+                .eq('id', registration_id);
+            if (error) throw error;
+        } else {
+            // Reject -> Delete to allow re-upload
+            const { error } = await supabase
+                .from('registrations')
+                .delete()
+                .eq('id', registration_id);
+            if (error) throw error;
+        }
+
+        sendResponse(res, 200, null, `Registration ${action}ed`);
+    } catch (err) {
+        console.error('[FacultyController] Verify Error:', err);
+        sendResponse(res, 500, null, 'Verification failed');
+    }
+};
+
 module.exports = {
     getMyStudents,
     getRecentRegistrations,
     getDashboardStats,
-    getStats, // Restored legacy export
+    getStats,
     syncCompetition,
     getCompetitionSyncStatus,
     getStudentDetails,
-    downloadParticipationReport: () => { } // Placeholder as loop dependency was found, or just remove if unused
+    getPendingVerifications,
+    getPendingTeamVerifications,
+    verifyRegistration,
+    downloadParticipationReport: () => { }
 };
