@@ -12,12 +12,46 @@ const SCOPES = [
  * ------------------------------------------------------------------
  */
 
-const INTENT_EXACT = ['registered', 'shortlisted', 'selected', 'confirmed', 'you’re in', 'congratulations', 'ticket','Ready To Hack?'];
+const INTENT_EXACT = ['registered', 'shortlisted', 'selected', 'confirmed', 'you’re in', 'congratulations', 'ticket', 'Ready To Hack?'];
 const INTENT_STRONG = ['successfully applied', 'application received', 'submission received', 'registration details', 'payment received', 'welcome to'];
 const INTENT_WEAK = ['reference id', 'thank you', 'complete your', 'dashboard', 'next steps', 'updates', 'reminder'];
 
 const KNOWN_PLATFORMS = [
     'devfolio', 'unstop', 'hackerearth', 'hackerrank', 'internshala', 'google', 'microsoft', 'amazon', 'mlh', 'luma', 'eventbrite', 'typeform', 'cognitoforms'
+];
+
+// DEVPOST SPECIAL HANDLING
+// Devpost sends many promotional and friend notification emails that cause false positives
+// DEVPOST SPECIAL HANDLING
+// Devpost sends many promotional and friend notification emails that cause false positives
+const DEVPOST_CRITICAL_REJECT_PATTERNS = [
+    // Friend notifications - ALWAYS REJECT
+    'just registered', 'also registered', 'joined this hackathon', 'is participating',
+    'your friend', 'your connection', 'someone you follow', 'people you follow',
+    'check out who', 'see who', 'friend registered'
+];
+
+const DEVPOST_SOFT_REJECT_PATTERNS = [
+    // Promotional/Footer noise - REJECT ONLY IF NO ACCEPT PATTERN FOUND
+    'trending hackathons', 'recommended for you', 'you might like',
+    'popular hackathons', 'happening soon', 'check out these',
+    'featured hackathons', 'explore hackathons', 'new opportunities',
+    'discover hackathons', 'browse hackathons',
+
+    // Newsletter/updates
+    'weekly digest', 'monthly update', 'newsletter',
+    'your dashboard', 'view all submissions', 'your profile',
+    'notifications from devpost', 'devpost digest'
+];
+
+const DEVPOST_ACCEPT_PATTERNS = [
+    // Only accept these strong registration signals for Devpost
+    'you successfully submitted', 'your submission',
+    'submission received', 'submission confirmed',
+    'you\'re registered', 'registration confirmed',
+    'you joined', 'you\'re participating',
+    'thanks for registering', 'you registered for',
+    'welcome to the team', 'you\'re in', 'thank you for registering', 'shortlisted', 'selected', 'confirmed', 'you’re in', 'congratulations', 'ticket', 'Ready To Hack?'
 ];
 
 /**
@@ -51,6 +85,72 @@ const extractBodyFromPayload = (payload) => {
 };
 
 /**
+ * Check if email is from Devpost
+ */
+const isDevpostEmail = (from) => {
+    return from.toLowerCase().includes('devpost');
+};
+
+/**
+ * Apply strict filtering for Devpost emails to reduce false positives
+ * Returns { shouldReject: boolean, reason: string }
+ */
+const filterDevpostEmail = (emailData) => {
+    const { subject, body } = emailData;
+    const cleanSubject = (subject || '').toLowerCase();
+    const cleanBody = (body || '').toLowerCase();
+    const content = cleanSubject + ' ' + cleanBody;
+
+    // 1. Critical Reject Check (Fail Fast)
+    // Always reject these (e.g., friend notifications) regardless of anything else
+    for (const pattern of DEVPOST_CRITICAL_REJECT_PATTERNS) {
+        if (content.includes(pattern)) {
+            return {
+                shouldReject: true,
+                reason: `Devpost: Critical Reject "${pattern}"`
+            };
+        }
+    }
+
+    // 2. Check Acceptance
+    let hasAcceptPattern = false;
+    let matchedPattern = null;
+    for (const pattern of DEVPOST_ACCEPT_PATTERNS) {
+        if (content.includes(pattern)) {
+            hasAcceptPattern = true;
+            matchedPattern = pattern;
+            break;
+        }
+    }
+
+    // 3. Soft Reject Check (Only if NO acceptance)
+    // If we found an ACCEPT pattern, we ignore soft rejects (treating them as footer noise)
+    if (!hasAcceptPattern) {
+        for (const pattern of DEVPOST_SOFT_REJECT_PATTERNS) {
+            if (content.includes(pattern)) {
+                return {
+                    shouldReject: true,
+                    reason: `Devpost: Soft Reject "${pattern}" (No accept signal)`
+                };
+            }
+        }
+
+        // If neither accept nor reject pattern found, fail safe
+        // Devpost emails are noisy, so we default to REJECT if no explicit confirmation is found
+        return {
+            shouldReject: true,
+            reason: 'Devpost: No explicit registration confirmation found'
+        };
+    }
+
+    // If we reach here, we have an acceptance pattern and no critical rejects
+    return {
+        shouldReject: false,
+        matchedPattern
+    };
+};
+
+/**
  * ------------------------------------------------------------------
  * CORE INTELLIGENCE ENGINE (Redesigned)
  * ------------------------------------------------------------------
@@ -59,6 +159,29 @@ const extractBodyFromPayload = (payload) => {
 const analyzeEmail = (emailData, competitionTitle, knownPlatform = null) => {
     // INPUT: emailData = { subject, body, from, received_date }
     const { subject, body, from } = emailData;
+
+    // DEVPOST SPECIAL HANDLING - Apply strict filtering first
+    if (isDevpostEmail(from)) {
+        const filterResult = filterDevpostEmail(emailData);
+        if (filterResult.shouldReject) {
+            return {
+                detected: false,
+                confidence: 'REJECTED',
+                total_score: 0,
+                score_breakdown: { intent: 0, platform: 0, title_match: 0 },
+                reasoning: [filterResult.reason],
+                confidence_score: 0,
+                is_registration_related: false,
+                suggested_status: 'NOT_FOUND',
+                event_name: competitionTitle,
+                classification: 'rejected',
+                devpost_filter: true
+            };
+        }
+        // If passed filter, continue with normal scoring but note the matched pattern
+        console.log(`[Devpost Filter] Accepted email with pattern: "${filterResult.matchedPattern}"`);
+    }
+
     const cleanSubject = (subject || '').toLowerCase();
     const cleanBody = (body || '').toLowerCase();
     const cleanFrom = (from || '').toLowerCase();

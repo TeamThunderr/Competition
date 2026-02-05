@@ -28,6 +28,15 @@ CREATE TABLE public.competitions (
   created_by uuid,
   created_at timestamp with time zone DEFAULT now(),
   departments ARRAY DEFAULT ARRAY['All'::text],
+  uploaded_at timestamp with time zone NOT NULL DEFAULT now(),
+  last_synced_at timestamp with time zone,
+  is_syncing boolean DEFAULT false,
+  last_sync_from timestamp with time zone,
+  last_sync_to timestamp with time zone,
+  sync_status text DEFAULT 'never'::text,
+  sync_error_message text,
+  sync_started_by uuid,
+  venue text,
   CONSTRAINT competitions_pkey PRIMARY KEY (id),
   CONSTRAINT competitions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
@@ -37,7 +46,6 @@ CREATE TABLE public.departments (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT departments_pkey PRIMARY KEY (id)
 );
-
 CREATE TABLE public.od_requests (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
@@ -49,29 +57,14 @@ CREATE TABLE public.od_requests (
   created_at timestamp with time zone DEFAULT now(),
   approved_days integer DEFAULT 1,
   time_slot text,
+  team_id uuid,
+  from_date date,
+  to_date date,
   CONSTRAINT od_requests_pkey PRIMARY KEY (id),
   CONSTRAINT od_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT od_requests_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id),
-  CONSTRAINT od_requests_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.participation (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  student_id uuid,
-  competition_id uuid,
-  status USER-DEFINED DEFAULT 'NOT_REGISTERED'::participation_status,
-  verification_source USER-DEFINED,
-  verified_by uuid,
-  gmail_message_id text,
-  matched_keyword text,
-  confidence_score integer DEFAULT 0,
-  last_synced_at timestamp with time zone,
-  remarks text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT participation_pkey PRIMARY KEY (id),
-  CONSTRAINT participation_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.users(id),
-  CONSTRAINT participation_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id),
-  CONSTRAINT participation_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES public.users(id)
+  CONSTRAINT od_requests_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id),
+  CONSTRAINT od_requests_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
 );
 CREATE TABLE public.registrations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -83,6 +76,12 @@ CREATE TABLE public.registrations (
   verified_by uuid,
   registered_at timestamp with time zone DEFAULT now(),
   status text DEFAULT 'REGISTERED'::text,
+  gmail_message_id text,
+  matched_keyword text,
+  confidence_score integer DEFAULT 0,
+  last_synced_at timestamp with time zone,
+  remarks text,
+  updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT registrations_pkey PRIMARY KEY (id),
   CONSTRAINT registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT registrations_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id),
@@ -101,9 +100,22 @@ CREATE TABLE public.teams (
   leader_id uuid,
   team_name text NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
+  proof_url text,
+  verification_status text DEFAULT 'PENDING'::text,
+  verified_by uuid,
+  verified_at timestamp with time zone,
+  leader_name text,
+  contact_number text,
+  proof_urls ARRAY,
+  section text,
+  academic_year text,
+  department text,
+  leader_reg_no text,
+  members_info jsonb,
   CONSTRAINT teams_pkey PRIMARY KEY (id),
   CONSTRAINT teams_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id),
-  CONSTRAINT teams_leader_id_fkey FOREIGN KEY (leader_id) REFERENCES public.users(id)
+  CONSTRAINT teams_leader_id_fkey FOREIGN KEY (leader_id) REFERENCES public.users(id),
+  CONSTRAINT teams_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

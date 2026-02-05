@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
-import { CheckCircle, XCircle, ExternalLink } from 'lucide-react';
+import { CheckCircle, XCircle, ExternalLink, Users, FileText } from 'lucide-react';
 import { getPendingVerifications, verifyRegistration } from '../../services/facultyService';
+import { api } from '../../services/api'; // Direct API for team verification if service not unified
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const FacultyVerify = () => {
@@ -9,7 +10,6 @@ const FacultyVerify = () => {
     const [registrations, setRegistrations] = useState([]);
     const [shortlisted, setShortlisted] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [actionLoading, setActionLoading] = useState(null); // ID of item being processed
 
     const fetchPending = async () => {
         setLoading(true);
@@ -166,6 +166,7 @@ const FacultyVerify = () => {
                                             <span className="text-muted block">Class/Section</span>
                                             <span className="font-medium text-foreground">Section {item.users?.section || item.section || 'N/A'}</span>
                                         </div>
+
                                         <div>
                                             <span className="text-muted block">Submitted At</span>
                                             <span className="font-medium text-foreground">
@@ -177,25 +178,6 @@ const FacultyVerify = () => {
                                     </div>
                                 </div>
 
-                                {/* Actions */}
-                                <div className="p-6 bg-muted/5 border-t md:border-t-0 md:border-l border-border flex flex-row md:flex-col justify-center gap-3 w-full md:w-48">
-                                    <button
-                                        onClick={() => handleAction(item.id, 'approve')}
-                                        disabled={actionLoading === item.id}
-                                        className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        {actionLoading === item.id ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : <CheckCircle size={16} />}
-                                        Approve
-                                    </button>
-                                    <button
-                                        onClick={() => handleAction(item.id, 'reject')}
-                                        disabled={actionLoading === item.id}
-                                        className="flex-1 bg-card border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors flex items-center justify-center gap-2 dark:border-red-900 dark:bg-red-900/10 dark:text-red-400 dark:hover:bg-red-900/20"
-                                    >
-                                        <XCircle size={16} />
-                                        Reject
-                                    </button>
-                                </div>
                             </div>
                         ))}
                     </div>

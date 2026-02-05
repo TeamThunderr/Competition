@@ -1,15 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import UploadProofModal from '../../components/common/UploadProofModal';
 import StudentSidebar from './Sidebar';
 import CompetitionListView from '../common/CompetitionListView';
 import { supabase } from '../../services/supabaseClient';
 import { studentService } from '../../services/studentService';
+import { RefreshCw } from 'lucide-react';
 
 const StudentCompetitions = () => {
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedCompId, setSelectedCompId] = useState(null);
+    const [selectedTeamId, setSelectedTeamId] = useState(null);
 
     const fetchCompetitions = async () => {
         setLoading(true);
@@ -27,34 +30,19 @@ const StudentCompetitions = () => {
         fetchCompetitions();
     }, []);
 
-    // Handlers
-    const handleCheckStatus = async (compId) => {
-        // We set loading true locally or use a transient state, but re-fetching handles UI update
-        // setLoading(true); // Optional: global loading or specific card loading? View doesn't support card-specific loading yet.
+    const [activeTab, setActiveTab] = useState('unregistered');
 
-        const { data: { session } } = await supabase.auth.getSession();
-        const providerToken = session?.provider_token;
+    const [appliedCompetitions, setAppliedCompetitions] = useState(() => {
+        const saved = localStorage.getItem('appliedCompetitions');
+        return saved ? JSON.parse(saved) : {};
+    });
 
-        if (!providerToken) {
-            alert("Gmail Access Token missing. Please Sign Out and Sign In again with Google.");
-            return;
-        }
-
-        try {
-            const resData = await studentService.checkStatus(compId, providerToken);
-
-            if (resData.verified) {
-                alert("Success! Verified registration via Gmail.");
-                fetchCompetitions();
-            } else if (resData.status === 'NOT_FOUND') {
-                alert("Gmail verification failed. No matching email found.");
-            } else {
-                alert("Status: " + resData.status);
-                fetchCompetitions();
-            }
-        } catch (err) {
-            console.error("Verification error:", err);
-        }
+    const handleToggleApplied = (compId) => {
+        setAppliedCompetitions(prev => {
+            const newState = { ...prev, [compId]: !prev[compId] };
+            localStorage.setItem('appliedCompetitions', JSON.stringify(newState));
+            return newState;
+        });
     };
 
     const handleRegisterClick = (compId) => {
@@ -62,57 +50,119 @@ const StudentCompetitions = () => {
         setIsUploadModalOpen(true);
     };
 
-    const handleUploadProof = async (compId, proofUrl) => {
+    const navigate = useNavigate(); // Hook needs to be imported
+
+    const handleRequestOD = (compId) => {
+        navigate(`/student/od-request/${compId}`);
+    };
+
+    const handleUploadProofSubmit = async (compIdOrTeamId, proofUrl, proofType) => {
         try {
-            await studentService.uploadProof(compId, proofUrl);
-            alert("Proof uploaded! Waiting for faculty approval.");
+            if (selectedTeamId) {
+                // Team Mode - (Assuming Team Proofs are always 'Registered' for now, or update later if needed)
+                await studentService.uploadTeamProof(selectedTeamId, proofUrl);
+                alert("Team Proof uploaded! Waiting for faculty verification.");
+            } else {
+                // Individual Mode
+                await studentService.uploadProof(compIdOrTeamId, proofUrl, proofType);
+                alert("Proof uploaded! Waiting for faculty approval.");
+            }
             fetchCompetitions();
         } catch (err) {
             console.error("Upload process error:", err);
-            alert("An error occurred.");
+            alert("An error occurred: " + err.message);
         }
     };
 
-    const handleRequestOD = async (compId) => {
-        const reason = prompt("Enter reason for OD request:");
-        if (!reason) return;
+    // Filter Logic based on tabs
+    const filteredCompetitions = competitions.filter(c => {
+        if (activeTab === 'registered') {
+            return c.my_registration;
+        } else {
+            // For Unregistered: Hide if registered OR if Closed
+            const deadline = new Date(c.registration_deadline || c.deadline);
+            deadline.setHours(23, 59, 59, 999);
+            const isClosed = deadline < new Date();
 
-        try {
-            await studentService.requestOD(compId, reason);
-            alert("OD Request Sent to HOD.");
-            fetchCompetitions();
-        } catch (err) {
-            alert(`Request failed: ${err.message}`);
+            return !c.my_registration && !isClosed;
         }
-    };
+    });
 
-    // Filter Logic specific to Student View (Unregistered only)
-    const availableCompetitions = competitions.filter(c => !c.my_registration);
+    // Calculate Latest Sync Time
+    const latestSyncTime = useMemo(() => {
+        if (!competitions || competitions.length === 0) return null;
+        const times = competitions
+            .map(c => c.last_synced_at)
+            .filter(t => t) // Remove nulls
+            .map(t => new Date(t).getTime());
+
+        if (times.length === 0) return null;
+        return new Date(Math.max(...times));
+    }, [competitions]);
 
     return (
-        <>
-            <CompetitionListView
-                Sidebar={StudentSidebar}
-                competitions={availableCompetitions}
-                title="All Competitions"
-                subtitle="Browse and register for upcoming events."
-                loading={loading}
-                showRegister={true} // Enable register buttons
-                role="STUDENT"
-                cardActions={{
-                    onRegister: handleRegisterClick,
-                    onRequestOD: handleRequestOD,
-                    onVerifyGmail: handleCheckStatus
-                }}
-            />
+        <div className="flex bg-background min-h-screen font-sans text-foreground">
+            <StudentSidebar />
+            <div className="flex-1 ml-0 md:ml-sidebar p-4 md:p-8">
+
+                {/* Header Section with Tabs and Sync Status */}
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    {/* Tab Navigation */}
+                    <div className="flex space-x-1 bg-muted/20 p-1 rounded-xl w-fit">
+                        <button
+                            onClick={() => setActiveTab('unregistered')}
+                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'unregistered'
+                                ? 'bg-card text-primary shadow-sm'
+                                : 'text-muted hover:text-foreground'
+                                }`}
+                        >
+                            Unregistered
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('registered')}
+                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'registered'
+                                ? 'bg-card text-primary shadow-sm'
+                                : 'text-muted hover:text-foreground'
+                                }`}
+                        >
+                            Registered
+                        </button>
+                    </div>
+
+                    {/* Sync Time Box */}
+                    {latestSyncTime && (
+                        <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100 shadow-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                            <RefreshCw className="w-4 h-4" />
+                            <span>Faculty Last Synced: {latestSyncTime.toLocaleString()}</span>
+                        </div>
+                    )}
+                </div>
+
+                <CompetitionListView
+                    Sidebar={null} // We handle sidebar above
+                    competitions={filteredCompetitions}
+                    title={activeTab === 'registered' ? "My Registrations" : "Available Competitions"}
+                    subtitle={activeTab === 'registered' ? "Competitions you have registered for." : "Browse and register for upcoming events."}
+                    loading={loading}
+                    showRegister={true} // Enable register buttons
+                    role="STUDENT"
+                    cardActions={{
+                        onRegister: handleRegisterClick,
+                        onRequestOD: handleRequestOD,
+                        onToggleApplied: handleToggleApplied
+                    }}
+                    appliedCompetitions={appliedCompetitions}
+                />
+            </div>
 
             <UploadProofModal
                 isOpen={isUploadModalOpen}
-                onClose={() => setIsUploadModalOpen(false)}
+                onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); }}
                 competitionId={selectedCompId}
-                onSubmit={handleUploadProof}
+                onSubmit={handleUploadProofSubmit}
+                title={selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof"}
             />
-        </>
+        </div>
     );
 };
 

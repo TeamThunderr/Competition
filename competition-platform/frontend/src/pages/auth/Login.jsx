@@ -85,6 +85,9 @@ const Login = () => {
                     setLoading(true);
                     const data = await loginUser(session.user.email);
 
+                    console.log("[Login] Backend returned user:", data.user);
+                    console.log("[Login] Storing user ID:", data.user.id);
+
                     localStorage.setItem('user', JSON.stringify(data.user));
                     localStorage.setItem('role', data.role);
 

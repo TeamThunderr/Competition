@@ -31,27 +31,50 @@ const getAllCompetitions = async (req, res) => {
         if (regError) throw regError;
 
         // Fetch user's status (shortlist/winner)
-        const { data: statusList, error: statusError } = await supabase
-            .from('competition_status')
-            .select('competition_id, is_shortlisted, is_winner')
-            .eq('user_id', userId);
+        let statusList = [];
+        try {
+            const { data, error: statusError } = await supabase
+                .from('competition_status')
+                .select('competition_id, is_shortlisted, is_winner')
+                .eq('user_id', userId);
 
-        if (statusError) throw statusError;
+            if (statusError) throw statusError;
+            statusList = data;
+        } catch (err) {
+            console.warn("Warning: Could not fetch competition_status (Table might be missing or empty)", err.message);
+            statusList = [];
+        }
 
         // Fetch user's OD requests
-        const { data: odRequests, error: odError } = await supabase
-            .from('od_requests')
-            .select('competition_id, status')
-            .eq('user_id', userId);
+        let odRequests = [];
+        try {
+            const { data, error: odError } = await supabase
+                .from('od_requests')
+                .select('competition_id, status')
+                .eq('user_id', userId);
 
-        if (odError) throw odError;
+            if (odError) throw odError;
+            odRequests = data || [];
+        } catch (err) {
+            console.warn("Warning: Could not fetch od_requests", err.message);
+            odRequests = [];
+        }
 
         // Merge data
         const enrichedCompetitions = competitions.map(comp => {
-            const reg = registrations.find(r => r.competition_id === comp.id);
+            const reg = registrations?.find(r => r.competition_id === comp.id);
 
-            const stat = statusList.find(s => s.competition_id === comp.id);
-            const od = odRequests.find(o => o.competition_id === comp.id);
+            const stat = statusList?.find(s => s.competition_id === comp.id);
+            const od = odRequests?.find(o => o.competition_id === comp.id);
+
+            // Derive Shortlist Status from Registration 'status' column (Unified Logic)
+            const isShortlisted = (stat?.is_shortlisted) || (reg?.status === 'Qualified') || (reg?.status === 'SHORTLISTED');
+            const isWinner = stat?.is_winner || false;
+
+            const derivedStatus = {
+                is_shortlisted: isShortlisted,
+                is_winner: isWinner
+            };
 
             // Get count from registrations
             const totalCount = comp.registrations && comp.registrations[0] ? comp.registrations[0].count : 0;
@@ -59,7 +82,7 @@ const getAllCompetitions = async (req, res) => {
             return {
                 ...comp,
                 my_registration: reg || null,
-                my_status: stat || null,
+                my_status: derivedStatus,
                 my_od: od || null,
                 registrations: [{ count: totalCount }]
             };

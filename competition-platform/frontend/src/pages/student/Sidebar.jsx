@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Globe, User, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, Globe, User, BarChart2, FileText } from 'lucide-react';
 import SharedSidebar from '../common/SharedSidebar';
 
 const StudentSidebar = ({ isOpen, onClose }) => {

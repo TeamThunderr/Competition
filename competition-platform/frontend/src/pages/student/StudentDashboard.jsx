@@ -3,14 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { Clock, Menu, Trophy } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 import StudentSidebar from './Sidebar';
+import UploadProofModal from '../../components/common/UploadProofModal';
 import { supabase } from '../../services/supabaseClient';
 import { api } from '../../services/api';
+import { studentService } from '../../services/studentService';
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
+    const [selectedCompId, setSelectedCompId] = useState(null);
+    const [selectedTeamId, setSelectedTeamId] = useState(null);
+    const [selectedTeamData, setSelectedTeamData] = useState(null);
 
     const fetchCompetitions = async () => {
         setLoading(true);
@@ -28,54 +35,29 @@ const StudentDashboard = () => {
         fetchCompetitions();
     }, []);
 
-    // Handlers
-    const handleCheckStatus = async (compId) => {
-        setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        const providerToken = session?.provider_token;
 
-        if (!providerToken) {
-            alert("Gmail Access Token missing. Please Sign Out and Sign In again with Google.");
-            setLoading(false);
-            return;
-        }
 
-        try {
-            const resData = await api.post('/api/student/check-status', {
-                competition_id: compId,
-                provider_token: providerToken
-            });
 
-            if (resData.verified) {
-                alert("Success! Verified registration via Gmail.");
-                fetchCompetitions();
-            } else if (resData.status === 'NOT_FOUND') {
-                console.log("Debug Info:", JSON.stringify(resData.debug, null, 2));
-                alert("Gmail verification failed. No matching email found from the organizer.");
-            } else {
-                alert("Verification status: " + resData.status);
-                fetchCompetitions();
-            }
-        } catch (err) {
-            console.error("Verification error:", err);
-            alert(`Verification failed: ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
+
+    const handleRequestOD = (compId) => {
+        navigate(`/student/od-request/${compId}`);
     };
 
-
-
-    const handleRequestOD = async (compId) => {
-        const reason = prompt("Enter reason for OD request:");
-        if (!reason) return;
-
+    const handleUploadProofSubmit = async (compIdOrTeamId, proofUrl) => {
         try {
-            await api.post('/api/student/request-od', { competition_id: compId, reason });
-            alert("OD Request Sent to HOD.");
+            if (selectedTeamId) {
+                // Team Mode
+                await studentService.uploadTeamProof(selectedTeamId, proofUrl);
+                alert("Team Proof uploaded! Waiting for faculty verification.");
+            } else {
+                // Individual Mode (Legacy or if needed here)
+                // await studentService.uploadProof(compIdOrTeamId, proofUrl);
+                alert("Proof uploaded!");
+            }
             fetchCompetitions();
         } catch (err) {
-            alert(`Request failed: ${err.message}`);
+            console.error("Upload process error:", err);
+            alert("An error occurred: " + err.message);
         }
     };
 
@@ -133,7 +115,7 @@ const StudentDashboard = () => {
                                         key={comp.id}
                                         competition={comp}
                                         onRegister={() => navigate('/student/competitions')}
-                                        onVerifyGmail={handleCheckStatus}
+                                        onRequestOD={handleRequestOD}
                                     />
                                 ))}
                             </div>
@@ -158,7 +140,6 @@ const StudentDashboard = () => {
                                             competition={comp}
                                             onRegister={() => navigate('/student/competitions')}
                                             onRequestOD={handleRequestOD}
-                                            onVerifyGmail={handleCheckStatus}
                                         />
                                     ))}
                                 </div>
@@ -181,6 +162,14 @@ const StudentDashboard = () => {
                     </div>
                 </div>
             </div>
+            <UploadProofModal
+                isOpen={isUploadModalOpen}
+                onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); }}
+                competitionId={selectedCompId}
+                onSubmit={handleUploadProofSubmit}
+                title={selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof"}
+            />
+
         </div>
     );
 };

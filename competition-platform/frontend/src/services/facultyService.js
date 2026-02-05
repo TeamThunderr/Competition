@@ -77,6 +77,7 @@ export default {
     getStudentDetails,
     getRecentRegistrations,
     getPendingVerifications,
+    getPendingTeamVerifications,
     verifyRegistration,
     getCompetitionStudents,
     syncCompetition,

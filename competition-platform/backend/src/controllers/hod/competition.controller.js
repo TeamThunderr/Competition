@@ -58,16 +58,33 @@ const getCompetitionDetails = async (req, res) => {
 const groupStudentsBySection = (students) => {
     if (!students || students.length === 0) return [];
 
-    // Group by Year -> Section
-    const groups = { "2nd Year": {}, "3rd Year": {}, "4th Year": {}, "Other": {} };
+    // Group by Year -> Section (Only 2nd and 3rd Year)
+    const groups = { "2nd Year": {}, "3rd Year": {} };
     const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
 
     students.forEach(s => {
-        const diff = s.admission_year ? currentYear - s.admission_year : -1;
-        let academicYear = 'Other';
+        let admissionYear = s.admission_year;
+
+        // Fallback: Extract year from registration number if admission_year is missing
+        if (!admissionYear && s.registration_no) {
+            // Try to extract year from registration number (e.g., "24CS001" -> 2024)
+            const regNoMatch = s.registration_no.match(/^(\d{2})/);
+            if (regNoMatch) {
+                const yearPrefix = parseInt(regNoMatch[1]);
+                // Convert 2-digit year to 4-digit (e.g., 24 -> 2024, 23 -> 2023)
+                admissionYear = yearPrefix >= 20 && yearPrefix <= 99 ? 2000 + yearPrefix : null;
+            }
+        }
+
+        const diff = admissionYear ? currentYear - admissionYear : -1;
+        let academicYear = null;
+
+        // Only categorize as 2nd Year or 3rd Year
         if (diff === 1) academicYear = '2nd Year';
         else if (diff === 2) academicYear = '3rd Year';
-        else if (diff === 3) academicYear = '4th Year';
+
+        // Skip students who don't fall into 2nd or 3rd year
+        if (!academicYear) return;
 
         const sec = s.section || 'Unknown';
         if (!groups[academicYear][sec]) groups[academicYear][sec] = [];
@@ -75,7 +92,7 @@ const groupStudentsBySection = (students) => {
     });
 
     // Transform to Array
-    const yearOrder = ["2nd Year", "3rd Year", "4th Year", "Other"];
+    const yearOrder = ["2nd Year", "3rd Year"];
     return yearOrder
         .map(year => {
             const sectionsObj = groups[year];
@@ -220,6 +237,19 @@ const getCompetitionStats = async (req, res) => {
                     section: s.section
                 }))
         };
+
+        // Debug logging
+        console.log(`[HOD Stats] Competition ${competitionId}:`);
+        console.log(`  - Total students: ${allStudents.length}`);
+        console.log(`  - Registered students: ${registeredStudents.length}`);
+        console.log(`  - Total sections groups: ${response.total_sections.length}`);
+        console.log(`  - Registered sections groups: ${response.registered_sections.length}`);
+        if (response.total_sections.length > 0) {
+            console.log(`  - Sample total section:`, JSON.stringify(response.total_sections[0], null, 2));
+        }
+        if (registeredStudents.length > 0) {
+            console.log(`  - Sample registered student:`, JSON.stringify(registeredStudents[0], null, 2));
+        }
 
         res.status(200).json(response);
 

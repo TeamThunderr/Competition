@@ -5,6 +5,8 @@ import Login from './pages/auth/Login';
 import StudentCompetitions from './pages/student/StudentCompetitions';
 import StudentDashboard from './pages/student/StudentDashboard';
 import ODLetter from './pages/student/ODLetter';
+import ODRequestPage from './pages/student/ODRequestPage';
+import ODHistoryPage from './pages/student/ODHistoryPage';
 import Settings from './pages/student/Settings';
 import Profile from './pages/student/Profile';
 import StudentAnalytics from './pages/student/StudentAnalytics';
@@ -13,10 +15,12 @@ import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import StudentList from './pages/faculty/StudentList';
 import StudentDetail from './pages/faculty/StudentDetail';
 import FacultyVerify from './pages/faculty/FacultyVerify';
+import FacultyTeamVerify from './pages/faculty/FacultyTeamVerify';
 import ActiveCompetitions from './pages/faculty/ActiveCompetitions';
 
 import HodDashboard from './pages/hod/HodDashboard';
 import OdApprovals from './pages/hod/OdApprovals';
+import OdRequestDetail from './pages/hod/OdRequestDetail'; // Import
 import HodAnalytics from './pages/hod/HodAnalytics';
 
 import HodCompetitions from './pages/hod/HodCompetitions';
@@ -57,6 +61,8 @@ function App() {
       <Route path="/student/od-letters" element={<ODLetter />} />
       <Route path="/student/settings" element={<Settings />} />
       <Route path="/student/stats" element={<StudentAnalytics />} />
+      <Route path="/student/od-request/:competitionId" element={<ODRequestPage />} />
+      <Route path="/student/od-history" element={<ODHistoryPage />} />
 
       <Route path="/faculty/verification" element={<ManualVerification />} />
 
@@ -64,6 +70,7 @@ function App() {
       <Route path="/faculty/students" element={<StudentList />} />
       <Route path="/faculty/students/:id" element={<StudentDetail />} />
       <Route path="/faculty/verify" element={<FacultyVerify />} />
+      <Route path="/faculty/verify-teams" element={<FacultyTeamVerify />} />
       <Route path="/faculty/competitions" element={<ActiveCompetitions />} />
 
 
@@ -71,6 +78,7 @@ function App() {
       {/* HOD Routes */}
       <Route path="/hod" element={<HodDashboard />} />
       <Route path="/hod/approvals" element={<OdApprovals />} />
+      <Route path="/hod/od-requests/:id" element={<OdRequestDetail />} /> {/* New Route */}
       <Route path="/hod/analytics" element={<HodAnalytics />} />
       <Route path="/hod/competitions" element={<HodCompetitions />} />
       <Route path="/hod/students/:id" element={<HodStudentDetail />} />
