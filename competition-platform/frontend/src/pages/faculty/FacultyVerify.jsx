@@ -10,7 +10,7 @@ const FacultyVerify = () => {
     const [registrations, setRegistrations] = useState([]);
     const [shortlisted, setShortlisted] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('registration'); // 'registration' | 'shortlist'
+
     const [actionLoading, setActionLoading] = useState(null);
 
     const fetchData = async () => {
@@ -184,7 +184,7 @@ const FacultyVerify = () => {
                                 {activeTab === 'shortlist' && (
                                     <div className="p-6 bg-muted/5 border-t md:border-t-0 md:border-l border-border flex flex-row md:flex-col justify-center gap-3 w-full md:w-48">
                                         <button
-                                            onClick={() => handleShortlistAction(item, 'approve')}
+                                            onClick={() => handleAction(item.id, 'approve')}
                                             disabled={actionLoading === item.id}
                                             className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                                         >
@@ -192,7 +192,7 @@ const FacultyVerify = () => {
                                             Verify
                                         </button>
                                         <button
-                                            onClick={() => handleShortlistAction(item, 'reject')}
+                                            onClick={() => handleAction(item.id, 'reject')}
                                             disabled={actionLoading === item.id}
                                             className="flex-1 bg-card border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors flex items-center justify-center gap-2 dark:border-red-900 dark:bg-red-900/10 dark:text-red-400 dark:hover:bg-red-900/20"
                                         >
