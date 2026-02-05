@@ -47,7 +47,7 @@ const FacultyDashboard = () => {
         { label: 'TOTAL STUDENTS', value: stats.total_students, subtext: `Class ${stats.section_label}` },
         { label: 'COMP. REGISTERED', value: stats.comp_registered, subtext: 'Active Participations' },
         { label: 'COMP. QUALIFIED', value: stats.comp_qualified, subtext: 'Round 1 Cleared' },
-        { label: 'OD REQUESTS', value: stats.od_requests, subtext: 'Pending Coordinator' },
+        { label: 'COMP. WON', value: stats.comp_won, subtext: 'Competition Winners' },
     ];
 
     return (

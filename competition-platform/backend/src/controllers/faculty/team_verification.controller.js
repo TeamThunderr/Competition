@@ -35,14 +35,17 @@ const getPendingTeamVerifications = async (req, res) => {
                 leader:users!teams_leader_id_fkey ( full_name, registration_no, section, department_id )
             `)
             .in('verification_status', ['PENDING', 'VERIFIED', 'REJECTED'])
+            .neq('verification_status', 'OD_SUBMITTED') // Exclude correctly marked ODs
+            .not('team_name', 'ilike', 'OD-%') // ROBUST: Exclude ANY team starting with OD- (catch old PENDING ones)
             .not('proof_url', 'is', null);
 
         if (error) throw error;
 
-        // Filter: Show teams where the LEADER is in the Faculty's Department/Section
-        // V2 Update: Check 'teams' table columns (manually entered) first, then fallback to 'users' profile.
+        // Faculty deals ONLY with registration verification (PENDING/VERIFIED/REJECTED)
+        // OD requests use separate status 'OD_SUBMITTED' which Faculty never queries
+        // This creates natural separation - no OD-related code needed here
 
-        // 0. Fetch Faculty's Department Details to get the Code (e.g. 'CSE')
+        // 0. Fetch Faculty's Department Details
         // We know req.user.department_id is a UUID. We need the text 'CSE' to match with teams.department text.
         const { data: facultyDeptData } = await supabase
             .from('departments')

@@ -20,6 +20,7 @@ import ActiveCompetitions from './pages/faculty/ActiveCompetitions';
 
 import HodDashboard from './pages/hod/HodDashboard';
 import OdApprovals from './pages/hod/OdApprovals';
+import OdRequestDetail from './pages/hod/OdRequestDetail'; // Import
 import HodAnalytics from './pages/hod/HodAnalytics';
 
 import HodCompetitions from './pages/hod/HodCompetitions';
@@ -77,6 +78,7 @@ function App() {
       {/* HOD Routes */}
       <Route path="/hod" element={<HodDashboard />} />
       <Route path="/hod/approvals" element={<OdApprovals />} />
+      <Route path="/hod/od-requests/:id" element={<OdRequestDetail />} /> {/* New Route */}
       <Route path="/hod/analytics" element={<HodAnalytics />} />
       <Route path="/hod/competitions" element={<HodCompetitions />} />
       <Route path="/hod/students/:id" element={<HodStudentDetail />} />

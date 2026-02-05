@@ -15,11 +15,11 @@ const getPendingODRequests = async (req, res) => {
                 *,
                 users:users!od_requests_user_id_fkey!inner(full_name, registration_no, department_id, section),
                 competitions(title, event_date),
-                teams!inner (team_name, proof_url, verification_status)
+                teams (team_name, proof_url, verification_status)
             `)
             .eq('status', 'PENDING')
-            .eq('users.department_id', hod_dept)
-            .eq('teams.verification_status', 'VERIFIED'); // Strict: HOD only sees Faculty-verified requests
+            .eq('users.department_id', hod_dept);
+        // .eq('teams.verification_status', 'VERIFIED'); // Removed: HOD sees all, verification is internal or informational
 
         if (error) throw error;
 
@@ -63,7 +63,42 @@ const manageODRequest = async (req, res) => {
     }
 };
 
+const getODRequestDetail = async (req, res) => {
+    console.log(`getODRequestDetail called for ID: ${req.params.id}`);
+    try {
+        const { id } = req.params;
+        const hod_dept = req.user.department_id;
+
+        const { data, error } = await supabase
+            .from('od_requests')
+            .select(`
+                *,
+                users:users!od_requests_user_id_fkey!inner(full_name, registration_no, department_id, section),
+                competitions(title, event_date),
+                teams (team_name, proof_url, verification_status, members_info)
+            `)
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+
+        console.log("Fetched OD Request Data:", JSON.stringify(data, null, 2));
+
+        // Security check: Ensure it belongs to HOD's dept
+        if (data.users.department_id !== hod_dept) {
+            return res.status(403).json({ error: 'Unauthorized: Student belongs to another department' });
+        }
+
+        res.status(200).json(data);
+
+    } catch (err) {
+        console.error('Get OD Detail Error:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
     getPendingODRequests,
-    manageODRequest
+    manageODRequest,
+    getODRequestDetail
 };

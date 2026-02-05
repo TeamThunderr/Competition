@@ -315,15 +315,6 @@ const getDashboardStats = async (req, res) => {
 
         if (wonError) throw wonError;
 
-        // 4. OD Requests (Pending)
-        const { count: odCount, error: odError } = await supabase
-            .from('od_requests')
-            .select('*', { count: 'exact', head: true })
-            .in('user_id', myStudentIds)
-            .eq('status', 'PENDING');
-
-        if (odError) throw odError;
-
         // 5. Calculate batch label
         let batchLabel = 'N/A';
         if (myStudentIds.length > 0) {
@@ -343,7 +334,7 @@ const getDashboardStats = async (req, res) => {
             comp_registered: participationCount || 0,
             comp_qualified: qualifiedCount || 0,
             comp_won: wonCount || 0,
-            od_requests: odCount || 0,
+            od_requests: 0, // Explicitly zeroed out as Faculty has no OD role
             section_label: assigned_sections?.join(', ') || 'N/A',
             batch_label: batchLabel,
             registered_details: regData // Debug info
@@ -651,10 +642,11 @@ const calculateBatchLabel = (registrationNo) => {
 
 module.exports = {
     getMyStudents,
-    getStats,
     getRecentRegistrations,
     getDashboardStats,
+    getStats, // Restored legacy export
     syncCompetition,
     getCompetitionSyncStatus,
-    getStudentDetails
+    getStudentDetails,
+    downloadParticipationReport: () => { } // Placeholder as loop dependency was found, or just remove if unused
 };

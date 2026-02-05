@@ -44,6 +44,11 @@ export const getPendingODRequests = async () => {
     return response.data || response;
 };
 
+export const getODRequestDetail = async (id) => {
+    const response = await api.get(`/api/hod/od-request/${id}`);
+    return response.data || response;
+};
+
 export const manageODRequest = async (requestId, status, extraData = {}) => {
     const response = await api.post('/api/hod/manage-od', {
         request_id: requestId,
@@ -91,6 +96,7 @@ export default {
     getHodStudentDetails,
     getHODCompetitionStats,
     getPendingODRequests,
+    getODRequestDetail,
     manageODRequest,
     getDepartmentFaculty,
     downloadWinnersReport

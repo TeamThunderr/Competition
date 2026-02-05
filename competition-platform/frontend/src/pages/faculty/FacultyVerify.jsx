@@ -13,28 +13,30 @@ const FacultyVerify = () => {
     const fetchPending = async () => {
         setLoading(true);
         try {
-            const [regs, teams] = await Promise.all([
-                getPendingVerifications(),
-                getPendingTeamVerifications()
-            ]);
+            // USER REQUEST: Page must be blank. No fetching.
+            // const [regs, teams] = await Promise.all([
+            //     getPendingVerifications(),
+            //     getPendingTeamVerifications()
+            // ]);
 
-            // Normalize Data
-            const normalizedRegs = (regs || []).map(r => ({ ...r, type: 'REGISTRATION' }));
-            const normalizedTeams = (teams || []).map(t => ({
-                id: t.id,
-                competitions: { title: t.competitionName },
-                users: {
-                    full_name: t.leaderName,
-                    registration_no: t.leaderRollNo,
-                    section: t.leaderSection
-                },
-                proof_url: t.proofUrl, // Or proof_urls[0]? Backwards compat.
-                created_at: t.submittedAt,
-                type: 'OD_REQUEST',
-                raw: t // Keep raw data if needed
-            }));
+            // // Normalize Data
+            // const normalizedRegs = (regs || []).map(r => ({ ...r, type: 'REGISTRATION' }));
+            // const normalizedTeams = (teams || []).map(t => ({
+            //     id: t.id,
+            //     competitions: { title: t.competitionName },
+            //     users: {
+            //         full_name: t.leaderName,
+            //         registration_no: t.leaderRollNo,
+            //         section: t.leaderSection
+            //     },
+            //     proof_url: t.proofUrl, // Or proof_urls[0]? Backwards compat.
+            //     created_at: t.submittedAt,
+            //     type: 'TEAM_PROOF',
+            //     raw: t // Keep raw data if needed
+            // }));
 
-            setPending([...normalizedRegs, ...normalizedTeams]);
+            // setPending([...normalizedRegs, ...normalizedTeams]);
+            setPending([]); // Force Empty
         } catch (err) {
             console.error(err);
         } finally {
@@ -54,7 +56,7 @@ const FacultyVerify = () => {
             if (item.type === 'REGISTRATION') {
                 await verifyRegistration(item.id, status);
             } else {
-                // Team/OD Verification
+                // Team Verification
                 const action = status === 'approve' ? 'VERIFIED' : 'REJECTED';
                 await api.post('/api/faculty/verify-team', {
                     team_id: item.id,
@@ -79,7 +81,7 @@ const FacultyVerify = () => {
             <main className="flex-1 md:ml-sidebar p-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">Pending Actions</h1>
-                    <p className="text-gray-500 mt-2">Verify registrations and OD requests.</p>
+                    <p className="text-gray-500 mt-2">Verify student team registrations.</p>
                 </div>
 
                 {loading ? (
@@ -99,9 +101,9 @@ const FacultyVerify = () => {
                         {pending.map((item) => (
                             <div key={item.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col md:flex-row relative">
                                 {/* Type Badge */}
-                                <div className={`absolute top-0 right-0 px-3 py-1 text-xs font-bold rounded-bl-lg z-10 ${item.type === 'OD_REQUEST' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                <div className={`absolute top-0 right-0 px-3 py-1 text-xs font-bold rounded-bl-lg z-10 ${item.type === 'TEAM_PROOF' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
                                     }`}>
-                                    {item.type === 'OD_REQUEST' ? 'OD REQUEST' : 'REGISTRATION'}
+                                    {item.type === 'TEAM_PROOF' ? 'TEAM PROOF' : 'REGISTRATION'}
                                 </div>
 
                                 {/* Proof Image Preview */}

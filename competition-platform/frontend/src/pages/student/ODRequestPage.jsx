@@ -129,29 +129,32 @@ const ODRequestPage = () => {
                 uploadedUrls.push(data.publicUrl);
             }
 
-            // Payload
+            // Payload - Unified for Direct HOD Request
             const payload = {
                 competition_id: competitionId,
-                is_solo: isSolo, // Backend validates this
+                is_solo: isSolo,
                 team_name: isSolo ? null : formData.team_name,
                 leader_name: formData.leader_name,
-                section: formData.section.toUpperCase(), // Normalize
-                department: formData.department, // Text code
+                section: formData.section.toUpperCase(),
+                department: formData.department,
                 academic_year: formData.academic_year,
-                proof_urls: uploadedUrls,
+                proof_urls: uploadedUrls, // Backend needs this to attach to team/record
 
-                // OD Details
+                // OD Details (Required Now)
                 from_date: formData.from_date,
                 to_date: formData.to_date,
                 reason: formData.reason,
 
-                // NEW: Members Info
-                members_info: isSolo ? [] : formData.members
+                // Members Info (Optional/Informational)
+                members_info: isSolo ? [] : formData.members,
+                team_members: isSolo ? [] : formData.members // Backend expects this key in new logic
             };
 
-            await api.post('/api/teams/submit-verification', payload);
-            alert("OD Request Submitted Successfully!");
-            navigate('/student'); // Go back to dashboard
+            // DIRECT TO STUDENT OD ENDPOINT
+            await api.post('/api/student/request-od', payload);
+
+            alert("OD Request Submitted Successfully! Sent to HOD for Approval.");
+            navigate('/student/od-history');
 
         } catch (err) {
             console.error(err);
@@ -164,7 +167,7 @@ const ODRequestPage = () => {
     return (
         <div className="flex min-h-screen bg-gray-50">
             <Sidebar />
-            <div className="flex-1 p-8">
+            <div className="flex-1 p-8 md:ml-sidebar transition-all duration-300">
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-8">
                     <button onClick={() => navigate(-1)} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition">
