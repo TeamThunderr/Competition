@@ -130,7 +130,7 @@ const CompetitionListView = ({
                         </button>
 
                         {isDropdownOpen && (
-                            <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border py-1 z-10">
+                            <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border py-1 z-50 max-h-60 overflow-y-auto">
                                 {filters.map((f) => (
                                     <button
                                         key={f}
@@ -150,7 +150,7 @@ const CompetitionListView = ({
             </div>
 
             {/* Content Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {loading ? (
                     <div className="col-span-full py-12 flex justify-center">
                         <RoleBasedLoader role={role} />
@@ -192,7 +192,7 @@ const CompetitionListView = ({
     return (
         <div className="flex bg-background min-h-screen font-sans text-foreground">
             <Sidebar />
-            <div className="flex-1 ml-0 md:ml-sidebar p-4 md:p-8">
+            <div className="flex-1 ml-0 md:ml-sidebar p-4 md:p-6">
                 {content}
             </div>
         </div>

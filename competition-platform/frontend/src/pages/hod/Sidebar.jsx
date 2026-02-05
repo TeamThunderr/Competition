@@ -7,7 +7,7 @@ const HodSidebar = ({ isOpen, onClose }) => {
         { icon: LayoutDashboard, label: 'Dept. Dashboard', path: '/hod' },
         { icon: Users, label: 'Faculty Directory', path: '/hod/faculty' },
         { icon: CheckCircle, label: 'OD Approvals', path: '/hod/approvals' },
-        { icon: BarChart2, label: 'Analytics', path: '/hod/analytics' },
+
         { icon: Briefcase, label: 'All Competitions', path: '/hod/competitions' },
     ];
 

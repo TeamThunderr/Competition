@@ -1,9 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
 
 const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = true, isApplied = false, onToggleApplied }) => {
     const { my_registration, my_status, my_od } = competition;
+    const [isApplied, setIsApplied] = useState(() => {
+        return localStorage.getItem(`applied_${competition.id}`) === 'true';
+    });
+
+    const handleApply = () => {
+        if (window.confirm("Are you sure about applying for this hackathon?")) {
+            setIsApplied(true);
+            localStorage.setItem(`applied_${competition.id}`, 'true');
+        }
+    };
     const deadlineDate = new Date(competition.registration_deadline);
     deadlineDate.setHours(23, 59, 59, 999);
     const isClosed = deadlineDate < new Date();
@@ -36,8 +46,17 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
             return (
                 <div className="flex gap-2 flex-1 items-center">
                     <button
+                        onClick={handleApply}
+                        disabled={isApplied}
+                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors border ${isApplied
+                            ? 'bg-green-50 text-green-700 border-green-200 cursor-default'
+                            : 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-sm'
+                            }`}>
+                        {isApplied ? "Applied" : "Apply"}
+                    </button>
+                    <button
                         onClick={() => onRegister(competition.id)}
-                        className="flex-1 bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
+                        className="flex-1 bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
                         Upload Proof
                     </button>
                 </div>

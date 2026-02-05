@@ -182,18 +182,18 @@ const ODRequestPage = () => {
                 uploadedUrls.push(data.publicUrl);
             }
 
-            // Payload
+            // Payload - Unified for Direct HOD Request
             const payload = {
                 competition_id: competitionId,
-                is_solo: isSolo, // Backend validates this
+                is_solo: isSolo,
                 team_name: isSolo ? null : formData.team_name,
                 leader_name: formData.leader_name,
-                section: formData.section.toUpperCase(), // Normalize
-                department: formData.department, // Text code
+                section: formData.section.toUpperCase(),
+                department: formData.department,
                 academic_year: formData.academic_year,
-                proof_urls: uploadedUrls,
+                proof_urls: uploadedUrls, // Backend needs this to attach to team/record
 
-                // OD Details
+                // OD Details (Required Now)
                 from_date: formData.from_date,
                 to_date: formData.to_date,
                 reason: formData.reason,

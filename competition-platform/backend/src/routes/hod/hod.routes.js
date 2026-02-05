@@ -11,6 +11,15 @@ const authMiddleware = require('../../middleware/authMiddleware');
 const roleMiddleware = require('../../middleware/role.middleware');
 
 // 1. Auth & Role Guards
+console.log("Loading HOD Routes...");
+console.log("odController keys:", Object.keys(odController));
+
+router.use((req, res, next) => {
+    console.log(`[HOD Router] Incoming request: ${req.method} ${req.path}`);
+    next();
+});
+
+// 1. Auth & Role Guards
 router.use(authMiddleware);
 router.use(roleMiddleware('HOD'));
 
@@ -31,6 +40,7 @@ router.get('/competition/:id/stats', hodCompetitionController.getCompetitionStat
 
 // OD Management Routes
 router.get('/pending-od', odController.getPendingODRequests);
+router.get('/od-request/:id', odController.getODRequestDetail);
 router.post('/manage-od', odController.manageODRequest);
 
 module.exports = router;
