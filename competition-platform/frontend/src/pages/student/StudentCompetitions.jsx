@@ -29,35 +29,13 @@ const StudentCompetitions = () => {
         fetchCompetitions();
     }, []);
 
-    // Handlers
-    const handleCheckStatus = async (compId) => {
-        // We set loading true locally or use a transient state, but re-fetching handles UI update
-        // setLoading(true); // Optional: global loading or specific card loading? View doesn't support card-specific loading yet.
 
-        const { data: { session } } = await supabase.auth.getSession();
-        const providerToken = session?.provider_token;
 
-        if (!providerToken) {
-            alert("Gmail Access Token missing. Please Sign Out and Sign In again with Google.");
-            return;
-        }
 
-        try {
-            const resData = await studentService.checkStatus(compId, providerToken);
 
-            if (resData.verified) {
-                alert("Success! Verified registration via Gmail.");
-                fetchCompetitions();
-            } else if (resData.status === 'NOT_FOUND') {
-                alert("Gmail verification failed. No matching email found.");
-            } else {
-                alert("Status: " + resData.status);
-                fetchCompetitions();
-            }
-        } catch (err) {
-            console.error("Verification error:", err);
-        }
-    };
+    const [activeTab, setActiveTab] = useState('unregistered');
+
+
 
     const handleRegisterClick = (compId) => {
         setSelectedCompId(compId);
@@ -90,25 +68,56 @@ const StudentCompetitions = () => {
         }
     };
 
-    // Filter Logic specific to Student View (Unregistered only)
-    const availableCompetitions = competitions.filter(c => !c.my_registration);
+    // Filter Logic based on tabs
+    const filteredCompetitions = competitions.filter(c => {
+        if (activeTab === 'registered') {
+            return c.my_registration;
+        } else {
+            return !c.my_registration;
+        }
+    });
 
     return (
-        <>
-            <CompetitionListView
-                Sidebar={StudentSidebar}
-                competitions={availableCompetitions}
-                title="All Competitions"
-                subtitle="Browse and register for upcoming events."
-                loading={loading}
-                showRegister={true} // Enable register buttons
-                role="STUDENT"
-                cardActions={{
-                    onRegister: handleRegisterClick,
-                    onRequestOD: handleRequestOD,
-                    onVerifyGmail: handleCheckStatus
-                }}
-            />
+        <div className="flex bg-background min-h-screen font-sans text-foreground">
+            <StudentSidebar />
+            <div className="flex-1 ml-0 md:ml-sidebar p-4 md:p-8">
+
+                {/* Tab Navigation */}
+                <div className="flex space-x-1 mb-6 bg-muted/20 p-1 rounded-xl w-fit">
+                    <button
+                        onClick={() => setActiveTab('unregistered')}
+                        className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'unregistered'
+                            ? 'bg-card text-primary shadow-sm'
+                            : 'text-muted hover:text-foreground'
+                            }`}
+                    >
+                        Unregistered
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('registered')}
+                        className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'registered'
+                            ? 'bg-card text-primary shadow-sm'
+                            : 'text-muted hover:text-foreground'
+                            }`}
+                    >
+                        Registered
+                    </button>
+                </div>
+
+                <CompetitionListView
+                    Sidebar={null} // We handle sidebar above
+                    competitions={filteredCompetitions}
+                    title={activeTab === 'registered' ? "My Registrations" : "Available Competitions"}
+                    subtitle={activeTab === 'registered' ? "Competitions you have registered for." : "Browse and register for upcoming events."}
+                    loading={loading}
+                    showRegister={true} // Enable register buttons
+                    role="STUDENT"
+                    cardActions={{
+                        onRegister: handleRegisterClick,
+                        onRequestOD: handleRequestOD
+                    }}
+                />
+            </div>
 
             <UploadProofModal
                 isOpen={isUploadModalOpen}
@@ -117,7 +126,7 @@ const StudentCompetitions = () => {
                 onSubmit={handleUploadProofSubmit}
                 title={selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof"}
             />
-        </>
+        </div>
     );
 };
 
