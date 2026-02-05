@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
 
-const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = true }) => {
+const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = true, isApplied = false, onToggleApplied }) => {
     const { my_registration, my_status, my_od } = competition;
     const deadlineDate = new Date(competition.registration_deadline);
     deadlineDate.setHours(23, 59, 59, 999);
@@ -34,7 +34,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
         // 1. Not Registered
         if (!my_registration) {
             return (
-                <div className="flex gap-2 flex-1">
+                <div className="flex gap-2 flex-1 items-center">
                     <button
                         onClick={() => onRegister(competition.id)}
                         className="flex-1 bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
@@ -98,7 +98,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
     };
 
     return (
-        <div className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow p-6 relative overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow p-6 relative overflow-hidden flex flex-col h-full">
             {my_status?.is_winner && (
                 <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-bl-lg shadow-sm z-10">
                     WINNER
@@ -176,7 +176,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
                 </div>
             </div>
 
-            <div className="flex gap-3 flex-col sm:flex-row">
+            <div className="mt-auto flex gap-3 flex-col sm:flex-row">
                 <Link
                     to={`/competitions/${competition.id}`}
                     className="flex-1 bg-muted/10 text-foreground py-2 px-4 rounded-lg text-sm font-medium hover:bg-muted/20 transition-colors text-center flex items-center justify-center"
@@ -208,6 +208,24 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
 
                 {renderAction()}
             </div>
+
+            {/* Mark as Applied Toggle - Moved for better alignment */}
+            {showRegister && !my_registration && onToggleApplied && (
+                <div className="mt-3 flex items-center justify-end gap-3 border-t pt-3 border-border/50">
+                    <span className={`text-xs font-medium ${isApplied ? 'text-green-600' : 'text-gray-500'}`}>
+                        {isApplied ? 'Temporarily Registered' : 'Temporary Mark Register'}
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={!!isApplied}
+                            onChange={() => onToggleApplied(competition.id)}
+                            className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                </div>
+            )}
         </div>
     );
 };

@@ -30,7 +30,8 @@ const CompetitionListView = ({
     loading = false,
     showRegister = false,
     role = 'STUDENT',
-    cardActions = {}
+    cardActions = {},
+    appliedCompetitions = {}
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('All');
@@ -160,6 +161,7 @@ const CompetitionListView = ({
                             key={comp.id}
                             competition={comp}
                             showRegister={showRegister}
+                            isApplied={appliedCompetitions[comp.id]}
                             {...cardActions}
                         />
                     ))

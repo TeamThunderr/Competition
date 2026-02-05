@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { CheckCircle, XCircle, ExternalLink, Users, FileText } from 'lucide-react';
-import { getPendingVerifications, getPendingTeamVerifications, verifyRegistration } from '../../services/facultyService';
+import { getPendingVerifications, verifyRegistration } from '../../services/facultyService';
 import { api } from '../../services/api'; // Direct API for team verification if service not unified
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
@@ -13,28 +13,12 @@ const FacultyVerify = () => {
     const fetchPending = async () => {
         setLoading(true);
         try {
-            const [regs, teams] = await Promise.all([
-                getPendingVerifications(),
-                getPendingTeamVerifications()
-            ]);
+            const regs = await getPendingVerifications();
 
             // Normalize Data
             const normalizedRegs = (regs || []).map(r => ({ ...r, type: 'REGISTRATION' }));
-            const normalizedTeams = (teams || []).map(t => ({
-                id: t.id,
-                competitions: { title: t.competitionName },
-                users: {
-                    full_name: t.leaderName,
-                    registration_no: t.leaderRollNo,
-                    section: t.leaderSection
-                },
-                proof_url: t.proofUrl, // Or proof_urls[0]? Backwards compat.
-                created_at: t.submittedAt,
-                type: 'OD_REQUEST',
-                raw: t // Keep raw data if needed
-            }));
 
-            setPending([...normalizedRegs, ...normalizedTeams]);
+            setPending(normalizedRegs);
         } catch (err) {
             console.error(err);
         } finally {
@@ -53,13 +37,6 @@ const FacultyVerify = () => {
         try {
             if (item.type === 'REGISTRATION') {
                 await verifyRegistration(item.id, status);
-            } else {
-                // Team/OD Verification
-                const action = status === 'approve' ? 'VERIFIED' : 'REJECTED';
-                await api.post('/api/faculty/verify-team', {
-                    team_id: item.id,
-                    action: action
-                });
             }
 
             // Remove from list
