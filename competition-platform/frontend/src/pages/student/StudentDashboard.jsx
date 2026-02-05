@@ -35,41 +35,7 @@ const StudentDashboard = () => {
         fetchCompetitions();
     }, []);
 
-    // Handlers
-    const handleCheckStatus = async (compId) => {
-        setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        const providerToken = session?.provider_token;
 
-        if (!providerToken) {
-            alert("Gmail Access Token missing. Please Sign Out and Sign In again with Google.");
-            setLoading(false);
-            return;
-        }
-
-        try {
-            const resData = await api.post('/api/student/check-status', {
-                competition_id: compId,
-                provider_token: providerToken
-            });
-
-            if (resData.verified) {
-                alert("Success! Verified registration via Gmail.");
-                fetchCompetitions();
-            } else if (resData.status === 'NOT_FOUND') {
-                console.log("Debug Info:", JSON.stringify(resData.debug, null, 2));
-                alert("Gmail verification failed. No matching email found from the organizer.");
-            } else {
-                alert("Verification status: " + resData.status);
-                fetchCompetitions();
-            }
-        } catch (err) {
-            console.error("Verification error:", err);
-            alert(`Verification failed: ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
 
 
 
@@ -149,7 +115,6 @@ const StudentDashboard = () => {
                                         key={comp.id}
                                         competition={comp}
                                         onRegister={() => navigate('/student/competitions')}
-                                        onVerifyGmail={handleCheckStatus}
                                         onRequestOD={handleRequestOD}
                                     />
                                 ))}
@@ -175,7 +140,6 @@ const StudentDashboard = () => {
                                             competition={comp}
                                             onRegister={() => navigate('/student/competitions')}
                                             onRequestOD={handleRequestOD}
-                                            onVerifyGmail={handleCheckStatus}
                                         />
                                     ))}
                                 </div>

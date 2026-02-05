@@ -36,35 +36,88 @@ const ODRequestPage = () => {
 
     const [competition, setCompetition] = useState(null);
 
-    // Fetch Competition Details on Load
+    // Fetch Competition & User Details on Load
     useEffect(() => {
-        const fetchComp = async () => {
+        const init = async () => {
             try {
-                // We reuse checkTeamStatus to see if they already have a team?
-                // Or just fetch basic competition info.
-                // Simpler: Fetch competition title etc.
-                const { data } = await supabase.from('competitions').select('title, event_date').eq('id', competitionId).single();
-                if (data) setCompetition(data);
+                // 1. Fetch Competition
+                const { data: comp } = await supabase.from('competitions').select('title, event_date').eq('id', competitionId).single();
+                if (comp) setCompetition(comp);
 
-                // Pre-fill user details? 
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    const { data: profile } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+                // 2. Fetch User & Profile
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) {
+                    const user = session.user;
+                    console.log("DEBUG: Auth User (from session):", user);
+
+                    let { data: profile, error } = await supabase
+                        .from('users')
+                        .select('*, departments(name)')
+                        .eq('id', user.id)
+                        .maybeSingle();
+
+                    // Fallback: Try fetching by email if ID mismatch
+                    if (!profile && user.email) {
+                        console.log("DEBUG: ID match failed, trying email fallback...");
+                        const { data: profileByEmail, error: emailError } = await supabase
+                            .from('users')
+                            .select('*, departments(name)')
+                            .eq('email', user.email)
+                            .maybeSingle();
+
+                        if (profileByEmail) {
+                            profile = profileByEmail;
+                            console.log("DEBUG: Found profile by email:", profile);
+                        }
+                    }
+
+                    console.log("DEBUG: Final Profile Fetch:", profile, error);
+
                     if (profile) {
+                        const currentYear = new Date().getFullYear();
+                        const currentMonth = new Date().getMonth(); // 0-11
+                        // If before June (approx), we are ending the academic year. So 2026-2024 = 2nd Year.
+                        // If after June, we are starting new. 2026-2024 + 1 = 3rd Year.
+                        const calculatedYearVal = (currentMonth < 6)
+                            ? (currentYear - (profile.admission_year || currentYear))
+                            : (currentYear - (profile.admission_year || currentYear) + 1);
+
+                        // Clamp between 1 and 4, fallback to 2nd if weird
+                        const finalYear = Math.min(Math.max(calculatedYearVal, 1), 4);
+                        const yearString = finalYear === 1 ? '1st Year' : finalYear === 2 ? '2nd Year' : finalYear === 3 ? '3rd Year' : '4th Year';
+
+                        const newFormData = {
+                            leader_name: profile.full_name || '',
+                            leader_reg_no: profile.registration_no || '',
+                            department: profile.departments?.name || 'CSE', // Fallback
+                            section: profile.section || '',
+                            academic_year: profile.admission_year ? yearString : '2nd Year',
+                            // Preserve other fields
+                            team_name: '',
+                            proof_files: [],
+                            proof_urls: [],
+                            from_date: '',
+                            to_date: '',
+                            reason: '',
+                            members: []
+                        };
+                        console.log("DEBUG: Setting Form Data:", newFormData);
+
                         setFormData(prev => ({
                             ...prev,
-                            leader_name: profile.full_name,
-                            department: profile.department_id || 'CSE', // Fallback
-                            section: profile.section,
-                            academic_year: '2nd Year' // Default or fetch if stored
+                            leader_name: profile.full_name || '',
+                            leader_reg_no: profile.registration_no || '',
+                            department: profile.departments?.name || 'CSE',
+                            section: profile.section || '',
+                            academic_year: profile.admission_year ? yearString : '2nd Year',
                         }));
                     }
                 }
             } catch (e) {
-                console.error(e);
+                console.error("OD Request Init Error:", e);
             }
         };
-        fetchComp();
+        init();
     }, [competitionId]);
 
     // Handlers
@@ -145,16 +198,17 @@ const ODRequestPage = () => {
                 to_date: formData.to_date,
                 reason: formData.reason,
 
-                // Members Info (Optional/Informational)
-                members_info: isSolo ? [] : formData.members,
-                team_members: isSolo ? [] : formData.members // Backend expects this key in new logic
+                // NEW: Members Info
+                members_info: isSolo ? [] : formData.members
             };
 
-            // DIRECT TO STUDENT OD ENDPOINT
-            await api.post('/api/student/request-od', payload);
+            console.log("DEBUG: Submitting Verification Payload:", payload);
 
-            alert("OD Request Submitted Successfully! Sent to HOD for Approval.");
-            navigate('/student/od-history');
+            const response = await api.post('/api/teams/submit-verification', payload);
+            console.log("DEBUG: Submit Response:", response);
+
+            alert("OD Request Submitted Successfully!");
+            navigate('/student'); // Go back to dashboard
 
         } catch (err) {
             console.error(err);
@@ -165,9 +219,9 @@ const ODRequestPage = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-gray-50">
+        <div className="flex bg-background min-h-screen text-foreground font-sans">
             <Sidebar />
-            <div className="flex-1 p-8 md:ml-sidebar transition-all duration-300">
+            <div className="flex-1 flex flex-col min-w-0 md:ml-sidebar p-8">
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-8">
                     <button onClick={() => navigate(-1)} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition">
@@ -180,11 +234,11 @@ const ODRequestPage = () => {
                 </div>
 
                 {/* Wizard Container */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden max-w-3xl mx-auto">
+                <div className="bg-white dark:bg-card rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden max-w-3xl mx-auto">
                     {/* Steps */}
-                    <div className="flex border-b border-gray-100">
+                    <div className="flex border-b border-gray-100 dark:border-gray-700">
                         {['Team Details', 'OD Info', 'Proofs'].map((label, idx) => (
-                            <div key={idx} className={`flex-1 py-4 text-center text-sm font-semibold transition-colors ${step === idx + 1 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-gray-400'}`}>
+                            <div key={idx} className={`flex-1 py-4 text-center text-sm font-semibold transition-colors ${step === idx + 1 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 dark:bg-blue-900/20' : 'text-gray-400 dark:text-gray-500'}`}>
                                 {idx + 1}. {label}
                             </div>
                         ))}
@@ -196,11 +250,11 @@ const ODRequestPage = () => {
                             <div className="space-y-6 animate-fadeIn">
                                 {/* Participation Type */}
                                 <div className="flex gap-4 mb-6">
-                                    <button onClick={() => setIsSolo(false)} className={`flex-1 p-4 rounded-xl border-2 transition flex flex-col items-center gap-2 ${!isSolo ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:bg-gray-50'}`}>
+                                    <button onClick={() => setIsSolo(false)} className={`flex-1 p-4 rounded-xl border-2 transition flex flex-col items-center gap-2 ${!isSolo ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
                                         <Users size={24} />
                                         <span className="font-semibold">Team Participation</span>
                                     </button>
-                                    <button onClick={() => setIsSolo(true)} className={`flex-1 p-4 rounded-xl border-2 transition flex flex-col items-center gap-2 ${isSolo ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:bg-gray-50'}`}>
+                                    <button onClick={() => setIsSolo(true)} className={`flex-1 p-4 rounded-xl border-2 transition flex flex-col items-center gap-2 ${isSolo ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
                                         <User size={24} />
                                         <span className="font-semibold">Individual</span>
                                     </button>
@@ -208,43 +262,53 @@ const ODRequestPage = () => {
 
                                 {!isSolo && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Team Name</label>
-                                        <input type="text" name="team_name" value={formData.team_name} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter Team Name" />
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Name</label>
+                                        <input type="text" name="team_name" value={formData.team_name} onChange={handleInputChange} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white" placeholder="Enter Team Name" />
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Your Name (Leader)</label>
-                                        <input type="text" name="leader_name" value={formData.leader_name} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h3 className="font-semibold text-gray-700 dark:text-gray-300 text-sm uppercase">Leader Details</h3>
+
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Section</label>
-                                        <input type="text" name="section" value={formData.section} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="e.g. A" />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Name</label>
+                                            <input type="text" value={formData.leader_name} disabled readOnly className="w-full px-3 py-2 border dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 cursor-not-allowed select-none" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Reg No</label>
+                                            <input type="text" value={formData.leader_reg_no} disabled readOnly className="w-full px-3 py-2 border dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 cursor-not-allowed uppercase select-none" />
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                                        <select name="department" value={formData.department} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg outline-none">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Section</label>
+                                        <input type="text" name="section" value={formData.section} onChange={handleInputChange} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white uppercase" placeholder="e.g. A" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department</label>
+                                        <select name="department" value={formData.department} onChange={handleInputChange} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-800 dark:text-white">
                                             <option value="CSE">CSE</option><option value="IT">IT</option><option value="AIDS">AIDS</option><option value="ECE">ECE</option>
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                                        <select name="academic_year" value={formData.academic_year} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg outline-none">
-                                            <option value="1st Year">1st Year</option><option value="2nd Year">2nd Year</option><option value="3rd Year">3rd Year</option><option value="4th Year">4th Year</option>
-                                        </select>
-                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Year</label>
+                                    <select name="academic_year" value={formData.academic_year} onChange={handleInputChange} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-800 dark:text-white">
+                                        <option value="1st Year">1st Year</option><option value="2nd Year">2nd Year</option><option value="3rd Year">3rd Year</option><option value="4th Year">4th Year</option>
+                                    </select>
                                 </div>
 
                                 {/* Team Members Section (Hidden if Solo) */}
                                 {!isSolo && (
-                                    <div className="pt-4 border-t border-gray-100">
+                                    <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
                                         <div className="flex justify-between items-center mb-4">
-                                            <h3 className="font-semibold text-gray-800">Team Members</h3>
-                                            <button type="button" onClick={addMember} className="text-blue-600 text-sm font-medium flex items-center gap-1 hover:underline">
+                                            <h3 className="font-semibold text-gray-800 dark:text-gray-200">Team Members</h3>
+                                            <button type="button" onClick={addMember} className="text-blue-600 dark:text-blue-400 text-sm font-medium flex items-center gap-1 hover:underline">
                                                 <PlusCircle size={16} /> Add Member
                                             </button>
                                         </div>
@@ -259,7 +323,7 @@ const ODRequestPage = () => {
                                                             placeholder="Member Name"
                                                             value={member.name}
                                                             onChange={(e) => handleMemberChange(idx, 'name', e.target.value)}
-                                                            className="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-blue-500"
+                                                            className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg text-sm outline-none focus:border-blue-500 bg-white dark:bg-gray-800 dark:text-white"
                                                         />
                                                     </div>
                                                     <div className="w-32">
@@ -267,7 +331,7 @@ const ODRequestPage = () => {
                                                             placeholder="Reg No"
                                                             value={member.reg_no}
                                                             onChange={(e) => handleMemberChange(idx, 'reg_no', e.target.value)}
-                                                            className="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-blue-500 uppercase"
+                                                            className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg text-sm outline-none focus:border-blue-500 bg-white dark:bg-gray-800 dark:text-white uppercase"
                                                         />
                                                     </div>
                                                     <button onClick={() => removeMember(idx)} className="p-2 text-gray-400 hover:text-red-500 transition">
@@ -284,20 +348,20 @@ const ODRequestPage = () => {
                         {/* STEP 2: OD Info */}
                         {step === 2 && (
                             <div className="space-y-6 animate-fadeIn">
-                                <h3 className="text-lg font-semibold text-gray-800 mb-4">OD Request Details</h3>
+                                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">OD Request Details</h3>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-                                        <input type="date" name="from_date" value={formData.from_date} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From Date</label>
+                                        <input type="date" name="from_date" value={formData.from_date} onChange={handleInputChange} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-                                        <input type="date" name="to_date" value={formData.to_date} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">To Date</label>
+                                        <input type="date" name="to_date" value={formData.to_date} onChange={handleInputChange} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white" />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Reason for OD</label>
-                                    <textarea name="reason" value={formData.reason} onChange={handleInputChange} rows="4" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Explain why you need OD..." />
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason for OD</label>
+                                    <textarea name="reason" value={formData.reason} onChange={handleInputChange} rows="4" className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white" placeholder="Explain why you need OD..." />
                                 </div>
                             </div>
                         )}
@@ -305,16 +369,16 @@ const ODRequestPage = () => {
                         {/* STEP 3: Proofs */}
                         {step === 3 && (
                             <div className="space-y-6 animate-fadeIn">
-                                <div className="bg-blue-50 border-2 border-dashed border-blue-200 rounded-xl p-8 hover:bg-blue-100 transition-colors cursor-pointer relative text-center">
+                                <div className="bg-blue-50 dark:bg-blue-900/10 border-2 border-dashed border-blue-200 dark:border-blue-800 rounded-xl p-8 hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors cursor-pointer relative text-center">
                                     <input type="file" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} accept="image/*,application/pdf" />
                                     <Upload className="mx-auto text-blue-500 mb-4" size={48} />
-                                    <p className="text-gray-700 font-medium">Click to upload Proofs</p>
-                                    <p className="text-sm text-gray-500 mt-1">Screenshots, Registration Confirmations (JPG, PNG, PDF)</p>
+                                    <p className="text-gray-700 dark:text-gray-300 font-medium">Click to upload Proofs</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Screenshots, Registration Confirmations (JPG, PNG, PDF)</p>
                                 </div>
                                 <div className="space-y-2">
                                     {formData.proof_files.map((file, i) => (
-                                        <div key={i} className="flex items-center justify-between bg-white p-3 rounded-lg border shadow-sm">
-                                            <span className="text-sm text-gray-700 flex items-center gap-2"><FileText size={16} className="text-blue-500" /> {file.name}</span>
+                                        <div key={i} className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700 shadow-sm">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2"><FileText size={16} className="text-blue-500" /> {file.name}</span>
                                             <button onClick={() => removeFile(i)} className="text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
                                         </div>
                                     ))}
@@ -324,17 +388,17 @@ const ODRequestPage = () => {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-between">
+                    <div className="p-6 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-between">
                         {step > 1 ? (
-                            <button onClick={() => setStep(step - 1)} className="px-6 py-2 text-gray-600 hover:bg-gray-200 rounded-lg font-medium">Back</button>
+                            <button onClick={() => setStep(step - 1)} className="px-6 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg font-medium">Back</button>
                         ) : (
                             <div></div> // Spacer
                         )}
 
                         {step < 3 ? (
-                            <button onClick={handleNext} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-sm shadow-blue-200">Next Step</button>
+                            <button onClick={handleNext} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-sm shadow-blue-200 dark:shadow-none">Next Step</button>
                         ) : (
-                            <button onClick={handleSubmit} disabled={loading} className="px-8 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 shadow-sm shadow-green-200 disabled:opacity-70 disabled:cursor-wait">
+                            <button onClick={handleSubmit} disabled={loading} className="px-8 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 shadow-sm shadow-green-200 dark:shadow-none disabled:opacity-70 disabled:cursor-wait">
                                 {loading ? 'Submitting...' : 'Submit Verification'}
                             </button>
                         )}

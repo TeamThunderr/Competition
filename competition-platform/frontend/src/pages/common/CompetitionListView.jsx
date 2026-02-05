@@ -20,7 +20,7 @@ import RoleBasedLoader from '../../components/common/RoleBasedLoader';
  * @param {Boolean} loading - Loading state
  * @param {Boolean} showRegister - Whether to show register button on cards (default: false)
  * @param {String} role - User role for loader customization ('STUDENT', 'FACULTY', 'HOD')
- * @param {Object} cardActions - Event handlers to pass to CompetitionCard ({ onRegister, onRequestOD, onVerifyGmail })
+ * @param {Object} cardActions - Event handlers to pass to CompetitionCard ({ onRegister, onRequestOD })
  */
 const CompetitionListView = ({
     Sidebar,

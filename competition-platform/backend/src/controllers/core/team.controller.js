@@ -122,6 +122,7 @@ const submitVerification = async (req, res) => {
             is_solo,
             team_name,
             leader_name,
+            leader_reg_no, // NEW FIELD
             section,
             academic_year,
             department,
@@ -160,6 +161,7 @@ const submitVerification = async (req, res) => {
                     leader_id: userId,
                     team_name: finalTeamName,
                     leader_name,
+                    leader_reg_no, // Store it
                     section,
                     academic_year,
                     academic_year,
@@ -200,6 +202,7 @@ const submitVerification = async (req, res) => {
                 .update({
                     team_name: finalTeamName,
                     leader_name,
+                    leader_reg_no, // Update it too
                     section,
                     academic_year,
                     academic_year,
@@ -238,7 +241,10 @@ const submitVerification = async (req, res) => {
                     })
                     .eq('id', existingOD.id);
 
-                if (updateError) console.error("Auto OD Update Error:", updateError);
+                if (updateError) {
+                    console.error("Auto OD Update Error:", updateError);
+                    throw new Error("Failed to update OD Request: " + updateError.message);
+                }
             } else {
                 // Insert
                 const { error: insertError } = await supabase
@@ -253,8 +259,13 @@ const submitVerification = async (req, res) => {
                         status: 'PENDING'
                     }]);
 
-                if (insertError) console.error("Auto OD Insert Error:", insertError);
+                if (insertError) {
+                    console.error("Auto OD Insert Error:", insertError);
+                    throw new Error("Failed to create OD Request: " + insertError.message);
+                }
             }
+        } else {
+            console.warn("Skipping Auto OD: Missing required fields (reason, from_date, or to_date)");
         }
 
 
