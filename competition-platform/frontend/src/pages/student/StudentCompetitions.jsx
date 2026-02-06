@@ -46,9 +46,11 @@ const StudentCompetitions = () => {
         });
     };
 
-    const handleRegisterClick = (compId, isShortlist = false) => {
+    const [selectedProofType, setSelectedProofType] = useState(null);
+
+    const handleRegisterClick = (compId, proofType = 'REGISTERED') => {
         setSelectedCompId(compId);
-        setIsShortlistUpload(isShortlist);
+        setSelectedProofType(proofType);
         setIsUploadModalOpen(true);
     };
 
@@ -165,10 +167,11 @@ const StudentCompetitions = () => {
 
             <UploadProofModal
                 isOpen={isUploadModalOpen}
-                onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); }}
+                onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); setSelectedProofType(null); }}
                 competitionId={selectedCompId}
                 onSubmit={handleUploadProofSubmit}
-                title={isShortlistUpload ? "Upload Shortlist Proof" : (selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof")}
+                title={selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof"}
+                defaultProofType={selectedProofType}
             />
         </div>
     );

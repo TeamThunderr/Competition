@@ -10,17 +10,21 @@ const FacultyVerify = () => {
     const [registrations, setRegistrations] = useState([]);
     const [shortlisted, setShortlisted] = useState([]);
     const [loading, setLoading] = useState(true);
-
     const [actionLoading, setActionLoading] = useState(null);
 
-    const fetchData = async () => {
+    const fetchPending = async () => {
         setLoading(true);
         try {
             const data = await getPendingVerifications();
             // Handle both legacy array response and future object response
+            // Handle both legacy array response and future object response
             if (Array.isArray(data)) {
-                setRegistrations(data);
-                setShortlisted([]); // Backend not sending this yet
+                // Filter into buckets based on status
+                const pendingRegs = data.filter(item => !item.status || item.status === 'Registered');
+                const pendingShortlists = data.filter(item => item.status === 'Qualified' || item.status === 'SHORTLISTED');
+
+                setRegistrations(pendingRegs);
+                setShortlisted(pendingShortlists);
             } else {
                 setRegistrations(data.registrations || []);
                 setShortlisted(data.shortlists || []);
@@ -180,33 +184,35 @@ const FacultyVerify = () => {
                                     </div>
                                 </div>
 
-                                {/* Actions - ONLY for Shortlist Tab */}
-                                {activeTab === 'shortlist' && (
-                                    <div className="p-6 bg-muted/5 border-t md:border-t-0 md:border-l border-border flex flex-row md:flex-col justify-center gap-3 w-full md:w-48">
-                                        <button
-                                            onClick={() => handleAction(item.id, 'approve')}
-                                            disabled={actionLoading === item.id}
-                                            className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            {actionLoading === item.id ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : <CheckCircle size={16} />}
-                                            Verify
-                                        </button>
-                                        <button
-                                            onClick={() => handleAction(item.id, 'reject')}
-                                            disabled={actionLoading === item.id}
-                                            className="flex-1 bg-card border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors flex items-center justify-center gap-2 dark:border-red-900 dark:bg-red-900/10 dark:text-red-400 dark:hover:bg-red-900/20"
-                                        >
-                                            <XCircle size={16} />
-                                            Reject
-                                        </button>
-                                    </div>
-                                )}
+                                {/* Actions */}
+                                <div className="p-6 flex flex-col justify-center gap-3 border-t md:border-t-0 md:border-l border-border bg-gray-50/50 dark:bg-gray-800/30">
+                                    <button
+                                        onClick={() => handleAction(item.id, 'approve')}
+                                        disabled={!!actionLoading}
+                                        className="flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 shadow-sm"
+                                    >
+                                        {actionLoading === item.id ? (
+                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <CheckCircle size={18} />
+                                        )}
+                                        Approve
+                                    </button>
+                                    <button
+                                        onClick={() => handleAction(item.id, 'reject')}
+                                        disabled={!!actionLoading}
+                                        className="flex items-center justify-center gap-2 bg-white text-red-600 border border-red-200 px-6 py-2 rounded-lg font-medium hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50"
+                                    >
+                                        <XCircle size={18} />
+                                        Reject
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
                 )}
-            </main>
-        </div>
+            </main >
+        </div >
     );
 };
 

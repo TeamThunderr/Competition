@@ -2,13 +2,26 @@ import React, { useState } from 'react';
 import { X, Upload, Loader, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 
-const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: initialTitle }) => {
+const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: initialTitle, defaultProofType = null }) => {
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState(null);
-    const [step, setStep] = useState('SELECT'); // 'SELECT' | 'UPLOAD'
-    const [proofType, setProofType] = useState('REGISTERED'); // 'REGISTERED' | 'QUALIFIED'
+
+    // Initialize step and proofType based on defaultProofType
+    const [step, setStep] = useState(defaultProofType ? 'UPLOAD' : 'SELECT');
+    const [proofType, setProofType] = useState(defaultProofType || 'REGISTERED');
+
+    // Reset/Initialize when modal opens or defaultProofType changes
+    React.useEffect(() => {
+        if (isOpen) {
+            setStep(defaultProofType ? 'UPLOAD' : 'SELECT');
+            setProofType(defaultProofType || 'REGISTERED');
+            setFile(null);
+            setPreview(null);
+            setError(null);
+        }
+    }, [isOpen, defaultProofType]);
 
     if (!isOpen) return null;
 
@@ -16,8 +29,8 @@ const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: ini
         setFile(null);
         setPreview(null);
         setError(null);
-        setStep('SELECT');
-        setProofType('REGISTERED');
+        setStep(defaultProofType ? 'UPLOAD' : 'SELECT');
+        setProofType(defaultProofType || 'REGISTERED');
     };
 
     const handleClose = () => {
@@ -185,13 +198,15 @@ const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: ini
                 {/* Footer */}
                 {step === 'UPLOAD' && (
                     <div className="p-4 bg-gray-50 flex justify-between gap-3 border-t border-gray-100">
-                        <button
-                            onClick={() => setStep('SELECT')}
-                            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-                            disabled={uploading}
-                        >
-                            Back
-                        </button>
+                        {!defaultProofType && (
+                            <button
+                                onClick={() => setStep('SELECT')}
+                                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+                                disabled={uploading}
+                            >
+                                Back
+                            </button>
+                        )}
                         <div className="flex gap-3">
                             <button
                                 onClick={handleClose}

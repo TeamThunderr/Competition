@@ -58,6 +58,7 @@ const ODRequestPage = () => {
     const [formData, setFormData] = useState({
         team_name: '',
         leader_name: '',
+        leader_reg_no: '', // Fix: Initialize to empty string to avoid uncontrolled input warning
         section: '',
         academic_year: '2nd Year',
         department: 'CSE',
@@ -110,7 +111,7 @@ const ODRequestPage = () => {
                         }
                     }
 
-                    console.log("DEBUG: Final Profile Fetch:", profile, error);
+                    console.log("DEBUG: Final Profile Fetch - Profile:", profile, "Error:", error);
 
                     if (profile) {
                         const currentYear = new Date().getFullYear();
