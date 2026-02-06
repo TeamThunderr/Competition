@@ -25,6 +25,11 @@ async function request(endpoint, options = {}) {
         ...options.headers,
     };
 
+    // Remove Content-Type for FormData (Browser sets boundary)
+    if (options.body instanceof FormData) {
+        delete headers['Content-Type'];
+    }
+
     // 2. Auto-inject Auth Header (Demo Mode)
     const user = getCurrentUser();
     if (user?.id) {
@@ -87,8 +92,16 @@ async function request(endpoint, options = {}) {
 // Exported Methods
 export const api = {
     get: (endpoint, options = {}) => request(endpoint, { method: 'GET', ...options }),
-    post: (endpoint, body, options = {}) => request(endpoint, { method: 'POST', body: JSON.stringify(body), ...options }),
-    put: (endpoint, body, options = {}) => request(endpoint, { method: 'PUT', body: JSON.stringify(body), ...options }),
+    post: (endpoint, body, options = {}) => request(endpoint, {
+        method: 'POST',
+        body: body instanceof FormData ? body : JSON.stringify(body),
+        ...options
+    }),
+    put: (endpoint, body, options = {}) => request(endpoint, {
+        method: 'PUT',
+        body: body instanceof FormData ? body : JSON.stringify(body),
+        ...options
+    }),
     del: (endpoint, options = {}) => request(endpoint, { method: 'DELETE', ...options }),
 
     // Check Health

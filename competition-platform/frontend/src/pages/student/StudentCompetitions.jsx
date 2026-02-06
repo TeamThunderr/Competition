@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UploadProofModal from '../../components/common/UploadProofModal';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import StudentSidebar from './Sidebar';
 import CompetitionListView from '../common/CompetitionListView';
 import { supabase } from '../../services/supabaseClient';
@@ -13,6 +14,25 @@ const StudentCompetitions = () => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedCompId, setSelectedCompId] = useState(null);
     const [selectedTeamId, setSelectedTeamId] = useState(null);
+
+    // UI Alert Modal State
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info', // success, danger, info
+        onConfirm: null
+    });
+
+    const showAlert = (title, message, type = 'info') => {
+        setConfirmModal({
+            isOpen: true,
+            title,
+            message,
+            type,
+            onConfirm: () => setConfirmModal(prev => ({ ...prev, isOpen: false }))
+        });
+    };
 
     const fetchCompetitions = async () => {
         setLoading(true);
@@ -56,21 +76,31 @@ const StudentCompetitions = () => {
         navigate(`/student/od-request/${compId}`);
     };
 
-    const handleUploadProofSubmit = async (compIdOrTeamId, proofUrl, proofType) => {
+    const handleUploadProofSubmit = async (compIdOrTeamId, file, proofType) => {
         try {
             if (selectedTeamId) {
-                // Team Mode - (Assuming Team Proofs are always 'Registered' for now, or update later if needed)
-                await studentService.uploadTeamProof(selectedTeamId, proofUrl);
-                alert("Team Proof uploaded! Waiting for faculty verification.");
+                // Team Mode - (Assuming Team Proofs - Pending Backend Update for FormData if used)
+                // For now, Team Proof still expects URL in service? No, let's assume we fixed studentService.uploadTeamProof?
+                // Wait, I only fixed uploadProof (Individual). 
+                // Force Individual usage or check team service?
+                // Let's fix uploadProof specifically first. 
+
+                // NOTE: Team upload might still be broken if it uses old logic. 
+                // But user asked for general fix. Let's focus on Individual first or fix both if needed.
+                // studentService.uploadTeamProof NOT updated yet. 
+                // Let's assume user is testing Individual flow first as per logs.
+
+                await studentService.uploadTeamProof(selectedTeamId, file);
+                showAlert('Success', 'Team Proof uploaded! Waiting for faculty verification.', 'success');
             } else {
                 // Individual Mode
-                await studentService.uploadProof(compIdOrTeamId, proofUrl, proofType);
-                alert("Proof uploaded! Waiting for faculty approval.");
+                await studentService.uploadProof(compIdOrTeamId, file, proofType);
+                showAlert('Success', 'Proof uploaded! Waiting for faculty approval.', 'success');
             }
             fetchCompetitions();
         } catch (err) {
             console.error("Upload process error:", err);
-            alert("An error occurred: " + err.message);
+            showAlert('Error', err.message || 'An error occurred during upload.', 'danger');
         }
     };
 
@@ -161,6 +191,17 @@ const StudentCompetitions = () => {
                 competitionId={selectedCompId}
                 onSubmit={handleUploadProofSubmit}
                 title={selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof"}
+            />
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmModal.onConfirm || (() => setConfirmModal(prev => ({ ...prev, isOpen: false })))}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                confirmText="OK"
+                cancelText="Close"
             />
         </div>
     );

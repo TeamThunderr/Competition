@@ -60,24 +60,8 @@ const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: ini
         setError(null);
 
         try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${competitionId}_${Date.now()}.${fileExt}`;
-            const filePath = `proofs/${fileName}`;
-
-            // 1. Upload to Supabase Storage
-            const { error: uploadError } = await supabase.storage
-                .from('proofs')
-                .upload(filePath, file);
-
-            if (uploadError) throw uploadError;
-
-            // 2. Get Public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('proofs')
-                .getPublicUrl(filePath);
-
-            // 3. Submit URL to backend with Proof Type
-            await onSubmit(competitionId, publicUrl, proofType);
+            // Updated: Pass file directly to parent for backend upload (fixes RLS)
+            await onSubmit(competitionId, file, proofType);
 
             // Cleanup and close
             handleClose();
@@ -85,12 +69,7 @@ const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: ini
         } catch (err) {
             console.error('Upload failed:', err);
             const errorMessage = typeof err === 'string' ? err : err.message;
-
-            if (errorMessage === 'Supabase not configured') {
-                setError('System Error: Database connection not configured. Please contact the administrator.');
-            } else {
-                setError(errorMessage || 'Failed to upload image. Please try again.');
-            }
+            setError(errorMessage || 'Failed to submit proof. Please try again.');
         } finally {
             setUploading(false);
         }
@@ -98,14 +77,14 @@ const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: ini
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="bg-white dark:bg-[#0F1117] rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100 dark:border-white/10">
                 {/* Header */}
-                <div className="flex justify-between items-center p-4 border-b border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-900">
+                <div className="flex justify-between items-center p-4 border-b border-gray-100 dark:border-white/10">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {step === 'SELECT' ? 'Select Proof Type' :
                             proofType === 'REGISTERED' ? 'Upload Registration Proof' : 'Upload Qualification Proof'}
                     </h3>
-                    <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+                    <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                         <X size={20} />
                     </button>
                 </div>
@@ -116,36 +95,36 @@ const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: ini
                         <div className="grid gap-4">
                             <button
                                 onClick={() => handleSelectType('REGISTERED')}
-                                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-all group"
+                                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:border-blue-200 dark:hover:border-blue-500/50 transition-all group"
                             >
-                                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-3 group-hover:bg-white group-hover:scale-110 transition-transform">
+                                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mb-3 group-hover:bg-white dark:group-hover:bg-blue-500/30 group-hover:scale-110 transition-transform">
                                     <ImageIcon size={24} />
                                 </div>
-                                <span className="font-semibold text-gray-900">Registered</span>
-                                <span className="text-xs text-gray-500 mt-1 center text-center">Upload proof of registration</span>
+                                <span className="font-semibold text-gray-900 dark:text-white">Registered</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 center text-center">Upload proof of registration</span>
                             </button>
 
                             <button
                                 onClick={() => handleSelectType('QUALIFIED')}
-                                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 rounded-xl hover:bg-green-50 hover:border-green-200 transition-all group"
+                                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl hover:bg-green-50 dark:hover:bg-green-500/10 hover:border-green-200 dark:hover:border-green-500/50 transition-all group"
                             >
-                                <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-3 group-hover:bg-white group-hover:scale-110 transition-transform">
+                                <div className="w-12 h-12 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-3 group-hover:bg-white dark:group-hover:bg-green-500/30 group-hover:scale-110 transition-transform">
                                     <TrophyIcon />
                                 </div>
-                                <span className="font-semibold text-gray-900">Qualified</span>
-                                <span className="text-xs text-gray-500 mt-1 text-center">Upload proof of shortlisting/qualification</span>
+                                <span className="font-semibold text-gray-900 dark:text-white">Qualified</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Upload proof of shortlisting/qualification</span>
                             </button>
                         </div>
                     ) : (
                         <>
-                            <p className="text-sm text-gray-600 mb-4">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                                 {proofType === 'REGISTERED'
                                     ? "Please upload a screenshot of your registration confirmation (email or success screen)."
                                     : "Please upload a screenshot showing you have been shortlisted or qualified."}
                             </p>
 
                             {/* Upload Area */}
-                            <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors bg-gray-50/50">
+                            <div className="border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 dark:hover:bg-white/5 transition-colors bg-gray-50/50 dark:bg-black/20">
                                 {preview ? (
                                     <div className="relative w-full">
                                         <img src={preview} alt="Preview" className="w-full h-48 object-contain rounded-lg" />
@@ -158,11 +137,11 @@ const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: ini
                                     </div>
                                 ) : (
                                     <label className="cursor-pointer w-full flex flex-col items-center">
-                                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3">
+                                        <div className="w-12 h-12 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mb-3">
                                             <StoreUploadIcon />
                                         </div>
-                                        <span className="text-sm font-medium text-gray-900">Click to upload image</span>
-                                        <span className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</span>
+                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-200">Click to upload image</span>
+                                        <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">PNG, JPG up to 5MB</span>
                                         <input
                                             type="file"
                                             className="hidden"
@@ -174,7 +153,7 @@ const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: ini
                             </div>
 
                             {error && (
-                                <div className="mt-3 text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 flex items-center">
+                                <div className="mt-3 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 p-2 rounded-lg border border-red-100 dark:border-red-500/20 flex items-center">
                                     ⚠️ {error}
                                 </div>
                             )}
@@ -184,10 +163,10 @@ const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: ini
 
                 {/* Footer */}
                 {step === 'UPLOAD' && (
-                    <div className="p-4 bg-gray-50 flex justify-between gap-3 border-t border-gray-100">
+                    <div className="p-4 bg-gray-50 dark:bg-black/20 flex justify-between gap-3 border-t border-gray-100 dark:border-white/10">
                         <button
                             onClick={() => setStep('SELECT')}
-                            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+                            className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors"
                             disabled={uploading}
                         >
                             Back
@@ -195,7 +174,7 @@ const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: ini
                         <div className="flex gap-3">
                             <button
                                 onClick={handleClose}
-                                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+                                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors"
                                 disabled={uploading}
                             >
                                 Cancel
@@ -221,10 +200,10 @@ const UploadProofModal = ({ isOpen, onClose, onSubmit, competitionId, title: ini
                     </div>
                 )}
                 {step === 'SELECT' && (
-                    <div className="p-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+                    <div className="p-4 bg-gray-50 dark:bg-black/20 flex justify-end gap-3 border-t border-gray-100 dark:border-white/10">
                         <button
                             onClick={handleClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+                            className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors"
                         >
                             Cancel
                         </button>

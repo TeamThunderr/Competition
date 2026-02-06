@@ -24,7 +24,8 @@ router.get('/competition/:id', competitionController.getCompetitionDetails);
 
 // Registration / Verification Flow
 router.post('/check-status', registrationController.checkRegistrationStatus);
-router.post('/upload-proof', registrationController.uploadProof);
+const upload = require('../../middleware/uploadMiddleware');
+router.post('/upload-proof', upload.single('proof'), registrationController.uploadProof);
 
 // OD Requests
 router.post('/request-od', odController.requestOD);
