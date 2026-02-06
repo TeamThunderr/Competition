@@ -4,6 +4,7 @@ import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
 
 const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = true, isApplied = false, onToggleApplied }) => {
     const { my_registration, my_status, my_od } = competition;
+    console.log(`[CompCard Debug] ${competition.id} - ${competition.title}:`, { my_registration, my_status, my_od });
 
     const deadlineDate = new Date(competition.registration_deadline);
     deadlineDate.setHours(23, 59, 59, 999);
@@ -32,12 +33,12 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
             );
         }
 
-        // 1. Not Registered
+        // 1. Not Registered - Restrict to REGISTERED proof
         if (!my_registration) {
             return (
                 <div className="flex gap-2 flex-1 items-center">
                     <button
-                        onClick={() => onRegister(competition.id)}
+                        onClick={() => onRegister(competition.id, 'REGISTERED')}
                         className="flex-1 bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
                         Upload Proof
                     </button>
@@ -45,8 +46,8 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
             );
         }
 
-        // 2. Pending Verification (Manual Upload)
-        if (my_registration.source === 'MANUAL_SCREENSHOT' && !my_registration.verified) {
+        // 2. Pending Verification (Manual Upload) - OR if just 'Registered' but not verified (Manual flow)
+        if (!my_registration.verified) {
             return (
                 <div className="flex-1 bg-yellow-50 border border-yellow-200 text-yellow-700 py-2 px-4 rounded-lg text-sm font-medium text-center">
                     Verification Pending
@@ -54,16 +55,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
             );
         }
 
-        // 3. Pending Gmail (should technically be instant, but just in case)
-        if (my_registration.source === 'AUTO_GMAIL' && !my_registration.verified) {
-            return (
-                <div className="flex-1 bg-blue-50 text-blue-700 py-2 px-4 rounded-lg text-sm font-medium text-center">
-                    Gmail Detected (Verifying...)
-                </div>
-            );
-        }
-
-        // 4. Verified / Registered
+        // 3. Verified / Registered
         if (my_registration.verified) {
             // Check for OD Status first
             if (my_od) {
@@ -79,15 +71,47 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
 
             // Allow OD Request ONLY for Shortlisted (or Winner)
             if (my_status?.is_shortlisted || my_status?.is_winner) {
+                // 4a. Check if Shortlisted Proof is already uploaded & Verified (QUALIFIED status)
+                // We enforce source === 'MANUAL_SCREENSHOT' to ensure they actually uploaded a proof for this stage.
+                const isQualifiedVerified = my_registration.status === 'Qualified' &&
+                    my_registration.verified &&
+                    my_registration.source === 'MANUAL_SCREENSHOT';
+
+                if (isQualifiedVerified) {
+                    return (
+                        <button
+                            onClick={() => onRequestOD(competition.id)}
+                            className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm">
+                            Request OD
+                        </button>
+                    );
+                }
+
+                // If status is 'Qualified' (meaning they uploaded it) but verified is false (or not manual yet):
+                if (my_registration.status === 'Qualified' && !my_registration.verified) {
+                    return (
+                        <div className="flex-1 bg-yellow-50 border border-yellow-200 text-yellow-700 py-2 px-4 rounded-lg text-sm font-medium text-center">
+                            Verification Pending
+                        </div>
+                    );
+                }
+
+                // If here, they are Shortlisted but haven't uploaded Valid Qualified proof yet
                 return (
-                    <button
-                        onClick={() => onRequestOD(competition.id)}
-                        className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm">
-                        {my_status?.is_shortlisted ? "Shortlisted! Request OD" : "Request OD"}
-                    </button>
+                    <div className="flex gap-2 flex-1">
+                        <div className="flex-1 bg-green-50 text-green-700 py-2 px-2 rounded-lg text-sm font-medium text-center border border-green-200 flex items-center justify-center">
+                            {my_status?.is_shortlisted ? 'Qualified' : 'Registered'}
+                        </div>
+                        <button
+                            onClick={() => onRegister(competition.id, 'QUALIFIED')}
+                            className="flex-1 bg-purple-600 text-white py-2 px-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm text-center">
+                            Upload Proof
+                        </button>
+                    </div>
                 );
             }
-            // If not shortlisted, show nothing (or maybe 'Registered')
+
+            // If not shortlisted, show Registered status
             return (
                 <div className="flex-1 bg-green-50 text-green-700 py-2 px-4 rounded-lg text-sm font-medium text-center border border-green-200">
                     Registered

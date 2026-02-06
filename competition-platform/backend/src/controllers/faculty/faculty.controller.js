@@ -652,7 +652,7 @@ const getPendingVerifications = async (req, res) => {
         const { data: registrations, error } = await supabase
             .from('registrations')
             .select(`
-                id, registered_at, proof_url, verified,
+                id, registered_at, proof_url, verified, status, source,
                 users!registrations_user_id_fkey!inner ( full_name, registration_no, section ),
                 competitions!inner ( title )
             `)
@@ -672,13 +672,15 @@ const getPendingVerifications = async (req, res) => {
                 section: r.users.section
             },
             proof_url: r.proof_url,
+            status: r.status, // Include status for filtering
+            source: r.source,
             created_at: r.registered_at
         }));
 
         sendResponse(res, 200, mappedRegs, 'Fetched pending registrations');
     } catch (err) {
         console.error('[FacultyController] Pending Regs Error:', err);
-        sendResponse(res, 500, null, 'Internal Server Error');
+        sendResponse(res, 500, null, 'Internal Server Error: ' + err.message);
     }
 };
 

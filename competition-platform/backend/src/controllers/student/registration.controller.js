@@ -144,7 +144,8 @@ const uploadProof = async (req, res) => {
             .update({
                 proof_url: proof_url,
                 verified: false, // Needs faculty approval
-                status: status // Save the type of proof
+                status: status, // Save the type of proof
+                source: 'MANUAL_SCREENSHOT' // Force manual source so it shows as pending verification
             })
             .eq('user_id', student_id)
             .eq('competition_id', competition_id)
