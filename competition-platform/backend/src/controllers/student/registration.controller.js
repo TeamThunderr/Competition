@@ -125,20 +125,40 @@ const checkRegistrationStatus = async (req, res) => {
 // 2. Upload Screenshot Proof (Manual) - V2 Implementation
 const uploadProof = async (req, res) => {
     try {
-        const { competition_id, proof_url, proof_type } = req.body;
+        const { competition_id, proof_type } = req.body;
         const student_id = req.userId;
+        const file = req.file;
 
-        if (!competition_id || !proof_url) {
-            return res.status(400).json({ error: 'Competition ID and Proof URL are required' });
+        if (!competition_id || !file) {
+            return res.status(400).json({ error: 'Competition ID and Proof File are required' });
         }
 
-        // V2: Use single write path through service
+        // 1. Upload to Supabase Storage (Using Service Key)
+        const fileExt = file.originalname.split('.').pop();
+        const fileName = `${competition_id}_${student_id}_${Date.now()}.${fileExt}`;
+        const filePath = `proofs/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('proofs')
+            .upload(filePath, file.buffer, {
+                contentType: file.mimetype,
+                upsert: true
+            });
+
+        if (uploadError) {
+            console.error('Supabase Storage Error:', uploadError);
+            throw uploadError;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('proofs')
+            .getPublicUrl(filePath);
+
+        // 2. Update Database
         await ensureRegistrationExists(student_id, competition_id, 'MANUAL_SCREENSHOT');
 
-        // Determine Status
         const status = (proof_type === 'QUALIFIED') ? 'Qualified' : 'Registered';
 
-        // Update proof URL for manual registration
         const { data, error } = await supabase
             .from('registrations')
             .update({
@@ -155,12 +175,45 @@ const uploadProof = async (req, res) => {
 
         res.status(201).json({
             message: 'Proof uploaded successfully. Waiting for Faculty verification.',
-            data: data[0]
+            data: data[0],
+            proof_url: publicUrl
         });
 
     } catch (err) {
         console.error('Upload Proof Error:', err);
-        res.status(500).json({ error: 'Internal Server Error', details: err.message });
+        res.status(500).json({ error: err.message || 'Upload failed', details: err });
+    }
+};
+
+const uploadShortlistProof = async (req, res) => {
+    try {
+        const { competition_id, proof_url } = req.body;
+        const student_id = req.userId;
+
+        if (!competition_id || !proof_url) {
+            return res.status(400).json({ error: 'Competition ID and Proof URL are required' });
+        }
+
+        const { data, error } = await supabase
+            .from('registrations')
+            .update({
+                shortlist_proof_url: proof_url,
+                qualification_verified: false // Reset for Faculty Verification
+            })
+            .eq('user_id', student_id)
+            .eq('competition_id', competition_id)
+            .select();
+
+        if (error) throw error;
+
+        res.status(200).json({
+            message: 'Shortlist proof uploaded! Waiting for Faculty verification.',
+            data: data[0]
+        });
+
+    } catch (err) {
+        console.error('Upload Shortlist Proof Error:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 };
 

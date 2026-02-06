@@ -4,6 +4,7 @@ import { CheckCircle, XCircle, ExternalLink, Users, FileText } from 'lucide-reac
 import { getPendingVerifications, verifyRegistration } from '../../services/facultyService';
 import { api } from '../../services/api'; // Direct API for team verification if service not unified
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const FacultyVerify = () => {
     const [activeTab, setActiveTab] = useState('registration'); // 'registration' | 'shortlist'
@@ -11,6 +12,15 @@ const FacultyVerify = () => {
     const [shortlisted, setShortlisted] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
+
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        action: null,
+        id: null,
+        title: '',
+        message: '',
+        type: 'info'
+    });
 
     const fetchPending = async () => {
         setLoading(true);
@@ -40,26 +50,47 @@ const FacultyVerify = () => {
         fetchPending();
     }, []);
 
-    const handleAction = async (id, status) => {
-        if (!window.confirm(`Are you sure you want to ${status} this request?`)) return;
+    const handleAction = (id, status) => {
+        const isApprove = status === 'approve';
+        setConfirmModal({
+            isOpen: true,
+            action: status,
+            id: id,
+            title: isApprove ? 'Approve Request' : 'Reject Request',
+            message: isApprove
+                ? 'Are you sure you want to approve this verification request? This will verify the student.'
+                : 'Are you sure you want to reject this request? This action cannot be undone.',
+            type: isApprove ? 'success' : 'danger'
+        });
+    };
+
+    const executeAction = async () => {
+        const { id, action } = confirmModal;
+        if (!id || !action) return;
 
         setActionLoading(id);
-        try {
-            // Pass the type of verification (activeTab) to the service
-            const type = activeTab === 'registration' ? 'REGISTRATION' : 'SHORTLIST';
-            await verifyRegistration(id, status, type);
+        setConfirmModal(prev => ({ ...prev, loading: true })); // Add loading state to modal if supported or just use local
 
-            // Remove from list locally for instant feedback
+        try {
+            const type = activeTab === 'registration' ? 'REGISTRATION' : 'SHORTLIST';
+            await verifyRegistration(id, action, type);
+
             if (activeTab === 'registration') {
                 setRegistrations(prev => prev.filter(p => p.id !== id));
             } else {
                 setShortlisted(prev => prev.filter(p => p.id !== id));
             }
+
+            // Close modal on success
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
         } catch (err) {
             console.error(err);
-            alert("Failed to process request.");
+            // Could show a toast here, or just keep modal open with error? 
+            // For now, simple console log, maybe close logic.
+            // alert("Failed to process request."); // Removed alert as requested
         } finally {
             setActionLoading(false);
+            setConfirmModal(prev => ({ ...prev, loading: false }));
         }
     };
 
@@ -182,6 +213,32 @@ const FacultyVerify = () => {
                                             </span>
                                         </div>
                                     </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="mt-6 flex gap-3">
+                                        <button
+                                            onClick={() => handleAction(item.id, 'approve')}
+                                            disabled={actionLoading === item.id}
+                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
+                                        >
+                                            {actionLoading === item.id ? (
+                                                <span className="animate-pulse">Processing...</span>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle size={18} />
+                                                    Accept
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={() => handleAction(item.id, 'reject')}
+                                            disabled={actionLoading === item.id}
+                                            className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                        >
+                                            <XCircle size={18} />
+                                            Reject
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Actions */}
@@ -211,8 +268,21 @@ const FacultyVerify = () => {
                         ))}
                     </div>
                 )}
-            </main >
-        </div >
+            </main>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={executeAction}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                loading={confirmModal.loading}
+                confirmText={confirmModal.type === 'danger' ? 'Reject' : 'Approve'}
+                cancelText="Cancel"
+            />
+
+        </div>
     );
 };
 

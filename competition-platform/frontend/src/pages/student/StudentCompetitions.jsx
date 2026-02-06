@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UploadProofModal from '../../components/common/UploadProofModal';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import StudentSidebar from './Sidebar';
 import CompetitionListView from '../common/CompetitionListView';
 import { supabase } from '../../services/supabaseClient';
@@ -60,7 +61,7 @@ const StudentCompetitions = () => {
         navigate(`/student/od-request/${compId}`);
     };
 
-    const handleUploadProofSubmit = async (compIdOrTeamId, proofUrl, proofType) => {
+    const handleUploadProofSubmit = async (compIdOrTeamId, file, proofType) => {
         try {
             if (isShortlistUpload) {
                 // Shortlist Verification Mode
@@ -72,13 +73,13 @@ const StudentCompetitions = () => {
                 alert("Team Proof uploaded! Waiting for faculty verification.");
             } else {
                 // Individual Mode
-                await studentService.uploadProof(compIdOrTeamId, proofUrl, proofType);
-                alert("Proof uploaded! Waiting for faculty approval.");
+                await studentService.uploadProof(compIdOrTeamId, file, proofType);
+                showAlert('Success', 'Proof uploaded! Waiting for faculty approval.', 'success');
             }
             fetchCompetitions();
         } catch (err) {
             console.error("Upload process error:", err);
-            alert("An error occurred: " + err.message);
+            showAlert('Error', err.message || 'An error occurred during upload.', 'danger');
         }
     };
 

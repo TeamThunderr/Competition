@@ -18,11 +18,16 @@ export const checkStatus = async (competitionId, providerToken) => {
 };
 
 // Proof Upload
-export const uploadProof = async (competitionId, proofUrl, proofType) => {
-    return await api.post('/api/student/upload-proof', {
-        competition_id: competitionId,
-        proof_url: proofUrl,
-        proof_type: proofType
+export const uploadProof = async (competitionId, file, proofType) => {
+    const formData = new FormData();
+    formData.append('competition_id', competitionId);
+    formData.append('proof_type', proofType);
+    formData.append('proof', file); // 'proof' matches upload.single('proof') in backend
+
+    return await api.post('/api/student/upload-proof', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
     });
 };
 

@@ -5,6 +5,7 @@ import { getDashboardStats } from '../../services/facultyService';
 import { api } from '../../services/api';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const FacultyDashboard = () => {
     const [stats, setStats] = useState({
@@ -19,6 +20,8 @@ const FacultyDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+    const [syncing, setSyncing] = useState(false);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -111,42 +114,8 @@ const FacultyDashboard = () => {
                                     </div>
                                     <div className="flex gap-3">
                                         <button
-                                            onClick={async () => {
-                                                if (confirm("Sync ALL active competitions? This will check registration status for all students against the database.")) {
-                                                    setLoading(true);
-                                                    try {
-                                                        const { syncCompetition } = await import('../../services/facultyService');
-                                                        const { getDashboardStats } = await import('../../services/facultyService');
-
-                                                        let processedCount = 0;
-                                                        // Sync each competition sequentially
-                                                        for (const comp of competitions) {
-                                                            await syncCompetition(comp.id);
-                                                            processedCount++;
-                                                        }
-
-                                                        alert(`Sync Complete! Synced ${processedCount} active competitions.`);
-
-                                                        // Refresh Stats
-                                                        const newStats = await getDashboardStats();
-                                                        setStats(newStats);
-
-                                                        // Refresh Competitions (to update counts/status)
-                                                        const activeCompetitionsResponse = await api.get('/api/competitions');
-                                                        const activeCompetitions = (activeCompetitionsResponse?.success && Array.isArray(activeCompetitionsResponse.data))
-                                                            ? activeCompetitionsResponse.data
-                                                            : (Array.isArray(activeCompetitionsResponse) ? activeCompetitionsResponse : []);
-
-                                                        setCompetitions(activeCompetitions);
-                                                    } catch (e) {
-                                                        console.error(e);
-                                                        alert("Sync Failed: " + (e.message || "Unknown Error"));
-                                                    } finally {
-                                                        setLoading(false);
-                                                    }
-                                                }
-                                            }}
-                                            className="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors shadow-sm"
+                                            onClick={() => setIsSyncModalOpen(true)}
+                                            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all hover:-translate-y-0.5"
                                         >
                                             <RefreshCw size={18} /> Sync Comp
                                         </button>
@@ -156,10 +125,10 @@ const FacultyDashboard = () => {
                                                     const { downloadParticipationReport } = await import('../../services/facultyService');
                                                     await downloadParticipationReport();
                                                 } catch (e) {
-                                                    alert("Download failed");
+                                                    console.error(e);
                                                 }
                                             }}
-                                            className="flex items-center gap-2 bg-card border border-border text-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-50/10 transition-colors shadow-sm"
+                                            className="flex items-center gap-2 bg-card border border-border/50 text-foreground px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-muted/50 transition-all hover:-translate-y-0.5 hover:shadow-md"
                                         >
                                             <Download size={18} /> Download
                                         </button>
@@ -189,7 +158,49 @@ const FacultyDashboard = () => {
                         </>
                     )}
                 </main>
+
             </div>
+
+            <ConfirmModal
+                isOpen={isSyncModalOpen}
+                onClose={() => setIsSyncModalOpen(false)}
+                title="Sync Active Competitions"
+                message="This will check registration status for all students against the database and update the dashboard. This operation might take a few seconds."
+                confirmText="Start Sync"
+                loading={syncing}
+                onConfirm={async () => {
+                    setSyncing(true);
+                    try {
+                        const { syncCompetition } = await import('../../services/facultyService');
+                        const { getDashboardStats } = await import('../../services/facultyService');
+
+                        let processedCount = 0;
+                        for (const comp of competitions) {
+                            await syncCompetition(comp.id);
+                            processedCount++;
+                        }
+
+                        // Refresh Stats
+                        const newStats = await getDashboardStats();
+                        setStats(newStats);
+
+                        // Refresh Competitions
+                        const activeCompetitionsResponse = await api.get('/api/competitions');
+                        const activeCompetitions = (activeCompetitionsResponse?.success && Array.isArray(activeCompetitionsResponse.data))
+                            ? activeCompetitionsResponse.data
+                            : (Array.isArray(activeCompetitionsResponse) ? activeCompetitionsResponse : []);
+
+                        setCompetitions(activeCompetitions);
+                        setIsSyncModalOpen(false); // Close on success
+                    } catch (e) {
+                        console.error(e);
+                        setError("Sync Failed: " + (e.message || "Unknown Error"));
+                        setIsSyncModalOpen(false); // Close on error too
+                    } finally {
+                        setSyncing(false);
+                    }
+                }}
+            />
         </div>
     );
 };
