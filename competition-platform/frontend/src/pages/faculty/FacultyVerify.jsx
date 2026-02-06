@@ -37,7 +37,7 @@ const FacultyVerify = () => {
     };
 
     useEffect(() => {
-        fetchData();
+        fetchPending();
     }, []);
 
     const handleAction = async (id, status) => {
