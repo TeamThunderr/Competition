@@ -14,6 +14,45 @@ const ODRequestPage = () => {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [isSolo, setIsSolo] = useState(false);
+    const [existingODs, setExistingODs] = useState([]); // Store existing ODs
+
+    // Fetch Existing ODs
+    useEffect(() => {
+        const fetchODs = async () => {
+            try {
+                const data = await studentService.getMyODRequests();
+                setExistingODs(data || []);
+            } catch (err) {
+                console.error("Error fetching existing ODs:", err);
+            }
+        };
+        fetchODs();
+    }, []);
+
+    // Check for Overlaps (Immediate Feedback)
+    const checkOverlap = (fromDate, toDate) => {
+        if (!fromDate || !toDate) return;
+        const start = new Date(fromDate);
+        const end = new Date(toDate);
+
+        const conflict = existingODs.find(od => {
+            // Check only active ODs (Approved/Pending/Verified)
+            if (['REJECTED', 'CANCELLED'].includes(od.status)) return false;
+            // Don't check against self if editing (though this is new request page)
+            if (od.competition_id === competitionId) return true; // Already requested for THIS competition
+
+            const existStart = new Date(od.from_date);
+            const existEnd = new Date(od.to_date);
+            return (start <= existEnd && end >= existStart);
+        });
+
+        if (conflict) {
+            // Immediate Popup as requested
+            alert(`OVERLAP DETECTED!\n\nYou already have an ${conflict.status} OD request for:\n"${conflict.competitions?.title}"\nFrom: ${new Date(conflict.from_date).toLocaleDateString()}To: ${new Date(conflict.to_date).toLocaleDateString()}\n\nPlease choose different dates.`);
+            // Reset dates to avoid submission
+            setFormData(prev => ({ ...prev, from_date: '', to_date: '' }));
+        }
+    };
 
     // Form Data
     const [formData, setFormData] = useState({
@@ -121,7 +160,19 @@ const ODRequestPage = () => {
     }, [competitionId]);
 
     // Handlers
-    const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+
+        // Trigger Overlap Check immediately on Date Change
+        if (name === 'from_date' || name === 'to_date') {
+            const newFrom = name === 'from_date' ? value : formData.from_date;
+            const newTo = name === 'to_date' ? value : formData.to_date;
+            if (newFrom && newTo) {
+                checkOverlap(newFrom, newTo);
+            }
+        }
+    };
 
     // Dynamic Members
     const addMember = () => {

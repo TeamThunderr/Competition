@@ -18,14 +18,19 @@ const StudentDashboard = () => {
     const [selectedCompId, setSelectedCompId] = useState(null);
     const [selectedTeamId, setSelectedTeamId] = useState(null);
     const [selectedTeamData, setSelectedTeamData] = useState(null);
+    const [odRequests, setOdRequests] = useState([]);
 
     const fetchCompetitions = async () => {
         setLoading(true);
         try {
-            const data = await api.get('/api/student/competitions');
-            setCompetitions(data || []);
+            const [competitionsData, odData] = await Promise.all([
+                api.get('/api/student/competitions'),
+                studentService.getMyODRequests()
+            ]);
+            setCompetitions(competitionsData || []);
+            setOdRequests(odData || []);
         } catch (err) {
-            console.error('Error fetching competitions:', err);
+            console.error('Error fetching dashboard data:', err);
         } finally {
             setLoading(false);
         }
@@ -34,6 +39,61 @@ const StudentDashboard = () => {
     useEffect(() => {
         fetchCompetitions();
     }, []);
+
+    // Derived State for OD Status Card
+    const getODStatusCard = () => {
+        const now = new Date();
+        const activeOD = odRequests.find(od =>
+            od.status === 'APPROVED' &&
+            new Date(od.from_date) <= now &&
+            new Date(od.to_date) >= now
+        );
+
+        if (activeOD) {
+            return (
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 rounded-xl flex items-center gap-4">
+                    <div className="p-3 bg-emerald-100 dark:bg-emerald-800 rounded-full text-emerald-600 dark:text-emerald-300">
+                        <Trophy size={24} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-emerald-800 dark:text-emerald-200">Active OD</h3>
+                        <p className="text-sm text-emerald-700 dark:text-emerald-300 line-clamp-1">{activeOD.competitions?.title}</p>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                            {new Date(activeOD.from_date).toLocaleDateString()} - {new Date(activeOD.to_date).toLocaleDateString()}
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        const pendingOD = odRequests.find(od => od.status === 'PENDING');
+        if (pendingOD) {
+            return (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-xl flex items-center gap-4">
+                    <div className="p-3 bg-amber-100 dark:bg-amber-800 rounded-full text-amber-600 dark:text-amber-300">
+                        <Clock size={24} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-amber-800 dark:text-amber-200">OD Request Pending</h3>
+                        <p className="text-sm text-amber-700 dark:text-amber-300 line-clamp-1">{pendingOD.competitions?.title}</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400">Waiting for approval...</p>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div className="bg-gray-50 dark:bg-gray-800/50 border border-border p-4 rounded-xl flex items-center gap-4 opacity-75">
+                <div className="p-3 bg-gray-200 dark:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400">
+                    <Clock size={24} />
+                </div>
+                <div>
+                    <h3 className="font-bold text-foreground">No Active OD</h3>
+                    <p className="text-sm text-muted">You are currently on campus.</p>
+                </div>
+            </div>
+        );
+    };
 
 
 
@@ -79,10 +139,13 @@ const StudentDashboard = () => {
 
                 <div className="flex-1 p-4 md:p-8 overflow-y-auto">
                     {/* Header */}
-                    <div className="mb-8 flex justify-between items-end">
+                    <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
                         <div>
                             <h1 className="text-2xl font-bold text-foreground">Welcome back !</h1>
                             <p className="text-muted mt-1">Here's what's happening with your competitions.</p>
+                        </div>
+                        <div className="md:w-1/3 w-full">
+                            {getODStatusCard()}
                         </div>
                     </div>
 

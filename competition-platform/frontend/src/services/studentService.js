@@ -37,8 +37,11 @@ export const uploadShortlistProof = async (competitionId, proofUrl) => {
 export const requestOD = async (competitionId, reason) => {
     return await api.post('/api/student/request-od', {
         competition_id: competitionId,
-        reason
     });
+};
+
+export const getMyODRequests = async () => {
+    return await api.get('/api/student/od-requests');
 };
 
 // Profile
@@ -110,6 +113,7 @@ export const studentService = {
     checkStatus,
     uploadProof,
     requestOD,
+    getMyODRequests,
     getProfile,
     checkTeamStatus,
     uploadTeamProof

@@ -8,7 +8,6 @@ const StudentSidebar = ({ isOpen, onClose }) => {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/student/dashboard' },
         { icon: User, label: 'Profile', path: '/student/profile' },
         { icon: FileText, label: 'OD History', path: '/student/od-history' },
-        { icon: BarChart2, label: 'Analytics', path: '/student/stats' },
     ];
 
     return (

@@ -101,6 +101,32 @@ const requestOD = async (req, res) => {
             return res.status(409).json({ error: 'You have already requested OD for this competition.' });
         }
 
+        // 2b. [NEW] Check for Date Overlaps with other ODs
+        const reqFrom = new Date(from_date);
+        const reqTo = new Date(to_date);
+
+        const { data: conflictingODs, error: conflictError } = await supabase
+            .from('od_requests')
+            .select('id, from_date, to_date, status, competitions(title)')
+            .eq('user_id', student_id)
+            .in('status', ['PENDING', 'APPROVED', 'VERIFIED']) // Active statuses
+            .neq('competition_id', competition_id); // Don't check against self
+
+        if (conflictError) throw conflictError;
+
+        const overlap = conflictingODs.find(od => {
+            const existingFrom = new Date(od.from_date);
+            const existingTo = new Date(od.to_date);
+            // Overlap check: (StartA <= EndB) and (EndA >= StartB)
+            return (reqFrom <= existingTo && reqTo >= existingFrom);
+        });
+
+        if (overlap) {
+            return res.status(409).json({
+                error: `OD Request overlaps with an existing request for '${overlap.competitions?.title}' (${new Date(overlap.from_date).toLocaleDateString()} - ${new Date(overlap.to_date).toLocaleDateString()}).`
+            });
+        }
+
         // 3. Create OD Request (Directly to HOD)
         const { data: odReq, error: odError } = await supabase
             .from('od_requests')
