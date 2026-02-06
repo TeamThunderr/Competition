@@ -65,7 +65,7 @@ const getDepartmentStats = async (req, res) => {
         // Join with users table to filter by department_id
         const { count: sCount, error: shortError } = await supabase
             .from('competition_status')
-            .select('users!inner(department_id)', { count: 'exact', head: true })
+            .select('users!user_id!inner(department_id)', { count: 'exact', head: true })
             .eq('is_shortlisted', true)
             .eq('users.department_id', hodDeptId);
 
@@ -340,7 +340,7 @@ const getDepartmentAnalytics = async (req, res) => {
             .select(`
                 is_shortlisted, 
                 is_winner,
-                users!inner(department_id)
+                users!user_id!inner(department_id)
             `)
             .eq('users.department_id', hodDeptId);
 
@@ -367,7 +367,7 @@ const getDepartmentAnalytics = async (req, res) => {
                 competition_status(
                     is_shortlisted,
                     is_winner,
-                    users!inner(department_id)
+                    users!user_id!inner(department_id)
                 )
             `)
             .eq('registrations.users.department_id', hodDeptId)
@@ -384,7 +384,7 @@ const getDepartmentAnalytics = async (req, res) => {
                 is_shortlisted,
                 is_winner,
                 competitions ( id, title, event_date ),
-                users!inner(department_id)
+                users!user_id!inner(department_id)
             `)
             .eq('users.department_id', hodDeptId);
 
