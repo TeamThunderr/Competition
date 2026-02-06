@@ -162,7 +162,7 @@ const uploadProof = async (req, res) => {
         const { data, error } = await supabase
             .from('registrations')
             .update({
-                proof_url: proof_url,
+                proof_url: publicUrl,
                 verified: false, // Needs faculty approval
                 status: status, // Save the type of proof
                 source: 'MANUAL_SCREENSHOT' // Force manual source so it shows as pending verification
@@ -217,37 +217,7 @@ const uploadShortlistProof = async (req, res) => {
     }
 };
 
-const uploadShortlistProof = async (req, res) => {
-    try {
-        const { competition_id, proof_url } = req.body;
-        const student_id = req.userId;
 
-        if (!competition_id || !proof_url) {
-            return res.status(400).json({ error: 'Competition ID and Proof URL are required' });
-        }
-
-        const { data, error } = await supabase
-            .from('registrations')
-            .update({
-                shortlist_proof_url: proof_url,
-                qualification_verified: false // Reset for Faculty Verification
-            })
-            .eq('user_id', student_id)
-            .eq('competition_id', competition_id)
-            .select();
-
-        if (error) throw error;
-
-        res.status(200).json({
-            message: 'Shortlist proof uploaded! Waiting for Faculty verification.',
-            data: data[0]
-        });
-
-    } catch (err) {
-        console.error('Upload Shortlist Proof Error:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-};
 
 module.exports = {
     checkRegistrationStatus,
