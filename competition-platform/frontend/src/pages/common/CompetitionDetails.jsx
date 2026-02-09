@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Users, ExternalLink, ArrowLeft, Globe, Clock, MessageSquare, Layers } from 'lucide-react';
+import { Calendar, Users, ExternalLink, ArrowLeft, Globe, Clock, MessageSquare, Layers, Download } from 'lucide-react';
 import { getCurrentUser } from '../../services/authService';
 import { getCompetitionStudents } from '../../services/facultyService';
 import { getHODCompetitionStats } from '../../services/hodService';
@@ -179,29 +179,50 @@ const CompetitionDetails = () => {
                         </div>
 
                         <div className="flex gap-3 w-full md:w-auto">
-                            {/* Faculty Sync Button - Moved to Header */}
                             {isFaculty && (
-                                <button
-                                    onClick={async () => {
-                                        if (confirm(`Start Gmail Sync for ${competition.title}? This may take a moment.`)) {
-                                            setLoading(true);
-                                            try {
-                                                await api.post(`/api/faculty/competition/${id}/sync`, {});
-                                                alert("Sync Completed! Refreshing data...");
-                                                const students = await getCompetitionStudents(id);
-                                                setStatsData(students);
-                                            } catch (e) {
-                                                console.error(e);
-                                                alert("Sync failed: " + (e.message || "Unknown error"));
-                                            } finally {
-                                                setLoading(false);
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={async () => {
+                                            const { downloadCompetitionStudents } = await import('../../services/facultyService');
+                                            await downloadCompetitionStudents(id, 'registered', competition.title);
+                                        }}
+                                        className="bg-green-50 text-green-700 px-3 py-2 rounded-lg font-medium hover:bg-green-100 transition-colors flex items-center gap-1 text-sm whitespace-nowrap border border-green-200"
+                                        title="Download Registered Students"
+                                    >
+                                        <Download size={14} /> Registered
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            const { downloadCompetitionStudents } = await import('../../services/facultyService');
+                                            await downloadCompetitionStudents(id, 'unregistered', competition.title);
+                                        }}
+                                        className="bg-red-50 text-red-700 px-3 py-2 rounded-lg font-medium hover:bg-red-100 transition-colors flex items-center gap-1 text-sm whitespace-nowrap border border-red-200"
+                                        title="Download Unregistered Students"
+                                    >
+                                        <Download size={14} /> Unregistered
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            if (confirm(`Start Gmail Sync for ${competition.title}? This may take a moment.`)) {
+                                                setLoading(true);
+                                                try {
+                                                    await api.post(`/api/faculty/competition/${id}/sync`, {});
+                                                    alert("Sync Completed! Refreshing data...");
+                                                    const students = await getCompetitionStudents(id);
+                                                    setStatsData(students);
+                                                } catch (e) {
+                                                    console.error(e);
+                                                    alert("Sync failed: " + (e.message || "Unknown error"));
+                                                } finally {
+                                                    setLoading(false);
+                                                }
                                             }
-                                        }
-                                    }}
-                                    className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
-                                >
-                                    🔄 Sync
-                                </button>
+                                        }}
+                                        className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
+                                    >
+                                        🔄 Sync
+                                    </button>
+                                </div>
                             )}
 
                             {competition.external_link && (

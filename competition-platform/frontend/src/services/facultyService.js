@@ -92,6 +92,38 @@ export const downloadParticipationReport = async () => {
     }
 };
 
+export const downloadCompetitionStudents = async (competitionId, type, title) => {
+    try {
+        console.log(`[Faculty] Downloading ${type} students for competition ${competitionId}...`);
+
+        const response = await api.get(`/api/faculty/competition/${competitionId}/export?type=${type}`, {
+            responseType: 'blob'
+        });
+
+        console.log('[Faculty] Response received for download');
+
+        const url = window.URL.createObjectURL(new Blob([response]));
+        const link = document.createElement('a');
+        link.href = url;
+
+        // Clean title for filename
+        const cleanTitle = title ? title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : competitionId;
+        const filename = `${type}_${cleanTitle}.csv`; // Format: registered_competitiontitle.csv
+
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        console.log(`[Faculty] Download complete: ${filename}`);
+    } catch (error) {
+        console.error('[Faculty] Download Failed Detailed:', error);
+        if (error.response) {
+            console.error('[Faculty] Error Status:', error.response.status);
+        }
+        alert(`Failed to download ${type} students. Check console for details.`);
+    }
+};
+
 export default {
     getDashboardStats,
     getMyStudents,
@@ -104,5 +136,6 @@ export default {
     syncActiveCompetitions,
     downloadParticipationReport,
     getPendingShortlistVerifications,
-    verifyShortlist
+    verifyShortlist,
+    downloadCompetitionStudents
 };
