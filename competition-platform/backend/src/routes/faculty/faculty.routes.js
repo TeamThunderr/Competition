@@ -4,6 +4,8 @@ const facultyController = require('../../controllers/faculty/faculty.controller'
 const verificationController = require('../../controllers/faculty/verification.controller');
 const facultyCompetitionController = require('../../controllers/faculty/competition.controller');
 const teamVerificationController = require('../../controllers/faculty/team_verification.controller');
+const uploadController = require('../../controllers/faculty/upload.controller');
+const excelUploadMiddleware = require('../../middleware/excelUploadMiddleware');
 const authMiddleware = require('../../middleware/authMiddleware');
 const roleMiddleware = require('../../middleware/role.middleware');
 
@@ -14,6 +16,7 @@ router.use(roleMiddleware('FACULTY'));
 // Student Management
 router.get('/students', facultyController.getMyStudents);
 router.get('/students/:studentId', facultyController.getStudentDetails);
+router.post('/students/upload', excelUploadMiddleware.single('file'), uploadController.bulkUploadStudents);
 
 // Data & Stats
 router.get('/stats', facultyController.getStats); // Legacy

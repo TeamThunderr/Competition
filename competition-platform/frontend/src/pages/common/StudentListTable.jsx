@@ -63,7 +63,7 @@ const StudentListTable = ({
             </div>
 
             {/* Table */}
-            <div className="min-h-[400px]">
+            <div className="min-h-[400px] overflow-x-auto">
                 <table className="w-full">
                     <thead className="bg-muted/5">
                         <tr className="text-left text-xs font-semibold text-muted uppercase tracking-wider">
@@ -108,11 +108,13 @@ const StudentListTable = ({
                                             <span className="font-semibold text-foreground text-sm">{student.name}</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-muted">
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted/10 text-foreground">
-                                            {student.section}
-                                        </span>
-                                    </td>
+                                    {showSection && (
+                                        <td className="px-6 py-4 text-sm text-muted">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted/10 text-foreground">
+                                                {student.section}
+                                            </span>
+                                        </td>
+                                    )}
                                     <td className="px-6 py-4 text-sm text-muted">{student.email}</td>
                                 </tr>
                             ))

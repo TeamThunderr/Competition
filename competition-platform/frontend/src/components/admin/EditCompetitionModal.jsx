@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import CustomDatePicker from '../common/CustomDatePicker';
+import { useToast } from '../../contexts/ToastContext';
 
 const EditCompetitionModal = ({ isOpen, onClose, competition, onUpdate }) => {
+    const { addToast } = useToast();
     const [formData, setFormData] = useState({
         title: '',
         organizer: '',
@@ -77,13 +79,14 @@ const EditCompetitionModal = ({ isOpen, onClose, competition, onUpdate }) => {
                 const data = await response.json();
                 onUpdate(data.data); // Pass updated data back
                 onClose();
+                addToast("Competition updated successfully", "success");
             } else {
                 const error = await response.json();
-                alert(`Update failed: ${error.message}`);
+                addToast(`Update failed: ${error.message}`, "error");
             }
         } catch (err) {
             console.error("Failed to update competition", err);
-            alert("Failed to update competition.");
+            addToast("Failed to update competition.", "error");
         } finally {
             setLoading(false);
         }

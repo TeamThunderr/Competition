@@ -16,6 +16,16 @@ export const getMyStudents = async () => {
     return response.data || response;
 };
 
+export const bulkUploadStudents = async (formData) => {
+    // Note: Content-Type header 'multipart/form-data' is usually handled automatically by browser/axios when data is FormData
+    const response = await api.post('/api/faculty/students/upload', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data || response;
+};
+
 export const getStudentDetails = async (studentId) => {
     const response = await api.get(`/api/faculty/students/${studentId}`);
     return response.data || response;
@@ -86,6 +96,7 @@ export const downloadParticipationReport = async () => {
 export default {
     getDashboardStats,
     getMyStudents,
+    bulkUploadStudents,
     getStudentDetails,
     getRecentRegistrations,
     getPendingVerifications,

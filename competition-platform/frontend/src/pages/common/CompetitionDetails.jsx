@@ -6,11 +6,11 @@ import { getCompetitionStudents } from '../../services/facultyService';
 import { getHODCompetitionStats } from '../../services/hodService';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
-// import StudentListModal from '../../components/common/StudentListModal'; // Removed -> Uncommented below
+
 import StudentListModal from '../../components/common/StudentListModal';
 import TotalSectionsStats from '../../components/features/competitions/stats/TotalSectionsStats';
 import StudentStatsList from '../../components/features/competitions/stats/StudentStatsList';
-// import SectionStudentList from '../../components/features/competitions/stats/SectionStudentList'; // Removed from here
+
 import { UserCheck, UserPlus } from 'lucide-react';
 
 const CompetitionDetails = () => {
