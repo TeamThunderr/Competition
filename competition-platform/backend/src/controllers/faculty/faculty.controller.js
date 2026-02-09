@@ -840,6 +840,64 @@ const verifyRegistration = async (req, res) => {
     }
 };
 
+const downloadParticipationReport = async (req, res) => {
+    try {
+        const { assigned_sections, department_id } = req.user;
+        const myStudentIds = await getMyStudentIds(req.user.id, department_id, assigned_sections || []);
+
+        if (myStudentIds.length === 0) {
+            return res.status(200).send('No students found related to your assigned sections.');
+        }
+
+        // Fetch comprehensive data for the report
+        const { data: reportData, error } = await supabase
+            .from('registrations')
+            .select(`
+                registered_at, verified, status,
+                users!registrations_user_id_fkey ( full_name, registration_no, section, email, phone_number ),
+                competitions!inner ( title, organizer, event_date, platform )
+            `)
+            .in('user_id', myStudentIds)
+            .order('registered_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Generate CSV
+        const csvRows = [];
+        // Header
+        csvRows.push(['Student Name', 'Register No', 'Section', 'Email', 'Phone', 'Competition', 'Organizer', 'Platform', 'Date', 'Status', 'Verified', 'Registered At'].join(','));
+
+        reportData.forEach(r => {
+            const row = [
+                r.users?.full_name || 'N/A',
+                r.users?.registration_no || 'N/A',
+                r.users?.section || 'N/A',
+                r.users?.email || 'N/A',
+                r.users?.phone_number || 'N/A',
+                r.competitions?.title || 'N/A',
+                r.competitions?.organizer || 'N/A',
+                r.competitions?.platform || 'N/A',
+                r.competitions?.event_date || 'N/A',
+                r.status || 'Pending',
+                r.verified ? 'Yes' : 'No',
+                new Date(r.registered_at).toLocaleString()
+            ].map(field => `"${String(field).replace(/"/g, '""')}"`); // Escape quotes
+
+            csvRows.push(row.join(','));
+        });
+
+        const csvString = csvRows.join('\n');
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="participation_report_${Date.now()}.csv"`);
+        res.status(200).send(csvString);
+
+    } catch (err) {
+        console.error('[Faculty] Export Error:', err);
+        sendResponse(res, 500, null, 'Failed to export report');
+    }
+};
+
 module.exports = {
     getMyStudents,
     getRecentRegistrations,
@@ -853,5 +911,5 @@ module.exports = {
     verifyRegistration,
     getPendingShortlistVerifications,
     verifyShortlist,
-    downloadParticipationReport: () => { }
+    downloadParticipationReport
 };

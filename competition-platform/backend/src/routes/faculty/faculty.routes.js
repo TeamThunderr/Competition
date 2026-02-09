@@ -21,6 +21,8 @@ router.get('/dashboard-stats', facultyController.getDashboardStats); // V2 Logic
 router.get('/registrations', facultyController.getRecentRegistrations);
 
 // Feature: Competition View & Sync
+// Feature: Competition View & Sync
+router.get('/competitions/export-report', facultyController.downloadParticipationReport);
 router.get('/competitions', facultyCompetitionController.getAllCompetitions);
 router.get('/competition/:id', facultyCompetitionController.getCompetitionDetails);
 router.get('/competition/:id/students', facultyCompetitionController.getCompetitionStudents);

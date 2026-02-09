@@ -71,16 +71,25 @@ export const syncActiveCompetitions = async () => {
 
 // Reports
 export const downloadParticipationReport = async () => {
-    const response = await api.get('/api/faculty/competitions/export-report', {
-        responseType: 'blob'
-    });
-    const url = window.URL.createObjectURL(new Blob([response]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Participation_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    try {
+        console.log('[Faculty] Initiating download report...');
+        const response = await api.get('/api/faculty/competitions/export-report', {
+            responseType: 'blob'
+        });
+
+        console.log('[Faculty] Report downloaded, processing blob...');
+        const url = window.URL.createObjectURL(new Blob([response]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Participation_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        console.log('[Faculty] Download trigger complete.');
+    } catch (error) {
+        console.error('[Faculty] Download Report Failed:', error);
+        alert('Failed to download report. Please check the console for details.');
+    }
 };
 
 export default {
