@@ -9,6 +9,7 @@ const registrationController = require('../../controllers/student/registration.c
 const odController = require('../../controllers/student/od.controller');
 const authMiddleware = require('../../middleware/authMiddleware');
 const roleMiddleware = require('../../middleware/role.middleware');
+const upload = require('../../middleware/uploadmiddleware');
 
 // 1. Check Authentication (Who are you?)
 router.use(authMiddleware);
@@ -24,7 +25,7 @@ router.get('/competition/:id', competitionController.getCompetitionDetails);
 
 // Registration / Verification Flow
 router.post('/check-status', registrationController.checkRegistrationStatus);
-router.post('/upload-proof', registrationController.uploadProof);
+router.post('/upload-proof', upload.single('proof'), registrationController.uploadProof);
 router.post('/upload-shortlist-proof', registrationController.uploadShortlistProof);
 
 // OD Requests

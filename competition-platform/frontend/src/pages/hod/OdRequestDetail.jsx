@@ -4,6 +4,7 @@ import HodLayout from './HodLayout';
 import { ArrowLeft, Check, X, ShieldCheck, Calendar, Clock, User, ExternalLink } from 'lucide-react';
 import { getODRequestDetail, manageODRequest } from '../../services/hodService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const OdRequestDetail = () => {
     const { id } = useParams();
@@ -15,6 +16,17 @@ const OdRequestDetail = () => {
     // Form inputs for approval
     const [timeSlot, setTimeSlot] = useState('Full Day');
     const [duration, setDuration] = useState(1);
+
+    // Modal State
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        confirmText: 'Confirm',
+        cancelText: 'Cancel'
+    });
+    const [pendingAction, setPendingAction] = useState(null); // Store action to execute after confirm
 
     useEffect(() => {
         const fetchDetail = async () => {
@@ -28,8 +40,13 @@ const OdRequestDetail = () => {
                 }
             } catch (err) {
                 console.error("Failed to fetch OD detail", err);
-                alert("Failed to load request details.");
-                navigate('/hod/approvals');
+                setConfirmModal({
+                    isOpen: true,
+                    title: 'Error',
+                    message: "Failed to load request details.",
+                    type: 'danger',
+                    onConfirm: () => navigate('/hod/approvals')
+                });
             } finally {
                 setLoading(false);
             }
@@ -38,17 +55,45 @@ const OdRequestDetail = () => {
         if (id) fetchDetail();
     }, [id, navigate]);
 
-    const handleAction = async (status) => {
-        if (!window.confirm(`Are you sure you want to ${status} this request?`)) return;
+    // Open Modal
+    const openConfirmModal = (status) => {
+        setPendingAction(status);
+        setConfirmModal({
+            isOpen: true,
+            title: status === 'APPROVED' ? 'Approve Request' : 'Reject Request',
+            message: `Are you sure you want to ${status} this request?`,
+            type: status === 'APPROVED' ? 'success' : 'danger',
+            confirmText: status === 'APPROVED' ? 'Approve' : 'Reject',
+            cancelText: 'Cancel'
+        });
+    };
+
+    // Execute Action
+    const handleConfirmAction = async () => {
+        if (!pendingAction) return;
 
         setActionLoading(true);
         try {
-            await manageODRequest(id, status, { timeSlot, duration });
-            alert(`Request ${status} successfully!`);
-            navigate('/hod/approvals');
+            await manageODRequest(id, pendingAction, { timeSlot, duration });
+            setConfirmModal({
+                isOpen: true,
+                title: 'Success',
+                message: `Request ${pendingAction} successfully!`,
+                type: 'success',
+                onConfirm: () => navigate('/hod/approvals'),
+                onClose: () => navigate('/hod/approvals') // Just in case
+            });
+            setPendingAction(null); // Clear action
         } catch (error) {
-            console.error(`Failed to ${status}`, error);
-            alert(`Failed to ${status} request.`);
+            console.error(`Failed to ${pendingAction}`, error);
+            setConfirmModal(prev => ({
+                ...prev,
+                title: 'Error',
+                message: `Failed to ${pendingAction} request.`,
+                type: 'danger',
+                onConfirm: () => setConfirmModal(p => ({ ...p, isOpen: false })), // Just close
+                loading: false
+            }));
         } finally {
             setActionLoading(false);
         }
@@ -86,6 +131,17 @@ const OdRequestDetail = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Extension Alert */}
+                {request.reason && request.reason.includes('[Extension]') && (
+                    <div className="mb-6 bg-purple-50 border border-purple-200 p-4 rounded-lg flex items-center gap-3">
+                        <Clock className="text-purple-600" size={20} />
+                        <div>
+                            <h3 className="font-bold text-purple-900">Extension Request</h3>
+                            <p className="text-sm text-purple-700">This OD is an extension of a previous approved request. Review the history below.</p>
+                        </div>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -262,14 +318,14 @@ const OdRequestDetail = () => {
 
                                 <div className="grid grid-cols-2 gap-3 pt-2">
                                     <button
-                                        onClick={() => handleAction('REJECTED')}
+                                        onClick={() => openConfirmModal('REJECTED')}
                                         disabled={actionLoading}
                                         className="w-full py-3 text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg font-bold text-sm transition-colors"
                                     >
                                         Reject
                                     </button>
                                     <button
-                                        onClick={() => handleAction('APPROVED')}
+                                        onClick={() => openConfirmModal('APPROVED')}
                                         disabled={actionLoading}
                                         className="w-full py-3 text-white bg-green-600 hover:bg-green-700 rounded-lg font-bold text-sm shadow-md transition-all transform active:scale-95 flex items-center justify-center gap-2"
                                     >
@@ -286,7 +342,18 @@ const OdRequestDetail = () => {
                     </div>
                 </div>
             </div>
-        </HodLayout>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={handleConfirmAction}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                confirmText={confirmModal.confirmText}
+                loading={actionLoading}
+            />
+        </HodLayout >
     );
 };
 

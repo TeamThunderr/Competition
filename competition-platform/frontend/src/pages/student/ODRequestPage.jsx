@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar'; // Student Sidebar
-import { ArrowLeft, User, Users, Upload, Trash2, Calendar, FileText, PlusCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, User, Users, Upload, Trash2, Calendar, FileText, PlusCircle, CheckCircle, Info } from 'lucide-react';
 import { studentService } from '../../services/studentService';
 import { supabase } from '../../services/supabaseClient';
 import { api } from '../../services/api';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const ODRequestPage = () => {
     const { competitionId } = useParams();
@@ -16,12 +17,24 @@ const ODRequestPage = () => {
     const [isSolo, setIsSolo] = useState(false);
     const [existingODs, setExistingODs] = useState([]); // Store existing ODs
 
-    // Fetch Existing ODs
     useEffect(() => {
         const fetchODs = async () => {
             try {
                 const data = await studentService.getMyODRequests();
                 setExistingODs(data || []);
+
+                // [NEW] Immediate Check for Pending Requests
+                const pending = data?.find(od => od.status === 'PENDING');
+                if (pending) {
+                    setAlertModal({
+                        isOpen: true,
+                        title: 'Pending Request Exists',
+                        message: `You already have a Pending OD Request for "${pending.competitions?.title || 'another competition'}".\n\nYou cannot submit a new request until your pending request is approved or rejected by the HOD.`,
+                        type: 'danger',
+                        onConfirm: () => navigate('/student'), // Redirect back on confirm
+                        onClose: () => navigate('/student')    // Redirect back on close/cancel
+                    });
+                }
             } catch (err) {
                 console.error("Error fetching existing ODs:", err);
             }
@@ -29,15 +42,30 @@ const ODRequestPage = () => {
         fetchODs();
     }, []);
 
+    // Alert Modal State
+    const [alertModal, setAlertModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info', // info, danger, success
+        onConfirm: () => { }
+    });
+
+    const closeAlert = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
+
     // Check for Overlaps (Immediate Feedback)
-    const checkOverlap = (fromDate, toDate) => {
+    const checkOverlap = (fromDate, toDate, ignoreODId = null) => {
         if (!fromDate || !toDate) return;
         const start = new Date(fromDate);
         const end = new Date(toDate);
 
         const conflict = existingODs.find(od => {
-            // Check only active ODs (Approved/Pending/Verified)
-            if (['REJECTED', 'CANCELLED'].includes(od.status)) return false;
+            // Must ignore the one we are extending
+            if (ignoreODId && od.id === ignoreODId) return false;
+
+            // User Requirement: Only BLOCK if it overlaps with a PENDING request.
+            if (od.status !== 'PENDING') return false;
+
             // Don't check against self if editing (though this is new request page)
             if (od.competition_id === competitionId) return true; // Already requested for THIS competition
 
@@ -48,7 +76,13 @@ const ODRequestPage = () => {
 
         if (conflict) {
             // Immediate Popup as requested
-            alert(`OVERLAP DETECTED!\n\nYou already have an ${conflict.status} OD request for:\n"${conflict.competitions?.title}"\nFrom: ${new Date(conflict.from_date).toLocaleDateString()}To: ${new Date(conflict.to_date).toLocaleDateString()}\n\nPlease choose different dates.`);
+            setAlertModal({
+                isOpen: true,
+                title: 'Pending Request Conflict',
+                message: `You already have a PENDING OD request for:\n"${conflict.competitions?.title}"\nFrom: ${new Date(conflict.from_date).toLocaleDateString()} To: ${new Date(conflict.to_date).toLocaleDateString()}\n\nYou cannot submit a new request until this is processed.`,
+                type: 'danger',
+                onConfirm: closeAlert
+            });
             // Reset dates to avoid submission
             setFormData(prev => ({ ...prev, from_date: '', to_date: '' }));
         }
@@ -160,15 +194,36 @@ const ODRequestPage = () => {
         init();
     }, [competitionId]);
 
-    // Handlers
+    // Extension Detection
+    const [isExtension, setIsExtension] = useState(null); // { prevOD: ... }
+
+    // Check for Overlaps AND Extensions
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
 
-        // Trigger Overlap Check immediately on Date Change
         if (name === 'from_date' || name === 'to_date') {
             const newFrom = name === 'from_date' ? value : formData.from_date;
             const newTo = name === 'to_date' ? value : formData.to_date;
+
+            if (newFrom) {
+                // Check Extension: Is newFrom == prevEnd + 1 day?
+                const newStart = new Date(newFrom);
+                const prevOD = existingODs.find(od => {
+                    if (!['APPROVED', 'VERIFIED'].includes(od.status)) return false;
+                    const prevEnd = new Date(od.to_date);
+                    const diffTime = newStart - prevEnd;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return diffDays === 1;
+                });
+
+                if (prevOD) {
+                    setIsExtension(prevOD);
+                } else {
+                    setIsExtension(null);
+                }
+            }
+
             if (newFrom && newTo) {
                 checkOverlap(newFrom, newTo);
             }
@@ -206,14 +261,14 @@ const ODRequestPage = () => {
 
     const handleNext = () => {
         if (step === 1) {
-            if (!formData.leader_name || !formData.section) return alert("Please fill leader details.");
-            if (!isSolo && !formData.team_name) return alert("Team Name is required.");
+            if (!formData.leader_name || !formData.section) return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Please fill leader details.", type: 'danger', onConfirm: closeAlert });
+            if (!isSolo && !formData.team_name) return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Team Name is required.", type: 'danger', onConfirm: closeAlert });
             // Validate members
-            if (!isSolo && formData.members.some(m => !m.name || !m.reg_no)) return alert("Please fill all team member details.");
+            if (!isSolo && formData.members.some(m => !m.name || !m.reg_no)) return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Please fill all team member details.", type: 'danger', onConfirm: closeAlert });
 
             setStep(2);
         } else if (step === 2) {
-            if (!formData.from_date || !formData.to_date || !formData.reason) return alert("Please fill OD details.");
+            if (!formData.from_date || !formData.to_date || !formData.reason) return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Please fill OD details.", type: 'danger', onConfirm: closeAlert });
             setStep(3);
         }
     };
@@ -259,12 +314,26 @@ const ODRequestPage = () => {
             const response = await api.post('/api/teams/submit-verification', payload);
             console.log("DEBUG: Submit Response:", response);
 
-            alert("OD Request Submitted Successfully!");
-            navigate('/student'); // Go back to dashboard
+            setAlertModal({
+                isOpen: true,
+                title: 'Success',
+                message: "OD Request Submitted Successfully!",
+                type: 'success',
+                onConfirm: () => {
+                    closeAlert();
+                    navigate('/student');
+                }
+            });
 
         } catch (err) {
             console.error(err);
-            alert("Error: " + err.message);
+            setAlertModal({
+                isOpen: true,
+                title: 'Submission Failed',
+                message: err.response?.data?.error || err.message,
+                type: 'danger',
+                onConfirm: closeAlert
+            });
         } finally {
             setLoading(false);
         }
@@ -401,6 +470,20 @@ const ODRequestPage = () => {
                         {step === 2 && (
                             <div className="space-y-6 animate-fadeIn">
                                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">OD Request Details</h3>
+
+                                {isExtension && (
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg flex items-start gap-3">
+                                        <Info className="text-blue-600 dark:text-blue-400 mt-1" size={20} />
+                                        <div>
+                                            <h4 className="font-semibold text-blue-800 dark:text-blue-300">OD Extension Detected</h4>
+                                            <p className="text-sm text-blue-700 dark:text-blue-400">
+                                                This request starts the day after your existing OD for <strong>{isExtension.competitions?.title}</strong> ends.
+                                                Submitting this will <strong>extend</strong> that OD record to cover these new dates, and it will be resubmitted for HOD approval.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-2 gap-6">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From Date</label>
@@ -457,6 +540,18 @@ const ODRequestPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Global Alert Modal */}
+            <ConfirmModal
+                isOpen={alertModal.isOpen}
+                onClose={alertModal.onClose || closeAlert}
+                onConfirm={alertModal.onConfirm}
+                title={alertModal.title}
+                message={alertModal.message}
+                type={alertModal.type}
+                confirmText={alertModal.confirmText || "Okay"}
+                cancelText={alertModal.cancelText || "Close"}
+            />
         </div>
     );
 };

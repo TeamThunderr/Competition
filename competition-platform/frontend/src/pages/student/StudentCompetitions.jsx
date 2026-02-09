@@ -74,12 +74,12 @@ const StudentCompetitions = () => {
             } else {
                 // Individual Mode
                 await studentService.uploadProof(compIdOrTeamId, file, proofType);
-                showAlert('Success', 'Proof uploaded! Waiting for faculty approval.', 'success');
+                alert('Success: Proof uploaded! Waiting for faculty approval.');
             }
             fetchCompetitions();
         } catch (err) {
             console.error("Upload process error:", err);
-            showAlert('Error', err.message || 'An error occurred during upload.', 'danger');
+            alert(`Error: ${err.message || 'An error occurred during upload.'}`);
         }
     };
 

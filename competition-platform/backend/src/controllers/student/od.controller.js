@@ -101,6 +101,24 @@ const requestOD = async (req, res) => {
             return res.status(409).json({ error: 'You have already requested OD for this competition.' });
         }
 
+        // =====================================================
+        // [NEW] BLOCKER: Check for PENDING ODs in ANY Competition
+        // =====================================================
+        const { data: pendingOD, error: pendingError } = await supabase
+            .from('od_requests')
+            .select('competitions(title)')
+            .eq('user_id', student_id)
+            .eq('status', 'PENDING')
+            .maybeSingle();
+
+        if (pendingError) throw pendingError;
+
+        if (pendingOD) {
+            return res.status(409).json({
+                error: `You already have a Pending OD request for "${pendingOD.competitions?.title}". Please wait for HOD approval before requesting another.`
+            });
+        }
+
         // 2b. [NEW] Check for Date Overlaps with other ODs
         const reqFrom = new Date(from_date);
         const reqTo = new Date(to_date);
@@ -127,20 +145,77 @@ const requestOD = async (req, res) => {
             });
         }
 
-        // 3. Create OD Request (Directly to HOD)
-        const { data: odReq, error: odError } = await supabase
+        // 3. [NEW] OD EXTENSION LOGIC
+        // Check if this request is contiguous OR overlaps with a previous ACTIVE (Approved/Verified) OD.
+        // Rule: Start Date <= Old End Date + 1 Day
+        const oneDayMs = 24 * 60 * 60 * 1000;
+        const prevOdSearchDate = new Date(reqFrom.getTime() - oneDayMs).toISOString().split('T')[0];
+
+        // Find potential ODs to extend
+        const { data: candidates, error: extError } = await supabase
             .from('od_requests')
-            .insert([{
-                user_id: student_id,
-                competition_id: competition_id,
-                team_id: team_id,
-                reason: reason,
-                from_date: from_date,
-                to_date: to_date,
-                status: 'PENDING'
-            }])
-            .select()
-            .single();
+            .select('*')
+            .eq('user_id', student_id)
+            .gte('to_date', prevOdSearchDate) // End date must be at least near the new start
+            .in('status', ['APPROVED', 'VERIFIED']);
+
+        if (extError) throw extError;
+
+        // Filter for valid extension candidate
+        const extendableOD = candidates?.find(od => {
+            const prevEnd = new Date(od.to_date);
+            const prevStart = new Date(od.from_date);
+
+            const isAddingTime = reqTo > prevEnd;
+            const gapTime = reqFrom - prevEnd;
+            const gapDays = Math.ceil(gapTime / oneDayMs);
+            const isConnected = gapDays <= 1; // Overlap or consecutive
+            const isNotBefore = reqFrom >= prevStart;
+
+            return isAddingTime && isConnected && isNotBefore;
+        });
+
+        let odReq;
+
+        if (extendableOD) {
+            console.log(`[OD Extension] Extending OD ${extendableOD.id} (ended ${extendableOD.to_date}) to ${to_date}`);
+
+            // UPDATE existing OD
+            const { data: updatedOD, error: updateError } = await supabase
+                .from('od_requests')
+                .update({
+                    competition_id: competition_id, // Switch to new competition
+                    team_id: team_id,               // Link to new proof/team
+                    to_date: to_date,               // Extend end date
+                    status: 'PENDING',              // Reset to PENDING for HOD approval
+                    reason: `${extendableOD.reason}\n\n[Extension]: ${reason}` // Append history cleanly
+                })
+                .eq('id', extendableOD.id)
+                .select()
+                .single();
+
+            if (updateError) throw updateError;
+            odReq = updatedOD;
+
+        } else {
+            // NORMAL INSERT
+            const { data: newOD, error: insertError } = await supabase
+                .from('od_requests')
+                .insert([{
+                    user_id: student_id,
+                    competition_id: competition_id,
+                    team_id: team_id,
+                    reason: reason,
+                    from_date: from_date,
+                    to_date: to_date,
+                    status: 'PENDING'
+                }])
+                .select()
+                .single();
+
+            if (insertError) throw insertError;
+            odReq = newOD;
+        }
 
         if (odError) throw odError;
 
