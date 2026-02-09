@@ -28,7 +28,7 @@ const FacultyDashboard = () => {
             try {
                 const [statsData, competitionsData] = await Promise.all([
                     getDashboardStats(),
-                    api.get('/api/competitions')
+                    api.get('/api/faculty/competitions')
                 ]);
 
                 setStats(statsData);
@@ -185,7 +185,7 @@ const FacultyDashboard = () => {
                         setStats(newStats);
 
                         // Refresh Competitions
-                        const activeCompetitionsResponse = await api.get('/api/competitions');
+                        const activeCompetitionsResponse = await api.get('/api/faculty/competitions');
                         const activeCompetitions = (activeCompetitionsResponse?.success && Array.isArray(activeCompetitionsResponse.data))
                             ? activeCompetitionsResponse.data
                             : (Array.isArray(activeCompetitionsResponse) ? activeCompetitionsResponse : []);

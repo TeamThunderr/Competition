@@ -13,7 +13,7 @@ const getAllCompetitions = async (req, res) => {
         const { data: competitions, error: compError } = await supabase
             .from('competitions')
             .select('*, registrations(count)')
-            .order('registration_deadline', { ascending: false })
+            .order('registration_deadline', { ascending: true })
 
         if (compError) {
             console.log("Student Controller - DB Error:", compError);

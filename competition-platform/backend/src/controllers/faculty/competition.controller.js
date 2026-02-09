@@ -33,7 +33,7 @@ const getAllCompetitions = async (req, res) => {
         const { data: competitions, error: compError } = await supabase
             .from('competitions')
             .select('*')
-            .order('registration_deadline', { ascending: false });
+            .order('registration_deadline', { ascending: true });
 
         if (compError) throw compError;
 
@@ -179,8 +179,8 @@ const getCompetitionStudents = async (req, res) => {
                     const verified = r?.verified || false;
                     const confidence = r?.confidence_score || 100;
                     const remarks = r?.source === 'AUTO_GMAIL'
-                        ? `Gmail Match (${confidence}%)`
-                        : (r?.proof_url ? 'Manual Upload' : '');
+                        ? `Gmail Verified`
+                        : (r?.proof_url ? 'Manual Verified' : '');
 
                     return {
                         id: s.id,
