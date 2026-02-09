@@ -306,14 +306,7 @@ const getDashboardStats = async (req, res) => {
 
         if (qualError) throw qualError;
 
-        // 3. Won Count: is_winner = true
-        const { count: wonCount, error: wonError } = await supabase
-            .from('competition_status')
-            .select('*', { count: 'exact', head: true })
-            .in('user_id', myStudentIds)
-            .eq('is_winner', true);
 
-        if (wonError) throw wonError;
 
         // 5. Calculate batch label
         let batchLabel = 'N/A';
@@ -333,7 +326,6 @@ const getDashboardStats = async (req, res) => {
             total_students: myStudentIds.length,
             comp_registered: participationCount || 0,
             comp_qualified: qualifiedCount || 0,
-            comp_won: wonCount || 0,
             od_requests: 0, // Explicitly zeroed out as Faculty has no OD role
             section_label: assigned_sections?.join(', ') || 'N/A',
             batch_label: batchLabel,
@@ -497,8 +489,7 @@ const getStudentDetails = async (req, res) => {
             const statusEntry = statuses?.find(s => s.competition_id === reg.competitions.id);
 
             let currentStatus = 'Registered';
-            if (statusEntry?.is_winner) currentStatus = 'Won';
-            else if (statusEntry?.is_shortlisted) currentStatus = 'Qualified';
+            if (statusEntry?.is_winner || statusEntry?.is_shortlisted) currentStatus = 'Qualified';
 
             return {
                 id: reg.competitions.id,
@@ -515,8 +506,7 @@ const getStudentDetails = async (req, res) => {
         // Calculate Stats
         const stats = {
             registered: registrations.length,
-            qualified: competitionDetails.filter(c => c.status === 'Qualified' || c.status === 'Won').length,
-            won: competitionDetails.filter(c => c.status === 'Won').length,
+            qualified: competitionDetails.filter(c => c.status === 'Qualified').length,
         };
 
         // 4. Class Advisor Logic (Robust - matched with HOD controller)

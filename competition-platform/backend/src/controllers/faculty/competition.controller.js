@@ -111,11 +111,11 @@ const getCompetitionStudents = async (req, res) => {
             if (pageData.length < pageSize) hasMore = false;
         }
 
-        // Filter by assigned sections
+        // Filter by assigned sections (Case Insensitive)
         const allowedSections = assigned_sections
             ? assigned_sections.map(s => {
                 const parts = s.split('-');
-                return parts.length > 1 ? parts[parts.length - 1].trim() : s.trim();
+                return parts.length > 1 ? parts[parts.length - 1].trim().toUpperCase() : s.trim().toUpperCase();
             })
             : [];
 
@@ -123,7 +123,7 @@ const getCompetitionStudents = async (req, res) => {
 
         const myStudents = allStudents.filter(s => {
             if (allowedSections.length === 0) return true;
-            return allowedSections.includes(s.section);
+            return allowedSections.includes((s.section || '').trim().toUpperCase());
         }).sort((a, b) => a.registration_no.localeCompare(b.registration_no));
 
         const myStudentIds = myStudents.map(s => s.id);
@@ -132,7 +132,8 @@ const getCompetitionStudents = async (req, res) => {
             return res.status(200).json({
                 total: [],
                 registered: [],
-                shortlisted: []
+                shortlisted: [],
+                unregistered: []
             });
         }
 
@@ -147,7 +148,7 @@ const getCompetitionStudents = async (req, res) => {
 
         const regMap = new Map(registrations?.map(r => [r.user_id, r]) || []);
 
-        // 3. Fetch Competition Status (Shortlisted/Winner)
+        // 3. Fetch Competition Status (Shortlisted Only)
         const { data: compStatus, error: statusError } = await supabase
             .from('competition_status')
             .select('*')
@@ -196,16 +197,14 @@ const getCompetitionStudents = async (req, res) => {
             shortlisted: myStudents
                 .filter(s => {
                     const st = statusMap.get(s.id);
-                    return st && (st.is_shortlisted || st.is_winner);
+                    return st && st.is_shortlisted;
                 })
                 .map(s => {
-                    const st = statusMap.get(s.id);
-                    const statusLabel = st.is_winner ? 'Winner' : 'Shortlisted';
                     return {
                         id: s.id,
                         name: s.full_name,
                         regNo: s.registration_no,
-                        status: statusLabel
+                        status: 'Shortlisted'
                     };
                 }),
 
