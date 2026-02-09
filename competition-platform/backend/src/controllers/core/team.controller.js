@@ -4,6 +4,7 @@
 
 const supabase = require('../../config/supabaseClient');
 const crypto = require('crypto');
+const studentService = require('../../services/student/student.service');
 
 // Create a new team
 const createTeam = async (req, res) => {
@@ -167,6 +168,24 @@ const submitVerification = async (req, res) => {
         const mainProofUrl = registration.shortlist_proof_url;
         if (!mainProofUrl) {
             return res.status(400).json({ error: 'System Error: Shortlist proof not found. Please contact admin.' });
+        }
+
+        // =====================================================
+        // [NEW] TEAMMATE VALIDATION
+        // =====================================================
+        if (!is_solo && members_info && members_info.length > 0) {
+            for (const member of members_info) {
+                const validationResult = await studentService.validateTeammate(
+                    member.reg_no,
+                    member.name,
+                    competition_id
+                );
+                if (!validationResult.valid) {
+                    return res.status(400).json({
+                        error: `Teammate Validation Failed: ${validationResult.error} (${member.reg_no})`
+                    });
+                }
+            }
         }
 
         // Auto-assign proof

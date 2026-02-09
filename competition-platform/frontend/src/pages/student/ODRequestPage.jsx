@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar'; // Student Sidebar
-import { ArrowLeft, User, Users, Upload, Trash2, Calendar, FileText, PlusCircle, CheckCircle, Info, AlertCircle } from 'lucide-react';
+import { ArrowLeft, User, Users, Upload, Trash2, Calendar, FileText, PlusCircle, CheckCircle, Info, AlertCircle, Loader2, XCircle } from 'lucide-react';
 import { studentService } from '../../services/studentService';
 import { supabase } from '../../services/supabaseClient';
 import { api } from '../../services/api';
@@ -295,10 +295,83 @@ const ODRequestPage = () => {
         }));
     };
 
+    // Teammate Search & Validation State
+    const [suggestions, setSuggestions] = useState({}); // { index: [list] }
+    const [memberStatus, setMemberStatus] = useState({}); // { index: { loading, error, valid } }
+
     const handleMemberChange = (index, field, value) => {
         const updatedMembers = [...formData.members];
         updatedMembers[index][field] = value;
         setFormData({ ...formData, members: updatedMembers });
+
+        // If reg_no changed, trigger autocomplete
+        if (field === 'reg_no') {
+            handleRegNoChange(index, value);
+        } else if (field === 'name') {
+            // Reset status if name changed manually
+            setMemberStatus(prev => ({
+                ...prev,
+                [index]: { loading: false, error: null, valid: false }
+            }));
+        }
+    };
+
+    // Handle Registration Number Change with Autocomplete
+    const handleRegNoChange = async (index, regNo) => {
+        // Reset status for this member
+        setMemberStatus(prev => ({
+            ...prev,
+            [index]: { loading: false, error: null, valid: false }
+        }));
+
+        if (regNo.length >= 2) {
+            try {
+                const results = await studentService.searchStudents(regNo, competitionId);
+                setSuggestions(prev => ({ ...prev, [index]: results }));
+            } catch (err) {
+                console.error("Search error:", err);
+            }
+        } else {
+            setSuggestions(prev => ({ ...prev, [index]: [] }));
+        }
+    };
+
+    // Select a student from suggestions
+    const selectStudent = async (index, student) => {
+        const updatedMembers = [...formData.members];
+        updatedMembers[index] = {
+            name: student.full_name,
+            reg_no: student.registration_no
+        };
+        setFormData({ ...formData, members: updatedMembers });
+        setSuggestions(prev => ({ ...prev, [index]: [] }));
+
+        // Validate selection
+        validateMember(index, student.registration_no, student.full_name);
+    };
+
+    // Explicitly validate a member
+    const validateMember = async (index, regNo, name) => {
+        if (!regNo || !name) return;
+
+        setMemberStatus(prev => ({
+            ...prev,
+            [index]: { loading: true, error: null, valid: false }
+        }));
+
+        try {
+            const result = await studentService.validateTeammate(regNo, name, competitionId);
+            setMemberStatus(prev => ({
+                ...prev,
+                [index]: { loading: false, error: result.valid ? null : result.error, valid: result.valid }
+            }));
+        } catch (err) {
+            const errMsg = err.response?.data?.error || "Validation failed";
+            setMemberStatus(prev => ({
+                ...prev,
+                [index]: { loading: false, error: errMsg, valid: false }
+            }));
+        }
     };
 
     // File Handlers
@@ -313,8 +386,27 @@ const ODRequestPage = () => {
         if (step === 1) {
             if (!formData.leader_name || !formData.section) return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Please fill leader details.", type: 'danger', onConfirm: closeAlert });
             if (!isSolo && !formData.team_name) return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Team Name is required.", type: 'danger', onConfirm: closeAlert });
+
             // Validate members
-            if (!isSolo && formData.members.some(m => !m.name || !m.reg_no)) return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Please fill all team member details.", type: 'danger', onConfirm: closeAlert });
+            if (!isSolo) {
+                if (formData.members.some(m => !m.name || !m.reg_no)) {
+                    return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Please fill all team member details.", type: 'danger', onConfirm: closeAlert });
+                }
+
+                // NEW: Ensure all members are valid & verified
+                const invalidMemberIdx = formData.members.findIndex((m, idx) => !memberStatus[idx]?.valid);
+                if (invalidMemberIdx !== -1) {
+                    const status = memberStatus[invalidMemberIdx];
+                    const msg = status?.error || "This member is not yet validated or eligible (Must be qualified & verified).";
+                    return setAlertModal({
+                        isOpen: true,
+                        title: 'Invalid Teammate',
+                        message: `Member ${invalidMemberIdx + 1} (${formData.members[invalidMemberIdx].reg_no}) is invalid: ${msg}`,
+                        type: 'danger',
+                        onConfirm: closeAlert
+                    });
+                }
+            }
 
             setStep(2);
         } else if (step === 2) {
@@ -481,28 +573,76 @@ const ODRequestPage = () => {
 
                                         {formData.members.length === 0 && <p className="text-sm text-gray-400 italic">No members added yet.</p>}
 
-                                        <div className="space-y-3">
+                                        <div className="space-y-4">
                                             {formData.members.map((member, idx) => (
-                                                <div key={idx} className="flex gap-3 items-start">
-                                                    <div className="flex-1">
-                                                        <input
-                                                            placeholder="Member Name"
-                                                            value={member.name}
-                                                            onChange={(e) => handleMemberChange(idx, 'name', e.target.value)}
-                                                            className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg text-sm outline-none focus:border-blue-500 bg-white dark:bg-gray-800 dark:text-white"
-                                                        />
+                                                <div key={idx} className="space-y-2">
+                                                    <div className="flex gap-3 items-start relative">
+                                                        {/* Registration Number Input with Autocomplete */}
+                                                        <div className="w-40 relative">
+                                                            <div className="relative">
+                                                                <input
+                                                                    placeholder="Reg No"
+                                                                    value={member.reg_no}
+                                                                    onChange={(e) => handleMemberChange(idx, 'reg_no', e.target.value)}
+                                                                    className={`w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-blue-500 bg-white dark:bg-gray-800 dark:text-white uppercase ${memberStatus[idx]?.valid ? 'border-green-500' : memberStatus[idx]?.error ? 'border-red-500' : 'dark:border-gray-600'}`}
+                                                                />
+                                                                <div className="absolute right-2 top-2">
+                                                                    {memberStatus[idx]?.loading ? (
+                                                                        <Loader2 size={16} className="text-blue-500 animate-spin" />
+                                                                    ) : memberStatus[idx]?.valid ? (
+                                                                        <CheckCircle size={16} className="text-green-500" />
+                                                                    ) : memberStatus[idx]?.error ? (
+                                                                        <XCircle size={16} className="text-red-500" />
+                                                                    ) : null}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Autocomplete Dropdown */}
+                                                            {suggestions[idx]?.length > 0 && (
+                                                                <div className="absolute z-[100] w-64 mt-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                                                    {suggestions[idx].map((student) => (
+                                                                        <button
+                                                                            key={student.id}
+                                                                            type="button"
+                                                                            onClick={() => selectStudent(idx, student)}
+                                                                            className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30 border-b dark:border-gray-700 last:border-0"
+                                                                        >
+                                                                            <div className="font-semibold text-gray-900 dark:text-white">{student.registration_no}</div>
+                                                                            <div className="text-xs text-gray-500 dark:text-gray-400">{student.full_name}</div>
+                                                                            {!student.is_verified && (
+                                                                                <div className="text-[10px] text-red-500 mt-1 font-medium italic">
+                                                                                    {!student.is_qualified ? '❌ Not Qualified' : '⚠️ Not Verified by Faculty'}
+                                                                                </div>
+                                                                            )}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Name Input */}
+                                                        <div className="flex-1">
+                                                            <input
+                                                                placeholder="Member Name"
+                                                                value={member.name}
+                                                                onChange={(e) => handleMemberChange(idx, 'name', e.target.value)}
+                                                                onBlur={() => validateMember(idx, member.reg_no, member.name)}
+                                                                className={`w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-blue-500 bg-white dark:bg-gray-800 dark:text-white ${memberStatus[idx]?.valid ? 'border-green-500' : memberStatus[idx]?.error ? 'border-red-500' : 'dark:border-gray-600'}`}
+                                                            />
+                                                        </div>
+
+                                                        {/* Remove Action */}
+                                                        <button onClick={() => removeMember(idx)} className="p-2 text-gray-400 hover:text-red-500 transition mt-0.5">
+                                                            <Trash2 size={16} />
+                                                        </button>
                                                     </div>
-                                                    <div className="w-32">
-                                                        <input
-                                                            placeholder="Reg No"
-                                                            value={member.reg_no}
-                                                            onChange={(e) => handleMemberChange(idx, 'reg_no', e.target.value)}
-                                                            className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg text-sm outline-none focus:border-blue-500 bg-white dark:bg-gray-800 dark:text-white uppercase"
-                                                        />
-                                                    </div>
-                                                    <button onClick={() => removeMember(idx)} className="p-2 text-gray-400 hover:text-red-500 transition">
-                                                        <Trash2 size={16} />
-                                                    </button>
+
+                                                    {/* Error Message */}
+                                                    {memberStatus[idx]?.error && (
+                                                        <p className="text-[11px] text-red-500 flex items-center gap-1 ml-1 animate-fadeIn">
+                                                            <AlertCircle size={12} /> {memberStatus[idx].error}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
