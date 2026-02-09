@@ -51,7 +51,7 @@ const LoginForm = () => {
     };
 
     return (
-        <div className="w-full max-w-md p-8 bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-[2rem] shadow-2xl dark:shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] relative overflow-hidden">
+        <div className="w-full max-w-md p-8 bg-white/10 dark:bg-white/5 backdrop-blur-xl border border-gray-200/20 dark:border-white/10 rounded-[2rem] shadow-2xl dark:shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] relative overflow-hidden">
             <h2 className="text-3xl font-bold mb-2 text-center text-gray-900 dark:text-white">Login</h2>
             <p className="text-center text-gray-500 dark:text-gray-400 text-sm mb-8">Enter your credentials to access your account</p>
 
