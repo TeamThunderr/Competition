@@ -62,7 +62,32 @@ const ODHistoryPage = () => {
                                             <span className={`px-3 py-1 text-xs font-bold rounded-full border ${getStatusColor(od.status)}`}>
                                                 {od.status}
                                             </span>
+                                            {od.is_extension && (
+                                                <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
+                                                    Extended OD {od.extension_count > 0 && `(${od.extension_count}x)`}
+                                                </span>
+                                            )}
                                         </div>
+
+                                        {/* Show multiple competitions if extended */}
+                                        {od.competitions_info && od.competitions_info.length > 0 && (
+                                            <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800">
+                                                <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase mb-2">
+                                                    Combined Competitions:
+                                                </p>
+                                                <div className="space-y-1">
+                                                    {od.competitions_info.map((comp, idx) => (
+                                                        <div key={idx} className="text-sm text-purple-800 dark:text-purple-200">
+                                                            <span className="font-medium">{comp.title}</span>
+                                                            <span className="text-purple-600 dark:text-purple-400 ml-2">
+                                                                ({new Date(comp.from_date).toLocaleDateString()} - {new Date(comp.to_date).toLocaleDateString()})
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <p className="text-gray-600 dark:text-gray-300 mb-4">{od.reason}</p>
 
                                         <div className="flex gap-6 text-sm text-gray-500 dark:text-gray-400">
@@ -70,6 +95,11 @@ const ODHistoryPage = () => {
                                                 <Calendar size={16} />
                                                 <span>
                                                     {new Date(od.from_date).toLocaleDateString()} - {new Date(od.to_date).toLocaleDateString()}
+                                                    {od.original_from_date && od.original_from_date !== od.from_date && (
+                                                        <span className="ml-2 text-xs text-purple-600 dark:text-purple-400">
+                                                            (Originally: {new Date(od.original_from_date).toLocaleDateString()})
+                                                        </span>
+                                                    )}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-2">
