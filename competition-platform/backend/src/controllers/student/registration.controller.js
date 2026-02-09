@@ -64,11 +64,59 @@ const checkRegistrationStatus = async (req, res) => {
 
         console.log(`[RegistrationV2] Verifying '${competition.title}' for user ${student_id}...`);
 
-        // Use existing Gmail service for detection
+        // Check CURRENT status in DB
+        const { data: currentStatus } = await supabase
+            .from('registrations')
+            .select('verified, last_synced_at')
+            .eq('user_id', student_id)
+            .eq('competition_id', competition_id)
+            .single();
+
+        // If already registered/verified, check for SHORTLIST/WINNER status
+        if (currentStatus && currentStatus.verified) {
+            console.log('[RegistrationV2] User already registered. Checking for Shortlist/Winner updates...');
+
+            const shortlistMatch = await gmailService.checkShortlistStatus(
+                provider_token,
+                competition,
+                currentStatus.last_synced_at // Respect sync window
+            );
+
+            if (shortlistMatch.status) {
+                console.log(`[RegistrationV2] Found update: ${shortlistMatch.status}`);
+
+                // Update DB
+                if (shortlistMatch.status === 'QUALIFIED') {
+                    await upsertCompetitionStatus(student_id, competition_id, { is_shortlisted: true });
+                }
+
+                // Update last synced time
+                await supabase.from('registrations')
+                    .update({ last_synced_at: new Date().toISOString() })
+                    .eq('user_id', student_id)
+                    .eq('competition_id', competition_id);
+
+                return res.status(200).json({
+                    verified: true,
+                    status: shortlistMatch.status,
+                    confidence: shortlistMatch.confidence,
+                    message: `Status updated to ${shortlistMatch.status}!`
+                });
+            } else {
+                console.log('[RegistrationV2] No new updates found.');
+                return res.status(200).json({
+                    verified: true,
+                    status: 'REGISTERED', // No change
+                    message: 'No new updates found. Still Registered.'
+                });
+            }
+        }
+
+        // Use existing Gmail service for detection (Initial Registration)
         const match = await gmailService.syncStudentCompetition(
             provider_token,
             competition,
-            null // No lastSyncedAt for individual student check
+            null // No lastSyncedAt for initial check
         );
 
         if (match && match.suggested_status && match.confidence >= 40) {
@@ -86,10 +134,7 @@ const checkRegistrationStatus = async (req, res) => {
                     await ensureRegistrationExists(student_id, competition_id, 'AUTO_GMAIL');
                     await upsertCompetitionStatus(student_id, competition_id, { is_shortlisted: true });
                     break;
-                case 'WON':
-                    await ensureRegistrationExists(student_id, competition_id, 'AUTO_GMAIL');
-                    await upsertCompetitionStatus(student_id, competition_id, { is_shortlisted: true, is_winner: true });
-                    break;
+
                 default:
                     console.log(`[RegistrationV2] Status ${detectedStatus} - no action taken`);
             }
