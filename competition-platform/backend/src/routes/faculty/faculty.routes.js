@@ -44,6 +44,10 @@ router.post('/verify-registration', facultyController.verifyRegistration);
 router.get('/pending-shortlists', facultyController.getPendingShortlistVerifications);
 router.post('/verify-shortlist', facultyController.verifyShortlist);
 
+// Verification Routes (Winning)
+router.get('/pending-winning', verificationController.getPendingWinningVerifications);
+router.post('/verify-winning', verificationController.verifyWinning);
+
 // Team Verification Routes
 router.get('/pending-teams', teamVerificationController.getPendingTeamVerifications);
 router.post('/verify-team', teamVerificationController.verifyTeam);

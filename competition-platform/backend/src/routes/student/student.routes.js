@@ -32,6 +32,7 @@ router.get('/competition/:id', competitionController.getCompetitionDetails);
 router.post('/check-status', registrationController.checkRegistrationStatus);
 router.post('/upload-proof', upload.single('proof'), registrationController.uploadProof);
 router.post('/upload-shortlist-proof', upload.single('shortlist_proof'), registrationController.uploadShortlistProof);
+router.post('/update-winning-status', registrationController.updateWinningStatus);
 
 // OD Requests
 router.post('/request-od', odController.requestOD);
