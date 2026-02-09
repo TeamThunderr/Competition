@@ -27,11 +27,13 @@ router.get('/registrations', facultyController.getRecentRegistrations);
 // Feature: Competition View & Sync
 router.get('/competitions/export-report', facultyController.downloadParticipationReport);
 router.get('/competitions', facultyCompetitionController.getAllCompetitions);
+// Competition Details & Management
 router.get('/competition/:id', facultyCompetitionController.getCompetitionDetails);
 router.get('/competition/:id/students', facultyCompetitionController.getCompetitionStudents);
+router.get('/competition/:id/export', facultyCompetitionController.exportCompetitionStudents); // New Export Route
 
 // V2 Sync Routes
-router.post('/competition/:competitionId/sync', facultyController.syncCompetition);
+router.post('/competition/:id/sync', facultyController.syncCompetition);
 router.get('/competition-sync-status', facultyController.getCompetitionSyncStatus); // New route if needed by frontend
 
 // Verification Routes (Student Registration)

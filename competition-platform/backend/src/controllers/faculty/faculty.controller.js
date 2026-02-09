@@ -845,7 +845,7 @@ const downloadParticipationReport = async (req, res) => {
             .select(`
                 registered_at, verified, status,
                 users!registrations_user_id_fkey ( full_name, registration_no, section, email, phone_number ),
-                competitions!inner ( title, organizer, event_date, platform )
+                competitions!inner ( title, organizer, event_date, platform, venue )
             `)
             .in('user_id', myStudentIds)
             .order('registered_at', { ascending: false });
@@ -855,7 +855,7 @@ const downloadParticipationReport = async (req, res) => {
         // Generate CSV
         const csvRows = [];
         // Header
-        csvRows.push(['Student Name', 'Register No', 'Section', 'Email', 'Phone', 'Competition', 'Organizer', 'Platform', 'Date', 'Status', 'Verified', 'Registered At'].join(','));
+        csvRows.push(['Student Name', 'Register No', 'Section', 'Email', 'Phone', 'Competition', 'Organizer', 'Platform', 'Date', 'Status', 'Verified', 'Registered At', 'Venue'].join(','));
 
         reportData.forEach(r => {
             const row = [
@@ -870,7 +870,8 @@ const downloadParticipationReport = async (req, res) => {
                 r.competitions?.event_date || 'N/A',
                 r.status || 'Pending',
                 r.verified ? 'Yes' : 'No',
-                new Date(r.registered_at).toLocaleString()
+                new Date(r.registered_at).toLocaleString(),
+                r.competitions?.venue || 'N/A'
             ].map(field => `"${String(field).replace(/"/g, '""')}"`); // Escape quotes
 
             csvRows.push(row.join(','));
