@@ -254,7 +254,7 @@ const AdminDashboard = () => {
 
                                         {/* Hover Overlay - View Details */}
                                         <Link
-                                            to={`/competition/${comp.id}`}
+                                            to={`/competitions/${comp.id}`}
                                             className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"
                                         >
                                             <div className="bg-white dark:bg-card px-6 py-3 rounded-lg shadow-lg border border-border flex items-center gap-2 transform hover:scale-105 transition-transform">
