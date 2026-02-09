@@ -35,8 +35,9 @@ const getAllCompetitions = async (req, res) => {
         try {
             const { data, error: odError } = await supabase
                 .from('od_requests')
-                .select('competition_id, status')
-                .eq('user_id', userId);
+                .select('competition_id, status, competitions_info')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
 
             if (odError) throw odError;
             odRequests = data || [];
@@ -48,7 +49,19 @@ const getAllCompetitions = async (req, res) => {
         // Merge data
         const enrichedCompetitions = competitions.map(comp => {
             const reg = registrations.find(r => r.competition_id === comp.id);
-            const od = odRequests.find(o => o.competition_id === comp.id);
+
+            // Check if this competition is the main one OR part of combined competitions in ANY OD request
+            const od = odRequests.find(o => {
+                // Direct match
+                if (o.competition_id === comp.id) return true;
+
+                // Check in merged competitions info (JSONB array)
+                if (o.competitions_info && Array.isArray(o.competitions_info)) {
+                    return o.competitions_info.some(c => c.competition_id === comp.id);
+                }
+
+                return false;
+            });
 
             // Derive Shortlist Status from Registration 'status' column (Unified Logic)
             const isShortlisted = (reg?.status === 'Qualified') || (reg?.status === 'SHORTLISTED');

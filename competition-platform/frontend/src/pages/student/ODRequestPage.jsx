@@ -204,8 +204,8 @@ const ODRequestPage = () => {
                 // Check Extension: Is newFrom == prevEnd + 1 day?
                 const newStart = new Date(newFrom);
                 const extensionOD = existingODs.find(od => {
-                    // ONLY VERIFIED ODs can be extended (per user requirement)
-                    if (od.status !== 'VERIFIED') return false;
+                    // ONLY APPROVED ODs can be extended (per user requirement)
+                    if (od.status !== 'APPROVED') return false;
 
                     const prevEnd = new Date(od.to_date);
                     const diffTime = newStart - prevEnd;
@@ -345,7 +345,11 @@ const ODRequestPage = () => {
                 reason: formData.reason,
 
                 // NEW: Members Info
-                members_info: isSolo ? [] : formData.members
+                members_info: isSolo ? [] : formData.members,
+
+                // Extension Metadata (Helper for Backend)
+                is_extension: !!isExtension,
+                parent_od_id: isExtension?.id || null
             };
 
             console.log("DEBUG: Submitting Verification Payload:", payload);

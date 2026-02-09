@@ -6,6 +6,7 @@ const supabase = require('../../config/supabaseClient');
 
 // Request OD
 const requestOD = async (req, res) => {
+    console.log("LOG_ID: STUDENT_OD_CONTROLLER_REQUEST_OD");
     try {
         const {
             competition_id,
@@ -122,7 +123,7 @@ const requestOD = async (req, res) => {
             .from('od_requests')
             .select('id, from_date, to_date, status, competitions(title)')
             .eq('user_id', student_id)
-            .in('status', ['PENDING', 'APPROVED', 'VERIFIED']) // Active statuses
+            .in('status', ['PENDING', 'APPROVED']) // Active statuses
             .neq('competition_id', competition_id); // Don't check against self
 
         if (conflictError) throw conflictError;
@@ -152,7 +153,7 @@ const requestOD = async (req, res) => {
             .select('*, competitions(title, event_date)')
             .eq('user_id', student_id)
             .gte('to_date', prevOdSearchDate) // End date must be at least near the new start
-            .eq('status', 'VERIFIED'); // ONLY VERIFIED ODs can be extended
+            .eq('status', 'APPROVED'); // ONLY APPROVED ODs can be extended
 
         if (extError) throw extError;
 

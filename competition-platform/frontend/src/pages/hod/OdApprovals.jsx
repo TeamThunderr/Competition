@@ -77,6 +77,8 @@ const OdApprovals = () => {
                 title: 'Success',
                 message: 'Action completed successfully!',
                 type: 'success',
+                confirmText: 'OK',
+                showCancel: false,
                 onConfirm: () => setConfirmModal(prev => ({ ...prev, isOpen: false })),
                 onClose: () => setConfirmModal(prev => ({ ...prev, isOpen: false }))
             });
@@ -226,12 +228,14 @@ const OdApprovals = () => {
 
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
-                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-                onConfirm={handleConfirm}
+                onClose={confirmModal.onClose || (() => setConfirmModal(prev => ({ ...prev, isOpen: false })))}
+                onConfirm={confirmModal.onConfirm || handleConfirm}
                 title={confirmModal.title}
                 message={confirmModal.message}
                 type={confirmModal.type}
-                confirmText={confirmModal.confirmText}
+                confirmText={confirmModal.confirmText || "Confirm"}
+                cancelText={confirmModal.cancelText}
+                showCancel={confirmModal.showCancel !== false}
                 loading={loading}
             />
 
