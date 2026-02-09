@@ -22,9 +22,12 @@ router.use(roleMiddleware('STUDENT'));
 router.get('/competitions', competitionController.getAllCompetitions);
 router.get('/competition/:id', competitionController.getCompetitionDetails);
 
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
+
 // Registration / Verification Flow
 router.post('/check-status', registrationController.checkRegistrationStatus);
-router.post('/upload-proof', registrationController.uploadProof);
+router.post('/upload-proof', upload.single('proof'), registrationController.uploadProof);
 router.post('/upload-shortlist-proof', registrationController.uploadShortlistProof);
 
 // OD Requests

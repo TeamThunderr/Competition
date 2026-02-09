@@ -4,7 +4,6 @@ import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
 
 const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = true, isApplied = false, onToggleApplied }) => {
     const { my_registration, my_status, my_od } = competition;
-    console.log(`[CompCard Debug] ${competition.id} - ${competition.title}:`, { my_registration, my_status, my_od });
 
     const deadlineDate = new Date(competition.registration_deadline);
     deadlineDate.setHours(23, 59, 59, 999);
@@ -74,8 +73,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
                 // 4a. Check if Shortlisted Proof is already uploaded & Verified (QUALIFIED status)
                 // We enforce source === 'MANUAL_SCREENSHOT' to ensure they actually uploaded a proof for this stage.
                 const isQualifiedVerified = my_registration.status === 'Qualified' &&
-                    my_registration.verified &&
-                    my_registration.source === 'MANUAL_SCREENSHOT';
+                    my_registration.qualification_verified;
 
                 if (isQualifiedVerified) {
                     return (
@@ -88,7 +86,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
                 }
 
                 // If status is 'Qualified' (meaning they uploaded it) but verified is false (or not manual yet):
-                if (my_registration.status === 'Qualified' && !my_registration.verified) {
+                if (my_registration.status === 'Qualified' && !my_registration.qualification_verified) {
                     return (
                         <div className="flex-1 bg-yellow-50 border border-yellow-200 text-yellow-700 py-2 px-4 rounded-lg text-sm font-medium text-center">
                             Verification Pending
@@ -97,6 +95,7 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
                 }
 
                 // If here, they are Shortlisted but haven't uploaded Valid Qualified proof yet
+                // OR they are just Registered and want to upload Shortlist proof (Progression)
                 return (
                     <div className="flex gap-2 flex-1">
                         <div className="flex-1 bg-green-50 text-green-700 py-2 px-2 rounded-lg text-sm font-medium text-center border border-green-200 flex items-center justify-center">
@@ -111,10 +110,17 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
                 );
             }
 
-            // If not shortlisted, show Registered status
+            // If not shortlisted, show Registered status BUT allow uploading shortlist proof
             return (
-                <div className="flex-1 bg-green-50 text-green-700 py-2 px-4 rounded-lg text-sm font-medium text-center border border-green-200">
-                    Registered
+                <div className="flex gap-2 flex-1">
+                    <div className="flex-1 bg-green-50 text-green-700 py-2 px-2 rounded-lg text-sm font-medium text-center border border-green-200 flex items-center justify-center">
+                        Registered
+                    </div>
+                    <button
+                        onClick={() => onRegister(competition.id, 'QUALIFIED')}
+                        className="flex-1 bg-purple-600 text-white py-2 px-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm text-center">
+                        Upload Proof
+                    </button>
                 </div>
             );
         }

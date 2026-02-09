@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UploadProofModal from '../../components/common/UploadProofModal';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import AlertModal from '../../components/common/AlertModal';
 import StudentSidebar from './Sidebar';
 import CompetitionListView from '../common/CompetitionListView';
 import { supabase } from '../../services/supabaseClient';
@@ -15,6 +16,11 @@ const StudentCompetitions = () => {
     const [selectedCompId, setSelectedCompId] = useState(null);
     const [selectedTeamId, setSelectedTeamId] = useState(null);
     const [isShortlistUpload, setIsShortlistUpload] = useState(false);
+    const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+
+    const showAlert = (title, message, type = 'info') => {
+        setAlertConfig({ isOpen: true, title, message, type });
+    };
 
     const fetchCompetitions = async () => {
         setLoading(true);
@@ -52,6 +58,7 @@ const StudentCompetitions = () => {
     const handleRegisterClick = (compId, proofType = 'REGISTERED') => {
         setSelectedCompId(compId);
         setSelectedProofType(proofType);
+        setIsShortlistUpload(proofType === 'QUALIFIED');
         setIsUploadModalOpen(true);
     };
 
@@ -63,20 +70,45 @@ const StudentCompetitions = () => {
 
     const handleUploadProofSubmit = async (compIdOrTeamId, file, proofType) => {
         try {
-            if (isShortlistUpload) {
-                // Shortlist Verification Mode
-                await studentService.uploadShortlistProof(compIdOrTeamId, proofUrl); // compIdOrTeamId is competitionId here
-                alert("Shortlist Proof uploaded! Waiting for faculty verification.");
-            } else if (selectedTeamId) {
-                // Team Mode
-                await studentService.uploadTeamProof(selectedTeamId, proofUrl);
-                alert("Team Proof uploaded! Waiting for faculty verification.");
+            if (isShortlistUpload || selectedTeamId) {
+                // Determine path and upload manually first
+                // Determine path and upload manually first
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError || !user) throw new Error("User not authenticated. Please log in again.");
+                const studentId = user.id;
+
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${compIdOrTeamId}_${studentId}_${Date.now()}.${fileExt}`;
+                const filePath = `proofs/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('proofs')
+                    .upload(filePath, file);
+
+                if (uploadError) throw new Error(`Storage Error: ${uploadError.message}`);
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('proofs')
+                    .getPublicUrl(filePath);
+
+                const proofUrl = publicUrl;
+
+                if (isShortlistUpload) {
+                    // Shortlist Verification Mode (for Individual)
+                    await studentService.uploadShortlistProof(compIdOrTeamId, proofUrl);
+                    showAlert('Success', "Shortlist Proof uploaded! Waiting for faculty verification.", 'success');
+                } else if (selectedTeamId) {
+                    // Team Mode
+                    await studentService.uploadTeamProof(selectedTeamId, proofUrl);
+                    showAlert('Success', "Team Proof uploaded! Waiting for faculty verification.", 'success');
+                }
             } else {
-                // Individual Mode
+                // Individual Registration Mode
                 await studentService.uploadProof(compIdOrTeamId, file, proofType);
                 showAlert('Success', 'Proof uploaded! Waiting for faculty approval.', 'success');
             }
             fetchCompetitions();
+            setIsUploadModalOpen(false); // Close Modal on success
         } catch (err) {
             console.error("Upload process error:", err);
             showAlert('Error', err.message || 'An error occurred during upload.', 'danger');
@@ -173,6 +205,15 @@ const StudentCompetitions = () => {
                 onSubmit={handleUploadProofSubmit}
                 title={selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof"}
                 defaultProofType={selectedProofType}
+            />
+
+            <AlertModal
+                isOpen={alertConfig.isOpen}
+                onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+                autoClose={true}
             />
         </div>
     );

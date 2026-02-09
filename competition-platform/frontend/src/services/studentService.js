@@ -121,7 +121,8 @@ export const studentService = {
     getMyODRequests,
     getProfile,
     checkTeamStatus,
-    uploadTeamProof
+    uploadTeamProof,
+    uploadShortlistProof
 };
 
 export default studentService;
