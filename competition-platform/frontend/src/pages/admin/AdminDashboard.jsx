@@ -108,7 +108,7 @@ const AdminDashboard = () => {
         setDeleteConfirmation({ open: false, competition: null });
 
         try {
-            const response = await api.delete(`/api/admin/competition/${competition.id}`);
+            const response = await api.del(`/api/admin/competition/${competition.id}`);
 
             if (response.success !== false) {
                 addToast('Competition deleted successfully', 'success');
