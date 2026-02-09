@@ -116,7 +116,7 @@ const getDepartmentStats = async (req, res) => {
                 .select(`
                     id, section, role, admission_year,
                     registrations:registrations!user_id ( id, verified ),
-                    competition_status ( is_shortlisted, is_winner ),
+                    competition_status:competition_status!user_id ( is_shortlisted, is_winner ),
                     od_requests:od_requests!user_id ( status )
                 `)
                 .eq('department_id', hodDeptId)

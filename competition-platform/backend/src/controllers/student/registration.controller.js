@@ -157,16 +157,26 @@ const uploadProof = async (req, res) => {
         // 2. Update Database
         await ensureRegistrationExists(student_id, competition_id, 'MANUAL_SCREENSHOT');
 
-        const status = (proof_type === 'QUALIFIED') ? 'Qualified' : 'Registered';
+        let updateData = {};
+        if (proof_type === 'QUALIFIED') {
+            updateData = {
+                shortlist_proof_url: publicUrl,
+                qualification_verified: false, // Reset for Faculty Verification
+                status: 'Qualified',
+                source: 'MANUAL_SCREENSHOT'
+            };
+        } else {
+            updateData = {
+                proof_url: publicUrl,
+                verified: false, // Needs faculty approval
+                status: 'Registered',
+                source: 'MANUAL_SCREENSHOT'
+            };
+        }
 
         const { data, error } = await supabase
             .from('registrations')
-            .update({
-                proof_url: publicUrl,
-                verified: false, // Needs faculty approval
-                status: status, // Save the type of proof
-                source: 'MANUAL_SCREENSHOT' // Force manual source so it shows as pending verification
-            })
+            .update(updateData)
             .eq('user_id', student_id)
             .eq('competition_id', competition_id)
             .select();

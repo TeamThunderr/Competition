@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Sidebar from './Sidebar';
 import { Upload, FileText } from 'lucide-react';
+import CustomDatePicker from '../../components/common/CustomDatePicker';
 
 const UploadCompetitions = () => {
     const [activeTab, setActiveTab] = useState('manual');
@@ -342,24 +343,21 @@ const UploadCompetitions = () => {
 
                             <div className="grid grid-cols-2 gap-6 mb-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">One Registration Deadline <span className="text-red-500">*</span></label>
-                                    <input
-                                        type="date"
+                                    <CustomDatePicker
+                                        label="One Registration Deadline"
                                         name="deadline"
-                                        required
                                         value={formData.deadline}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white dark:[color-scheme:dark]"
+                                        required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Main Event Date</label>
-                                    <input
-                                        type="date"
+                                    <CustomDatePicker
+                                        label="Main Event Date"
                                         name="event_date"
                                         value={formData.event_date}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white dark:[color-scheme:dark]"
+                                        minDate={formData.deadline || undefined}
                                     />
                                 </div>
                             </div>

@@ -6,6 +6,7 @@ import { studentService } from '../../services/studentService';
 import { supabase } from '../../services/supabaseClient';
 import { api } from '../../services/api';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import CustomDatePicker from '../../components/common/CustomDatePicker';
 
 const ODRequestPage = () => {
     const { competitionId } = useParams();
@@ -486,12 +487,23 @@ const ODRequestPage = () => {
 
                                 <div className="grid grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From Date</label>
-                                        <input type="date" name="from_date" value={formData.from_date} onChange={handleInputChange} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white" />
+                                        <CustomDatePicker
+                                            label="From Date"
+                                            name="from_date"
+                                            value={formData.from_date}
+                                            onChange={handleInputChange}
+                                            required
+                                        />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">To Date</label>
-                                        <input type="date" name="to_date" value={formData.to_date} onChange={handleInputChange} className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white" />
+                                        <CustomDatePicker
+                                            label="To Date"
+                                            name="to_date"
+                                            value={formData.to_date}
+                                            onChange={handleInputChange}
+                                            minDate={formData.from_date || undefined}
+                                            required
+                                        />
                                     </div>
                                 </div>
                                 <div>

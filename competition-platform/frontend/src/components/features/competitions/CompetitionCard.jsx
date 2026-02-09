@@ -72,10 +72,10 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
             if (my_status?.is_shortlisted || my_status?.is_winner) {
                 // 4a. Check if Shortlisted Proof is already uploaded & Verified (QUALIFIED status)
                 // We enforce source === 'MANUAL_SCREENSHOT' to ensure they actually uploaded a proof for this stage.
-                const isQualifiedVerified = my_registration.status === 'Qualified' &&
-                    my_registration.qualification_verified;
+                const isShortlistVerified = my_registration.qualification_verified === true &&
+                    my_registration.shortlist_proof_url !== null;
 
-                if (isQualifiedVerified) {
+                if (isShortlistVerified) {
                     return (
                         <button
                             onClick={() => onRequestOD(competition.id)}

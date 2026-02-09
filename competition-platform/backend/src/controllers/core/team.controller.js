@@ -273,7 +273,7 @@ const submitVerification = async (req, res) => {
 
     } catch (err) {
         console.error('Error submitting verification:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: err.message, stack: err.stack });
     }
 };
 

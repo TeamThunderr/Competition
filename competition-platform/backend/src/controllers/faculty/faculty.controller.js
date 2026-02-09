@@ -706,7 +706,10 @@ const getPendingShortlistVerifications = async (req, res) => {
             .not('shortlist_proof_url', 'is', null) // Only fetching those who UPLOADED
             .order('registered_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            console.error('[Faculty] Pending Shortlist Query Error:', error);
+            throw error;
+        }
 
         // Map to frontend expectation
         const mappedRegs = registrations.map(r => ({

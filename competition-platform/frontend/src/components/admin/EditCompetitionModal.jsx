@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import CustomDatePicker from '../common/CustomDatePicker';
 
 const EditCompetitionModal = ({ isOpen, onClose, competition, onUpdate }) => {
     const [formData, setFormData] = useState({
@@ -176,23 +177,21 @@ const EditCompetitionModal = ({ isOpen, onClose, competition, onUpdate }) => {
                     {/* Dates & Link */}
                     <div className="grid grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
-                            <input
-                                type="date"
+                            <CustomDatePicker
+                                label="Deadline"
                                 name="deadline"
                                 value={formData.deadline}
                                 onChange={handleInputChange}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm"
+                                required
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Event Date</label>
-                            <input
-                                type="date"
+                            <CustomDatePicker
+                                label="Event Date"
                                 name="event_date"
                                 value={formData.event_date}
                                 onChange={handleInputChange}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm"
+                                minDate={formData.deadline || undefined}
                             />
                         </div>
                     </div>
