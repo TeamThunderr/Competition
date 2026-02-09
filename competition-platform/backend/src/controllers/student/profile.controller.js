@@ -30,17 +30,29 @@ const getProfile = async (req, res) => {
         // Fetch Competition Stats (Registrations)
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
-            .select('id, verified, competition_id, status, competitions(title)')
+            .select('id, verified, shortlist_proof_url, qualification_verified, competition_id, status, competitions(title)')
             .eq('user_id', userId);
 
         if (regError) throw regError;
 
         // 3. Calculate Stats
-        const totalCompetitions = registrations.length;
-        const wins = registrations.filter(r => r.status === 'Winner').length;
-        const qualified = registrations.filter(r => r.status === 'Qualified' || r.status === 'SHORTLISTED').length;
+        // Participation only counts if the basic registration proof is verified
+        const verifiedRegistrations = registrations.filter(r => r.verified === true);
+        const totalCompetitions = verifiedRegistrations.length;
 
-        // Simple participation points logic: 10 pts per reg, 50 pts per win
+        // Wins usually imply they are verified, but we check anyway
+        const winnerRegistrations = registrations.filter(r => r.status === 'Winner');
+        const wins = winnerRegistrations.length;
+
+        // Qualification only counts if the specific qualification/shortlist proof is verified
+        // We match CompetitionCard logic for what counts as "Qualified" in terms of verification
+        const qualifiedRegistrations = registrations.filter(r =>
+            (r.status === 'Qualified' || r.status === 'SHORTLISTED') &&
+            r.qualification_verified === true
+        );
+        const qualified = qualifiedRegistrations.length;
+
+        // Simple participation points logic: 10 pts per verified reg, 50 pts per win
         const participationPoints = (totalCompetitions * 10) + (wins * 50);
 
         // 4. Calculate Batch (Heuristic)
@@ -83,8 +95,8 @@ const getProfile = async (req, res) => {
                 participation_points: participationPoints,
                 qualified: qualified
             },
-            competitionsWon: registrations.filter(r => r.status === 'Winner').map(r => r.competitions?.title || 'Unknown'),
-            competitionsQualified: registrations.filter(r => r.status === 'Qualified' || r.status === 'SHORTLISTED').map(r => r.competitions?.title || 'Unknown')
+            competitionsWon: winnerRegistrations.map(r => r.competitions?.title || 'Unknown'),
+            competitionsQualified: qualifiedRegistrations.map(r => r.competitions?.title || 'Unknown')
         };
 
         sendResponse(res, 200, profileData, 'Fetched profile successfully');

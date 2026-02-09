@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import UploadProofModal from '../../components/common/UploadProofModal';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import AlertModal from '../../components/common/AlertModal';
+import { useToast } from '../../contexts/ToastContext';
 import StudentSidebar from './Sidebar';
 import CompetitionListView from '../common/CompetitionListView';
 import { supabase } from '../../services/supabaseClient';
@@ -16,6 +17,7 @@ const StudentCompetitions = () => {
     const [selectedCompId, setSelectedCompId] = useState(null);
     const [selectedTeamId, setSelectedTeamId] = useState(null);
     const [isShortlistUpload, setIsShortlistUpload] = useState(false);
+    const { addToast } = useToast();
     const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '', type: 'info' });
 
     const showAlert = (title, message, type = 'info') => {
@@ -105,13 +107,13 @@ const StudentCompetitions = () => {
             } else {
                 // Individual Registration Mode
                 await studentService.uploadProof(compIdOrTeamId, file, proofType);
-                alert('Success: Proof uploaded! Waiting for faculty approval.');
+                addToast('Success: Proof uploaded! Waiting for faculty approval.', 'success');
             }
             fetchCompetitions();
             setIsUploadModalOpen(false); // Close Modal on success
         } catch (err) {
             console.error("Upload process error:", err);
-            alert(`Error: ${err.message || 'An error occurred during upload.'}`);
+            addToast(`Error: ${err.message || 'An error occurred during upload.'}`, 'error');
         }
     };
 

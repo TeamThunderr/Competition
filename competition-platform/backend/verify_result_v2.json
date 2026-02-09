@@ -1,0 +1,16 @@
+{
+  "user": "Smith C",
+  "totalParticipated": 7,
+  "totalQualified": 5,
+  "qualifiedCompetitions": [
+    "Hackbells 3.O",
+    "Sky’s the Limit - Cloud9 x JetBrains Hackathon",
+    "COMPTETION",
+    "BugHunt - Cybersecurity Event",
+    "AMUHACKS 5.0"
+  ],
+  "excludedQualified": [
+    "TEST",
+    "DigitalOcean Gradient™ AI Hackathon"
+  ]
+}
