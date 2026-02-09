@@ -9,6 +9,7 @@ const registrationController = require('../../controllers/student/registration.c
 const odController = require('../../controllers/student/od.controller');
 const authMiddleware = require('../../middleware/authMiddleware');
 const roleMiddleware = require('../../middleware/role.middleware');
+const upload = require('../../middleware/uploadmiddleware');
 
 // 1. Check Authentication (Who are you?)
 router.use(authMiddleware);

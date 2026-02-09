@@ -4,13 +4,24 @@ import HodLayout from './HodLayout';
 import { ShieldCheck, Check, X, Calendar, ChevronRight, ExternalLink } from 'lucide-react';
 import { getPendingODRequests, manageODRequest } from '../../services/hodService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const OdApprovals = () => {
     const navigate = useNavigate();
     const [pendingApprovals, setPendingApprovals] = useState([]);
     const [loading, setLoading] = useState(true);
-    // const [selectedRequest, setSelectedRequest] = useState(null); // REMOVED modal state
     const [selectedIds, setSelectedIds] = useState([]);
+
+    // Modal State
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        confirmText: 'Confirm',
+        cancelText: 'Cancel'
+    });
+    const [pendingAction, setPendingAction] = useState(null); // { type: 'BULK'|'SINGLE', status: '...', id?: ... }
 
     const toggleSelection = (id) => {
         setSelectedIds(prev =>
@@ -20,17 +31,67 @@ const OdApprovals = () => {
         );
     };
 
-    const handleBulkAction = async (status) => {
-        if (window.confirm(`Are you sure you want to ${status} ${selectedIds.length} requests?`)) {
-            try {
+    // Open Modal for Bulk Actions
+    const initBulkAction = (status) => {
+        setPendingAction({ type: 'BULK', status });
+        setConfirmModal({
+            isOpen: true,
+            title: status === 'APPROVED' ? 'Approve Selected' : 'Reject Selected',
+            message: `Are you sure you want to ${status} ${selectedIds.length} requests?`,
+            type: status === 'APPROVED' ? 'success' : 'danger',
+            confirmText: 'Confirm',
+            cancelText: 'Cancel'
+        });
+    };
+
+    // Open Modal for Single Action
+    const initSingleAction = (id, status) => {
+        setPendingAction({ type: 'SINGLE', status, id });
+        setConfirmModal({
+            isOpen: true,
+            title: status === 'APPROVED' ? 'Approve Request' : 'Reject Request',
+            message: `Are you sure you want to ${status} this request?`,
+            type: status === 'APPROVED' ? 'success' : 'danger',
+            confirmText: status === 'APPROVED' ? 'Approve' : 'Reject',
+            cancelText: 'Cancel'
+        });
+    };
+
+    // Execute Confirmed Action
+    const handleConfirm = async () => {
+        if (!pendingAction) return;
+
+        try {
+            if (pendingAction.type === 'BULK') {
                 // Execute in parallel
-                await Promise.all(selectedIds.map(id => manageODRequest(id, status)));
+                await Promise.all(selectedIds.map(id => manageODRequest(id, pendingAction.status)));
                 setPendingApprovals(prev => prev.filter(od => !selectedIds.includes(od.id)));
                 setSelectedIds([]);
-            } catch (error) {
-                console.error(`Bulk ${status} failed`, error);
-                alert(`Failed to complete bulk action. Please try again.`);
+            } else if (pendingAction.type === 'SINGLE') {
+                await manageODRequest(pendingAction.id, pendingAction.status);
+                setPendingApprovals(prev => prev.filter(od => od.id !== pendingAction.id));
             }
+
+            setConfirmModal({
+                isOpen: true,
+                title: 'Success',
+                message: 'Action completed successfully!',
+                type: 'success',
+                onConfirm: () => setConfirmModal(prev => ({ ...prev, isOpen: false })),
+                onClose: () => setConfirmModal(prev => ({ ...prev, isOpen: false }))
+            });
+
+        } catch (error) {
+            console.error(`Action failed`, error);
+            setConfirmModal(prev => ({
+                ...prev,
+                title: 'Error',
+                message: 'Failed to complete action. Please try again.',
+                type: 'danger',
+                onConfirm: () => setConfirmModal(p => ({ ...p, isOpen: false }))
+            }));
+        } finally {
+            setPendingAction(null);
         }
     };
 
@@ -47,16 +108,6 @@ const OdApprovals = () => {
         };
         fetchODs();
     }, []);
-
-    const handleAction = async (id, status, overrides = {}) => {
-        try {
-            await manageODRequest(id, status, overrides);
-            setPendingApprovals(prev => prev.filter(od => od.id !== id));
-            // setSelectedRequest(null); // Close modal if open
-        } catch (error) {
-            console.error(`Failed to ${status} OD request`, error);
-        }
-    };
 
     return (
         <HodLayout>
@@ -82,13 +133,13 @@ const OdApprovals = () => {
                         <div className="h-4 w-px bg-gray-700"></div>
                         <div className="flex gap-2">
                             <button
-                                onClick={() => handleBulkAction('REJECTED')}
+                                onClick={() => initBulkAction('REJECTED')}
                                 className="px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-white/10 rounded-lg transition-colors"
                             >
                                 REJECT ALL
                             </button>
                             <button
-                                onClick={() => handleBulkAction('APPROVED')}
+                                onClick={() => initBulkAction('APPROVED')}
                                 className="px-3 py-1.5 text-xs font-bold text-green-400 hover:bg-white/10 rounded-lg transition-colors"
                             >
                                 APPROVE ALL
@@ -137,19 +188,26 @@ const OdApprovals = () => {
                                         <Calendar size={16} className="text-gray-400" />
                                         <span>{approval.competitions?.event_date ? new Date(approval.competitions.event_date).toLocaleDateString() : 'Date N/A'}</span>
                                     </div>
+                                    {approval.reason && approval.reason.includes('[Extension]') && (
+                                        <div className="col-span-1 sm:col-span-2 mt-1">
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                                Extension Request
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="flex flex-col gap-2 border-l border-gray-100 pl-4 w-32">
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); handleAction(approval.id, 'APPROVED'); }}
+                                    onClick={(e) => { e.stopPropagation(); initSingleAction(approval.id, 'APPROVED'); }}
                                     className="w-full py-1.5 text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors flex items-center justify-center gap-1"
                                 >
                                     <Check size={14} />
                                     Approve
                                 </button>
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); handleAction(approval.id, 'REJECTED'); }}
+                                    onClick={(e) => { e.stopPropagation(); initSingleAction(approval.id, 'REJECTED'); }}
                                     className="w-full py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
                                 >
                                     Reject
@@ -167,6 +225,17 @@ const OdApprovals = () => {
                     </div>
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={handleConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                confirmText={confirmModal.confirmText}
+                loading={loading}
+            />
 
         </HodLayout>
     );
