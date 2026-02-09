@@ -136,6 +136,13 @@ export const studentService = {
     checkTeamStatus,
     uploadTeamProof,
     uploadShortlistProof,
+    updateWinningStatus: async (competitionId, wonStatus, winningProofUrl) => {
+        return await api.post('/api/student/update-winning-status', {
+            competition_id: competitionId,
+            won_status: wonStatus,
+            winning_proof_url: winningProofUrl
+        });
+    },
     searchStudents,
     validateTeammate
 };

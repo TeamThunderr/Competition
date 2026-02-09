@@ -25,7 +25,7 @@ const getAllCompetitions = async (req, res) => {
         // Fetch user's registrations for these competitions
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
-            .select('competition_id, source, verified, proof_url, status, gmail_message_id, confidence_score, qualification_verified, shortlist_proof_url')
+            .select('competition_id, source, verified, proof_url, status, gmail_message_id, confidence_score, qualification_verified, shortlist_proof_url, won_status, winning_proof_url, winning_verified, winning_verified_by')
             .eq('user_id', userId);
 
         if (regError) throw regError;
@@ -65,8 +65,8 @@ const getAllCompetitions = async (req, res) => {
 
             // Derive Shortlist Status from Registration 'status' column (Unified Logic)
             const isShortlisted = (reg?.status === 'Qualified') || (reg?.status === 'SHORTLISTED');
-            // Assuming 'Winner' status might exist in registrations eventually, or defaulting false for now
-            const isWinner = (reg?.status === 'Winner');
+            // Use both legacy 'Winner' status and new 'won_status' column
+            const isWinner = (reg?.status === 'Winner') || (reg?.won_status === 'WON');
 
             const derivedStatus = {
                 is_shortlisted: isShortlisted,
