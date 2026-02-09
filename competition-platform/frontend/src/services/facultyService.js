@@ -93,5 +93,7 @@ export default {
     getCompetitionStudents,
     syncCompetition,
     syncActiveCompetitions,
-    downloadParticipationReport
+    downloadParticipationReport,
+    getPendingShortlistVerifications,
+    verifyShortlist
 };

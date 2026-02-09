@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { CheckCircle, XCircle, ExternalLink, Users, FileText } from 'lucide-react';
-import { getPendingVerifications, verifyRegistration } from '../../services/facultyService';
+import { getPendingVerifications, verifyRegistration, getPendingShortlistVerifications, verifyShortlist } from '../../services/facultyService';
 import { api } from '../../services/api'; // Direct API for team verification if service not unified
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import ConfirmModal from '../../components/common/ConfirmModal';
@@ -25,22 +25,28 @@ const FacultyVerify = () => {
     const fetchPending = async () => {
         setLoading(true);
         try {
-            const data = await getPendingVerifications();
-            // Handle both legacy array response and future object response
-            // Handle both legacy array response and future object response
-            if (Array.isArray(data)) {
-                // Filter into buckets based on status
-                const pendingRegs = data.filter(item => !item.status || item.status === 'Registered');
-                const pendingShortlists = data.filter(item => item.status === 'Qualified' || item.status === 'SHORTLISTED');
+            // Fetch both lists in parallel
+            const [regData, shortlistData] = await Promise.all([
+                getPendingVerifications(),
+                getPendingShortlistVerifications()
+            ]);
 
-                setRegistrations(pendingRegs);
-                setShortlisted(pendingShortlists);
+            // Handle Registration Data (Legacy check not needed as we control API, but safe to keep array check)
+            if (Array.isArray(regData)) {
+                setRegistrations(regData);
             } else {
-                setRegistrations(data.registrations || []);
-                setShortlisted(data.shortlists || []);
+                setRegistrations(regData?.registrations || []);
             }
+
+            // Handle Shortlist Data
+            if (Array.isArray(shortlistData)) {
+                setShortlisted(shortlistData);
+            } else {
+                setShortlisted([]);
+            }
+
         } catch (err) {
-            console.error(err);
+            console.error("Error fetching pending verifications:", err);
         } finally {
             setLoading(false);
         }
@@ -72,8 +78,11 @@ const FacultyVerify = () => {
         setConfirmModal(prev => ({ ...prev, loading: true })); // Add loading state to modal if supported or just use local
 
         try {
-            const type = activeTab === 'registration' ? 'REGISTRATION' : 'SHORTLIST';
-            await verifyRegistration(id, action, type);
+            if (activeTab === 'registration') {
+                await verifyRegistration(id, action);
+            } else {
+                await verifyShortlist(id, action);
+            }
 
             if (activeTab === 'registration') {
                 setRegistrations(prev => prev.filter(p => p.id !== id));
