@@ -79,9 +79,8 @@ const EditCompetitionModal = ({ isOpen, onClose, competition, onUpdate }) => {
 
             if (response.ok) {
                 const data = await response.json();
-                onUpdate(data.data); // Pass updated data back
+                onUpdate(data.data); // Pass updated data back - parent will show toast
                 onClose();
-                addToast("Competition updated successfully", "success");
             } else {
                 const error = await response.json();
                 addToast(`Update failed: ${error.message}`, "error");

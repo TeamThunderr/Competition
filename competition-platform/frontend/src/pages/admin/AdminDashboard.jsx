@@ -132,6 +132,7 @@ const AdminDashboard = () => {
     };
 
     const handleCompetitionUpdate = (updatedCompetition) => {
+        addToast('Competition updated successfully', 'success');
         fetchDashboardData();
         handleModalClose();
     };
@@ -227,7 +228,7 @@ const AdminDashboard = () => {
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {competitions.map((comp) => (
-                                    <div key={comp.id} className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                                    <div key={comp.id} className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col relative group">
                                         {/* Competition Info */}
                                         <div className="p-6 flex-1">
                                             <div className="flex justify-between items-start mb-3">
@@ -251,8 +252,22 @@ const AdminDashboard = () => {
                                             </div>
                                         </div>
 
+                                        {/* Hover Overlay - View Details */}
+                                        <Link
+                                            to={`/competition/${comp.id}`}
+                                            className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"
+                                        >
+                                            <div className="bg-white dark:bg-card px-6 py-3 rounded-lg shadow-lg border border-border flex items-center gap-2 transform hover:scale-105 transition-transform">
+                                                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                                <span className="font-semibold text-foreground">View Details</span>
+                                            </div>
+                                        </Link>
+
                                         {/* Action Buttons */}
-                                        <div className="border-t border-border p-4 flex gap-2">
+                                        <div className="border-t border-border p-4 flex gap-2 relative z-20">
                                             <button
                                                 onClick={() => handleEdit(comp)}
                                                 className="flex-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
