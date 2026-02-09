@@ -54,7 +54,7 @@ function App() {
 
 
       {/* Role Based Routes - Can protect these later with Middleware */}
-      <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
+      <Route path="/student" element={<Navigate to="/student/competitions" replace />} />
       <Route path="/student/dashboard" element={<StudentDashboard />} />
       <Route path="/student/competitions" element={<StudentCompetitions />} />
       <Route path="/student/profile" element={<Profile />} />

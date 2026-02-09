@@ -133,13 +133,53 @@ const OdRequestDetail = () => {
                 </div>
 
                 {/* Extension Alert */}
-                {request.reason && request.reason.includes('[Extension]') && (
-                    <div className="mb-6 bg-purple-50 border border-purple-200 p-4 rounded-lg flex items-center gap-3">
-                        <Clock className="text-purple-600" size={20} />
-                        <div>
-                            <h3 className="font-bold text-purple-900">Extension Request</h3>
-                            <p className="text-sm text-purple-700">This OD is an extension of a previous approved request. Review the history below.</p>
+                {request.is_extension && (
+                    <div className="mb-6 bg-purple-50 border border-purple-200 p-6 rounded-lg">
+                        <div className="flex items-center gap-3 mb-4">
+                            <Clock className="text-purple-600" size={24} />
+                            <div>
+                                <h3 className="font-bold text-purple-900 text-lg">🔗 Extended OD Request</h3>
+                                <p className="text-sm text-purple-700">
+                                    This OD has been extended <strong>{request.extension_count || 1}</strong> time(s) from the original request.
+                                </p>
+                            </div>
                         </div>
+
+                        {/* Extension Timeline */}
+                        <div className="bg-white p-4 rounded border border-purple-200 mb-3">
+                            <h4 className="text-sm font-bold text-purple-900 uppercase mb-2">Extension Timeline</h4>
+                            <div className="flex items-center gap-2 text-sm">
+                                <span className="font-medium text-gray-700">Original Start:</span>
+                                <span className="text-purple-700 font-bold">
+                                    {request.original_from_date ? new Date(request.original_from_date).toLocaleDateString() : new Date(request.from_date).toLocaleDateString()}
+                                </span>
+                                <span className="text-gray-400">→</span>
+                                <span className="font-medium text-gray-700">Extended End:</span>
+                                <span className="text-purple-700 font-bold">
+                                    {new Date(request.to_date).toLocaleDateString()}
+                                </span>
+                                <span className="ml-2 text-xs text-gray-500">
+                                    ({Math.ceil((new Date(request.to_date) - new Date(request.original_from_date || request.from_date)) / (1000 * 60 * 60 * 24)) + 1} days total)
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Multiple Competitions */}
+                        {request.competitions_info && request.competitions_info.length > 0 && (
+                            <div className="bg-white p-4 rounded border border-purple-200">
+                                <h4 className="text-sm font-bold text-purple-900 uppercase mb-2">Combined Competitions</h4>
+                                <div className="space-y-2">
+                                    {request.competitions_info.map((comp, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-2 bg-purple-50 rounded">
+                                            <span className="font-medium text-purple-900">{comp.title}</span>
+                                            <span className="text-sm text-purple-700">
+                                                {new Date(comp.from_date).toLocaleDateString()} - {new Date(comp.to_date).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

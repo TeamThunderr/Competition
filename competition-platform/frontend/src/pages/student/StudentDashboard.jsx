@@ -7,6 +7,7 @@ import UploadProofModal from '../../components/common/UploadProofModal';
 import { supabase } from '../../services/supabaseClient';
 import { api } from '../../services/api';
 import { studentService } from '../../services/studentService';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
@@ -19,6 +20,16 @@ const StudentDashboard = () => {
     const [selectedTeamId, setSelectedTeamId] = useState(null);
     const [selectedTeamData, setSelectedTeamData] = useState(null);
     const [odRequests, setOdRequests] = useState([]);
+
+    // Alert Modal
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        onConfirm: () => { }
+    });
+    const closeConfirmModal = () => setConfirmModal(prev => ({ ...prev, isOpen: false }));
 
     const fetchCompetitions = async () => {
         setLoading(true);
@@ -49,24 +60,39 @@ const StudentDashboard = () => {
             new Date(od.to_date) >= now
         );
 
+        const pendingOD = odRequests.find(od => od.status === 'PENDING');
+
         if (activeOD) {
             return (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 rounded-xl flex items-center gap-4">
-                    <div className="p-3 bg-emerald-100 dark:bg-emerald-800 rounded-full text-emerald-600 dark:text-emerald-300">
-                        <Trophy size={24} />
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 rounded-xl flex flex-col gap-3">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-emerald-100 dark:bg-emerald-800 rounded-full text-emerald-600 dark:text-emerald-300">
+                            <Trophy size={24} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-emerald-800 dark:text-emerald-200">Active OD</h3>
+                            <p className="text-sm text-emerald-700 dark:text-emerald-300 line-clamp-1">{activeOD.competitions?.title}</p>
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                                {new Date(activeOD.from_date).toLocaleDateString()} - {new Date(activeOD.to_date).toLocaleDateString()}
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="font-bold text-emerald-800 dark:text-emerald-200">Active OD</h3>
-                        <p className="text-sm text-emerald-700 dark:text-emerald-300 line-clamp-1">{activeOD.competitions?.title}</p>
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                            {new Date(activeOD.from_date).toLocaleDateString()} - {new Date(activeOD.to_date).toLocaleDateString()}
-                        </p>
-                    </div>
+
+                    {/* Extension / Pending Alert inside Active Card */}
+                    {pendingOD && (
+                        <div className="pt-3 border-t border-emerald-200 dark:border-emerald-800 flex items-start gap-3">
+                            <Clock size={16} className="text-amber-600 dark:text-amber-400 mt-0.5" />
+                            <div>
+                                <h4 className="text-xs font-bold text-amber-700 dark:text-amber-300">Extension Request Pending</h4>
+                                <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                                    For {pendingOD.competitions?.title} ({new Date(pendingOD.from_date).toLocaleDateString()})
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
-
-        const pendingOD = odRequests.find(od => od.status === 'PENDING');
         if (pendingOD) {
             return (
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-xl flex items-center gap-4">
@@ -95,10 +121,6 @@ const StudentDashboard = () => {
         );
     };
 
-
-
-
-
     const handleRequestOD = (compId) => {
         navigate(`/student/od-request/${compId}`);
     };
@@ -108,16 +130,33 @@ const StudentDashboard = () => {
             if (selectedTeamId) {
                 // Team Mode
                 await studentService.uploadTeamProof(selectedTeamId, proofUrl);
-                alert("Team Proof uploaded! Waiting for faculty verification.");
+                setConfirmModal({
+                    isOpen: true,
+                    title: 'Success',
+                    message: "Team Proof uploaded! Waiting for faculty verification.",
+                    type: 'success',
+                    onConfirm: closeConfirmModal
+                });
             } else {
-                // Individual Mode (Legacy or if needed here)
-                // await studentService.uploadProof(compIdOrTeamId, proofUrl);
-                alert("Proof uploaded!");
+                // Individual Mode
+                setConfirmModal({
+                    isOpen: true,
+                    title: 'Success',
+                    message: "Proof uploaded!",
+                    type: 'success',
+                    onConfirm: closeConfirmModal
+                });
             }
             fetchCompetitions();
         } catch (err) {
             console.error("Upload process error:", err);
-            alert("An error occurred: " + err.message);
+            setConfirmModal({
+                isOpen: true,
+                title: 'Error',
+                message: "An error occurred: " + err.message,
+                type: 'danger',
+                onConfirm: closeConfirmModal
+            });
         }
     };
 
@@ -231,6 +270,17 @@ const StudentDashboard = () => {
                 competitionId={selectedCompId}
                 onSubmit={handleUploadProofSubmit}
                 title={selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof"}
+            />
+            {/* Global Alert Modal */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={closeConfirmModal}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                confirmText="Okay"
+                cancelText="Close"
             />
 
         </div>

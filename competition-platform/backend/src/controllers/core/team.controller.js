@@ -137,9 +137,39 @@ const submitVerification = async (req, res) => {
         const userId = req.userId;
 
         // Validation
-        if (!competition_id || !proof_urls || proof_urls.length === 0) {
-            return res.status(400).json({ error: 'Competition and at least one Proof are required.' });
+        if (!competition_id) {
+            return res.status(400).json({ error: 'Competition ID is required.' });
         }
+
+        // =====================================================
+        // [NEW] AUTO-FETCH PROOF & VALIDATE ELIGIBILITY
+        // =====================================================
+        const { data: registration, error: regError } = await supabase
+            .from('registrations')
+            .select('status, qualification_verified, shortlist_proof_url')
+            .eq('user_id', userId)
+            .eq('competition_id', competition_id)
+            .single();
+
+        if (regError || !registration) {
+            return res.status(403).json({ error: 'You are not registered for this competition.' });
+        }
+
+        if (registration.status !== 'Qualified') {
+            return res.status(403).json({ error: 'You must be Qualified to request OD.' });
+        }
+
+        if (registration.qualification_verified !== true) {
+            return res.status(403).json({ error: 'Your shortlist proof must be verified by Faculty before requesting OD.' });
+        }
+
+        const mainProofUrl = registration.shortlist_proof_url;
+        if (!mainProofUrl) {
+            return res.status(400).json({ error: 'System Error: Shortlist proof not found. Please contact admin.' });
+        }
+
+        // Auto-assign proof
+        const finalProofUrls = [mainProofUrl];
 
         // derived team name for solo
         let finalTeamName = team_name;
@@ -151,7 +181,27 @@ const submitVerification = async (req, res) => {
 
         let currentTeamId = team_id;
 
-        // 1. If no team_id, Create a New Team
+        // 1. Check if team already exists for this competition and leader
+        if (!currentTeamId) {
+            const { data: existingTeam, error: existingError } = await supabase
+                .from('teams')
+                .select('id')
+                .eq('competition_id', competition_id)
+                .eq('leader_id', userId)
+                .maybeSingle();
+
+            if (existingError) {
+                console.error('Error checking existing team:', existingError);
+            }
+
+            if (existingTeam) {
+                // Reuse existing team
+                currentTeamId = existingTeam.id;
+                console.log(`[Team] Reusing existing team ${currentTeamId} for competition ${competition_id}`);
+            }
+        }
+
+        // 2. If no team_id and no existing team, Create a New Team
         if (!currentTeamId) {
             // Create Team
             const { data: newTeam, error: createError } = await supabase
@@ -164,11 +214,10 @@ const submitVerification = async (req, res) => {
                     leader_reg_no, // Store it
                     section,
                     academic_year,
-                    academic_year,
                     department,
                     members_info, // Store JSON
-                    proof_urls, // Store array
-                    proof_url: proof_urls[0], // Legacy support
+                    proof_urls: finalProofUrls, // Store array
+                    proof_url: finalProofUrls[0], // Legacy support
                     verification_status: 'PENDING'
                 }])
                 .select()
@@ -208,8 +257,8 @@ const submitVerification = async (req, res) => {
                     academic_year,
                     department,
                     members_info,
-                    proof_urls,
-                    proof_url: proof_urls[0],
+                    proof_urls: finalProofUrls,
+                    proof_url: finalProofUrls[0],
                     verification_status: 'PENDING'
                 })
                 .eq('id', currentTeamId);

@@ -171,6 +171,11 @@ const OdApprovals = () => {
                                     <span className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full border border-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50">
                                         Sec {approval.users?.section}
                                     </span>
+                                    {approval.is_extension && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
+                                            🔗 Extended OD {approval.extension_count > 0 && `(${approval.extension_count}x)`}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="text-sm text-muted flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                                     <span className="flex items-center space-x-1">
@@ -188,13 +193,6 @@ const OdApprovals = () => {
                                         <Calendar size={16} className="text-gray-400" />
                                         <span>{approval.competitions?.event_date ? new Date(approval.competitions.event_date).toLocaleDateString() : 'Date N/A'}</span>
                                     </div>
-                                    {approval.reason && approval.reason.includes('[Extension]') && (
-                                        <div className="col-span-1 sm:col-span-2 mt-1">
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                                Extension Request
-                                            </span>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
 

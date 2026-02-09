@@ -9,16 +9,17 @@ const requestOD = async (req, res) => {
     try {
         const {
             competition_id,
-            reason,
             from_date,
             to_date,
             is_solo,
             team_name,
             leader_name,
             section,
-            team_members,
-            proof_urls // Array of strings
+            team_members
+            // proof_urls removed
         } = req.body;
+
+        let { reason } = req.body;
 
         const student_id = req.userId;
 
@@ -27,23 +28,12 @@ const requestOD = async (req, res) => {
             return res.status(400).json({ error: 'Missing required OD fields (Dates, Reason).' });
         }
 
-        // Proof handling: We need a proof URL. 
-        // If multiple are sent, take the first one or join them? DB likely stores one string or we need a JSON column.
-        // Looking at schema: teams.proof_url is text (likely single URL). od_requests doesn't have proof_url.
-        // Strategy: Store MAIN proof in `teams` table (even if it's OD specific, it proves participation).
-
-        const mainProofUrl = (proof_urls && proof_urls.length > 0) ? proof_urls[0] : null;
-
-        if (!mainProofUrl) {
-            return res.status(400).json({ error: 'Proof of registration is required.' });
-        }
-
         // =====================================================
-        // CRITICAL: OD ELIGIBILITY CHECK
+        // CRITICAL: OD ELIGIBILITY CHECK & PROOF FETCHING
         // =====================================================
         const { data: registration, error: regError } = await supabase
             .from('registrations')
-            .select('status, qualification_verified')
+            .select('status, qualification_verified, shortlist_proof_url')
             .eq('user_id', student_id)
             .eq('competition_id', competition_id)
             .single();
@@ -58,6 +48,11 @@ const requestOD = async (req, res) => {
 
         if (registration.qualification_verified !== true) {
             return res.status(403).json({ error: 'Your shortlist proof must be verified by Faculty before requesting OD.' });
+        }
+
+        const mainProofUrl = registration.shortlist_proof_url;
+        if (!mainProofUrl) {
+            return res.status(400).json({ error: 'System Error: Shortlist proof not found. Please contact admin.' });
         }
 
         console.log(`[OD Request] Student: ${student_id}, Comp: ${competition_id}, Solo: ${is_solo}`);
@@ -80,7 +75,7 @@ const requestOD = async (req, res) => {
                 leader_id: student_id,
                 team_name: newTeamName,
                 verification_status: 'OD_SUBMITTED', // CRITICAL: Exclude from Faculty View
-                proof_url: mainProofUrl,
+                proof_url: mainProofUrl, // From registrations table
                 members_info: team_members || []
             }])
             .select()
@@ -145,60 +140,94 @@ const requestOD = async (req, res) => {
             });
         }
 
-        // 3. [NEW] OD EXTENSION LOGIC
-        // Check if this request is contiguous OR overlaps with a previous ACTIVE (Approved/Verified) OD.
-        // Rule: Start Date <= Old End Date + 1 Day
+        // 3. [UPDATED] OD EXTENSION LOGIC - MERGE APPROACH
+        // Check if this request extends a VERIFIED OD (consecutive dates)
+        // If yes, UPDATE the existing OD record instead of creating a new one
         const oneDayMs = 24 * 60 * 60 * 1000;
         const prevOdSearchDate = new Date(reqFrom.getTime() - oneDayMs).toISOString().split('T')[0];
 
-        // Find potential ODs to extend
+        // Find VERIFIED ODs that can be extended (only VERIFIED, not PENDING)
         const { data: candidates, error: extError } = await supabase
             .from('od_requests')
-            .select('*')
+            .select('*, competitions(title, event_date)')
             .eq('user_id', student_id)
             .gte('to_date', prevOdSearchDate) // End date must be at least near the new start
-            .in('status', ['APPROVED', 'VERIFIED']);
+            .eq('status', 'VERIFIED'); // ONLY VERIFIED ODs can be extended
 
         if (extError) throw extError;
 
-        // Filter for valid extension candidate
+        // Filter for valid extension candidate (exactly 1 day gap)
         const extendableOD = candidates?.find(od => {
             const prevEnd = new Date(od.to_date);
-            const prevStart = new Date(od.from_date);
-
-            const isAddingTime = reqTo > prevEnd;
             const gapTime = reqFrom - prevEnd;
             const gapDays = Math.ceil(gapTime / oneDayMs);
-            const isConnected = gapDays <= 1; // Overlap or consecutive
-            const isNotBefore = reqFrom >= prevStart;
 
-            return isAddingTime && isConnected && isNotBefore;
+            // Must be exactly 1 day after previous OD ends
+            return gapDays === 1;
         });
 
         let odReq;
 
         if (extendableOD) {
-            console.log(`[OD Extension] Extending OD ${extendableOD.id} (ended ${extendableOD.to_date}) to ${to_date}`);
+            console.log(`[OD Extension] Extending OD ${extendableOD.id} by merging dates`);
 
-            // UPDATE existing OD
+            // Prepare competitions_info array
+            let competitionsInfo = extendableOD.competitions_info || [];
+
+            // If this is the first extension, add the original competition
+            if (competitionsInfo.length === 0) {
+                competitionsInfo.push({
+                    competition_id: extendableOD.competition_id,
+                    title: extendableOD.competitions?.title || 'Unknown',
+                    from_date: extendableOD.from_date,
+                    to_date: extendableOD.to_date
+                });
+            }
+
+            // Add the new competition to the array
+            const { data: newComp } = await supabase
+                .from('competitions')
+                .select('title, event_date')
+                .eq('id', competition_id)
+                .single();
+
+            competitionsInfo.push({
+                competition_id: competition_id,
+                title: newComp?.title || 'Unknown',
+                from_date: from_date,
+                to_date: to_date
+            });
+
+            // UPDATE the existing OD record (merge)
             const { data: updatedOD, error: updateError } = await supabase
                 .from('od_requests')
                 .update({
-                    competition_id: competition_id, // Switch to new competition
-                    team_id: team_id,               // Link to new proof/team
-                    to_date: to_date,               // Extend end date
-                    status: 'PENDING',              // Reset to PENDING for HOD approval
-                    reason: `${extendableOD.reason}\n\n[Extension]: ${reason}` // Append history cleanly
+                    to_date: to_date, // Extend the end date
+                    competition_id: competition_id, // Update to latest competition
+                    team_id: team_id, // Update team info
+                    reason: `${extendableOD.reason}\n\n[Extended on ${new Date().toLocaleDateString()}]: ${reason}`,
+                    status: 'PENDING', // Reset to PENDING for HOD re-approval
+                    is_extension: true,
+                    extension_count: (extendableOD.extension_count || 0) + 1,
+                    original_from_date: extendableOD.original_from_date || extendableOD.from_date,
+                    competitions_info: competitionsInfo,
+                    parent_od_id: extendableOD.parent_od_id || extendableOD.id // Track original parent
                 })
                 .eq('id', extendableOD.id)
-                .select()
+                .select('*, competitions(title, event_date)')
                 .single();
 
             if (updateError) throw updateError;
             odReq = updatedOD;
 
+            res.status(200).json({
+                message: 'OD Extended successfully. Resubmitted to HOD for approval.',
+                data: odReq,
+                isExtension: true
+            });
+
         } else {
-            // NORMAL INSERT
+            // NORMAL INSERT (No extension found)
             const { data: newOD, error: insertError } = await supabase
                 .from('od_requests')
                 .insert([{
@@ -208,18 +237,20 @@ const requestOD = async (req, res) => {
                     reason: reason,
                     from_date: from_date,
                     to_date: to_date,
-                    status: 'PENDING'
+                    status: 'PENDING',
+                    is_extension: false,
+                    extension_count: 0,
+                    original_from_date: from_date,
+                    competitions_info: []
                 }])
                 .select()
                 .single();
 
             if (insertError) throw insertError;
             odReq = newOD;
+
+            res.status(201).json({ message: 'OD Request submitted successfully to HOD.', data: odReq });
         }
-
-        if (odError) throw odError;
-
-        res.status(201).json({ message: 'OD Request submitted successfully to HOD.', data: odReq });
 
     } catch (err) {
         console.error('OD Request Error:', err);
@@ -240,7 +271,8 @@ const getMyODRequests = async (req, res) => {
                 competitions (title, event_date),
                 teams (team_name, members_info)
             `)
-            .eq('user_id', student_id);
+            .eq('user_id', student_id)
+            .order('created_at', { ascending: false });
 
         if (error) {
             console.error('[OD] Fetch Error:', error);

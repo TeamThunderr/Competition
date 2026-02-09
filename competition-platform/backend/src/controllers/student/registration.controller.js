@@ -208,7 +208,8 @@ const uploadShortlistProof = async (req, res) => {
             .from('registrations')
             .update({
                 shortlist_proof_url: proof_url,
-                qualification_verified: false // Reset for Faculty Verification
+                qualification_verified: false, // Reset for Faculty Verification
+                status: 'Qualified' // Set status so frontend can show "Verification Pending"
             })
             .eq('user_id', student_id)
             .eq('competition_id', competition_id)
