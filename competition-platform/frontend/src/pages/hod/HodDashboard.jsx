@@ -12,7 +12,7 @@ const HodDashboard = () => {
     const [selectedSection, setSelectedSection] = useState('All Sections');
     const [activeTab, setActiveTab] = useState('2nd'); // 2nd, 3rd, 4th
     const [isTopDropdownOpen, setIsTopDropdownOpen] = useState(false);
-    const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+
 
 
     // Feature State
@@ -168,12 +168,10 @@ const HodDashboard = () => {
     }));
 
     const toggleTopDropdown = () => setIsTopDropdownOpen(!isTopDropdownOpen);
-    const toggleFilterDropdown = () => setIsFilterDropdownOpen(!isFilterDropdownOpen);
 
     const handleSectionSelect = (section) => {
         setSelectedSection(section);
         setIsTopDropdownOpen(false);
-        setIsFilterDropdownOpen(false);
     };
 
     // Engagement Stats
@@ -286,30 +284,7 @@ const HodDashboard = () => {
                             </p>
                         </div>
                         {/* Dropdown for Section Selection */}
-                        {selectedSection === 'All Sections' && (
-                            <div className="relative">
-                                <button
-                                    onClick={toggleFilterDropdown}
-                                    className="flex items-center gap-2 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
-                                >
-                                    <span>Filter Section</span>
-                                    <ChevronDown size={14} />
-                                </button>
-                                {isFilterDropdownOpen && (
-                                    <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-100 rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto">
-                                        {sections.map((section) => (
-                                            <button
-                                                key={section}
-                                                onClick={() => handleSectionSelect(section)}
-                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                            >
-                                                Section {section}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+
 
                         {selectedSection !== 'All Sections' && (
                             <button

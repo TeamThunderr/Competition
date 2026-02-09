@@ -105,13 +105,13 @@ const StudentCompetitions = () => {
             } else {
                 // Individual Registration Mode
                 await studentService.uploadProof(compIdOrTeamId, file, proofType);
-                alert('Success: Proof uploaded! Waiting for faculty approval.');
+                showAlert('Success', 'Proof uploaded! Waiting for faculty approval.', 'success');
             }
             fetchCompetitions();
             setIsUploadModalOpen(false); // Close Modal on success
         } catch (err) {
             console.error("Upload process error:", err);
-            alert(`Error: ${err.message || 'An error occurred during upload.'}`);
+            showAlert('Error', err.message || 'An error occurred during upload.', 'error');
         }
     };
 

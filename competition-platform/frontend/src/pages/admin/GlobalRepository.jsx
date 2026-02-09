@@ -209,7 +209,7 @@ const GlobalRepository = () => {
                                                 <ChevronDown size={16} />
                                             </button>
                                             {deptOpen && (
-                                                <div className="absolute top-full left-0 mt-1 w-full bg-card border border-border rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+                                                <div className="absolute top-full left-0 mt-1 w-full bg-card border border-border rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-40 overflow-y-auto">
                                                     <button
                                                         className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/10 font-medium"
                                                         onClick={() => { setSelectedDept('All Departments'); setDeptOpen(false); }}
@@ -238,7 +238,7 @@ const GlobalRepository = () => {
                                                 <ChevronDown size={16} />
                                             </button>
                                             {platformOpen && (
-                                                <div className="absolute top-full left-0 mt-1 w-full bg-card border border-border rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+                                                <div className="absolute top-full left-0 mt-1 w-full bg-card border border-border rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-40 overflow-y-auto">
                                                     <button
                                                         className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/10 font-medium"
                                                         onClick={() => { setSelectedPlatform('All Platforms'); setPlatformOpen(false); }}

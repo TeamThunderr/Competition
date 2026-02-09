@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import EditCompetitionModal from '../../components/admin/EditCompetitionModal';
+import ConfirmModal from '../../components/common/ConfirmModal';
+import AlertModal from '../../components/common/AlertModal';
 
 const ActivityLogs = () => {
     const [logs, setLogs] = useState([]);
@@ -14,6 +16,35 @@ const ActivityLogs = () => {
     // Edit/Delete State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedRepo, setSelectedRepo] = useState(null);
+
+    // Modal Configs
+    const [confirmConfig, setConfirmConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'danger',
+        confirmText: 'Delete',
+        loading: false,
+        onConfirm: null
+    });
+
+    const [alertConfig, setAlertConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        onClose: () => setAlertConfig(prev => ({ ...prev, isOpen: false }))
+    });
+
+    const showAlert = (title, message, type = 'info') => {
+        setAlertConfig({
+            isOpen: true,
+            title,
+            message,
+            type,
+            onClose: () => setAlertConfig(prev => ({ ...prev, isOpen: false }))
+        });
+    };
 
     const fetchLogs = async () => {
         try {
@@ -52,21 +83,33 @@ const ActivityLogs = () => {
         fetchLogs();
     }, []);
 
-    const handleDelete = async (e, id) => {
+    const processDelete = async (id) => {
+        setConfirmConfig(prev => ({ ...prev, loading: true }));
+        try {
+            await api.del(`/api/admin/competition/${id}`);
+            setLogs(prev => prev.filter(log => log.id !== id));
+            setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }));
+            showAlert('Success', 'Competition deleted successfully.', 'success');
+        } catch (err) {
+            console.error("Delete failed", err);
+            setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }));
+            showAlert('Error', 'Failed to delete competition.', 'danger');
+        }
+    };
+
+    const handleDelete = (e, id) => {
         e.preventDefault(); // Prevent Link navigation
         e.stopPropagation();
 
-        if (window.confirm("Are you sure you want to delete this competition? This action cannot be undone.")) {
-            try {
-                const response = await api.del(`/api/admin/competition/${id}`);
-                // In a perfect world we check response, but axios throws on error status
-                setLogs(prev => prev.filter(log => log.id !== id));
-                alert("Competition deleted successfully.");
-            } catch (err) {
-                console.error("Delete failed", err);
-                alert("Failed to delete competition.");
-            }
-        }
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Delete Competition',
+            message: 'Are you sure you want to delete this competition? This action cannot be undone.',
+            type: 'danger',
+            confirmText: 'Delete',
+            loading: false,
+            onConfirm: () => processDelete(id)
+        });
     };
 
     const handleEdit = (e, competition) => {
@@ -191,6 +234,27 @@ const ActivityLogs = () => {
                 onClose={() => setIsEditModalOpen(false)}
                 competition={selectedRepo}
                 onUpdate={handleUpdate}
+            />
+
+            {/* Confirmation Modal */}
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                type={confirmConfig.type}
+                confirmText={confirmConfig.confirmText}
+                onConfirm={confirmConfig.onConfirm}
+                loading={confirmConfig.loading}
+            />
+
+            {/* Response Alert */}
+            <AlertModal
+                isOpen={alertConfig.isOpen}
+                onClose={alertConfig.onClose}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
             />
         </div>
     );

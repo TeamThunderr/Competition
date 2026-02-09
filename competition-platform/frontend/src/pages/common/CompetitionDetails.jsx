@@ -8,6 +8,8 @@ import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 // import StudentListModal from '../../components/common/StudentListModal'; // Removed -> Uncommented below
 import StudentListModal from '../../components/common/StudentListModal';
+import ConfirmModal from '../../components/common/ConfirmModal';
+import AlertModal from '../../components/common/AlertModal';
 import TotalSectionsStats from '../../components/features/competitions/stats/TotalSectionsStats';
 import StudentStatsList from '../../components/features/competitions/stats/StudentStatsList';
 // import SectionStudentList from '../../components/features/competitions/stats/SectionStudentList'; // Removed from here
@@ -28,6 +30,46 @@ const CompetitionDetails = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalTitle, setModalTitle] = useState('');
     const [selectedStudents, setSelectedStudents] = useState([]);
+
+    // UI Modals State
+    const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+    const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: null, loading: false });
+
+    const showAlert = (title, message, type = 'info') => {
+        setAlertConfig({ isOpen: true, title, message, type });
+    };
+
+    const handleSyncClick = () => {
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Start Gmail Sync?',
+            message: `Start Gmail Sync for ${competition.title}? This may take a moment.`,
+            type: 'info',
+            confirmText: 'Start Sync',
+            loading: false,
+            onConfirm: performSync
+        });
+    };
+
+    const performSync = async () => {
+        setConfirmConfig(prev => ({ ...prev, loading: true }));
+        try {
+            await api.post(`/api/faculty/competition/${id}/sync`, {});
+            setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }));
+            showAlert('Success', "Sync Completed! Refreshing data...", 'success');
+
+            // Refresh Data
+            setLoading(true); // Show global loader for a bit while fetching
+            const students = await getCompetitionStudents(id);
+            setStatsData(students);
+            setLoading(false);
+
+        } catch (e) {
+            console.error(e);
+            setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }));
+            showAlert('Error', "Sync failed: " + (e.message || "Unknown error"), 'danger');
+        }
+    };
 
     const user = getCurrentUser();
     const isFaculty = user?.role === 'FACULTY';
@@ -182,22 +224,7 @@ const CompetitionDetails = () => {
                             {/* Faculty Sync Button - Moved to Header */}
                             {isFaculty && (
                                 <button
-                                    onClick={async () => {
-                                        if (confirm(`Start Gmail Sync for ${competition.title}? This may take a moment.`)) {
-                                            setLoading(true);
-                                            try {
-                                                await api.post(`/api/faculty/competition/${id}/sync`, {});
-                                                alert("Sync Completed! Refreshing data...");
-                                                const students = await getCompetitionStudents(id);
-                                                setStatsData(students);
-                                            } catch (e) {
-                                                console.error(e);
-                                                alert("Sync failed: " + (e.message || "Unknown error"));
-                                            } finally {
-                                                setLoading(false);
-                                            }
-                                        }
-                                    }}
+                                    onClick={handleSyncClick}
                                     className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
                                 >
                                     🔄 Sync
@@ -336,7 +363,6 @@ const CompetitionDetails = () => {
                                 <span className="truncate">Registered ({statsData.registered?.length || 0})</span>
                             </h3>
 
-                            {/* Embedded Year Filter Dropdown */}
                             {
                                 isHOD && (
                                     <div className="mb-3">
@@ -447,7 +473,6 @@ const CompetitionDetails = () => {
                                 <span className="truncate">Winners ({statsData.winners?.length || 0})</span>
                             </h3>
 
-                            {/* Embedded Year Filter Dropdown */}
                             {
                                 isHOD && (
                                     <div className="mb-3">
@@ -550,6 +575,27 @@ const CompetitionDetails = () => {
                 onClose={() => setIsModalOpen(false)}
                 title={modalTitle}
                 students={selectedStudents}
+            />
+            {/* Confirmation Modal for Actions like Sync */}
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }))}
+                onConfirm={confirmConfig.onConfirm}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                type={confirmConfig.type}
+                confirmText={confirmConfig.confirmText}
+                loading={confirmConfig.loading}
+            />
+
+            {/* Alert Modal for Success/Error feedback */}
+            <AlertModal
+                isOpen={alertConfig.isOpen}
+                onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+                autoClose={true}
             />
         </div >
     );
