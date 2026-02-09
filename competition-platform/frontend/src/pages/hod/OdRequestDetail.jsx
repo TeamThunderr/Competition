@@ -80,6 +80,8 @@ const OdRequestDetail = () => {
                 title: 'Success',
                 message: `Request ${pendingAction} successfully!`,
                 type: 'success',
+                showCancel: false,
+                confirmText: 'OK',
                 onConfirm: () => navigate('/hod/approvals'),
                 onClose: () => navigate('/hod/approvals') // Just in case
             });
@@ -385,8 +387,8 @@ const OdRequestDetail = () => {
 
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
-                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-                onConfirm={handleConfirmAction}
+                onClose={confirmModal.onClose || (() => setConfirmModal(prev => ({ ...prev, isOpen: false })))}
+                onConfirm={confirmModal.onConfirm || handleConfirmAction}
                 title={confirmModal.title}
                 message={confirmModal.message}
                 type={confirmModal.type}

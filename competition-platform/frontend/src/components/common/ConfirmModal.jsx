@@ -11,7 +11,8 @@ const ConfirmModal = ({
     confirmText = "Confirm",
     cancelText = "Cancel",
     type = "info", // 'info' | 'danger' | 'success'
-    loading = false
+    loading = false,
+    showCancel = true
 }) => {
     // Backdrop animation
     const backdropVariants = {
@@ -118,13 +119,15 @@ const ConfirmModal = ({
                             </div>
 
                             <div className="mt-8 flex justify-end gap-3">
-                                <button
-                                    onClick={onClose}
-                                    disabled={loading}
-                                    className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white bg-gray-50 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-all disabled:opacity-50 border border-gray-200 dark:border-white/5 dark:hover:border-white/10"
-                                >
-                                    {cancelText}
-                                </button>
+                                {showCancel && (
+                                    <button
+                                        onClick={onClose}
+                                        disabled={loading}
+                                        className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white bg-gray-50 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-all disabled:opacity-50 border border-gray-200 dark:border-white/5 dark:hover:border-white/10"
+                                    >
+                                        {cancelText}
+                                    </button>
+                                )}
                                 <button
                                     onClick={onConfirm}
                                     disabled={loading}
