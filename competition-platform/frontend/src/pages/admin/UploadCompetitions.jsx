@@ -2,8 +2,10 @@ import React, { useState, useRef } from 'react';
 import Sidebar from './Sidebar';
 import { Upload, FileText } from 'lucide-react';
 import CustomDatePicker from '../../components/common/CustomDatePicker';
+import { useToast } from '../../contexts/ToastContext';
 
 const UploadCompetitions = () => {
+    const { addToast } = useToast();
     const [activeTab, setActiveTab] = useState('manual');
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
@@ -66,7 +68,7 @@ const UploadCompetitions = () => {
             const storedUser = localStorage.getItem('user');
             const user = storedUser ? JSON.parse(storedUser) : null;
             if (!user) {
-                alert('You must be logged in');
+                addToast('You must be logged in', 'error');
                 setUploading(false);
                 return;
             }
@@ -80,15 +82,15 @@ const UploadCompetitions = () => {
             });
 
             if (response.ok) {
-                alert('Competitions uploaded successfully!');
+                addToast('Competitions uploaded successfully!', 'success');
                 e.target.value = null; // Reset input
             } else {
                 const error = await response.json();
-                alert(`Upload failed: ${error.message || 'Unknown error'}`);
+                addToast(`Upload failed: ${error.message || 'Unknown error'}`, 'error');
             }
         } catch (err) {
             console.error('Error uploading file:', err);
-            alert('Failed to upload file');
+            addToast('Failed to upload file', 'error');
         } finally {
             setUploading(false);
             if (fileInputRef.current) {
@@ -101,11 +103,11 @@ const UploadCompetitions = () => {
         // Validation
         if (activeTab === 'manual') {
             if (!formData.title || !formData.organizer || !formData.platform || !formData.deadline || !formData.link) {
-                alert('Please fill in all mandatory fields (Title, Organizer, Platform, Deadline, Link)');
+                addToast('Please fill in all mandatory fields (Title, Organizer, Platform, Deadline, Link)', 'error');
                 return;
             }
             if (!formData.departments || formData.departments.length === 0) {
-                alert('Please select at least one target department (or "All Departments")');
+                addToast('Please select at least one target department (or "All Departments")', 'error');
                 return;
             }
         }
@@ -114,7 +116,7 @@ const UploadCompetitions = () => {
             const storedUser = localStorage.getItem('user');
             const user = storedUser ? JSON.parse(storedUser) : null;
             if (!user) {
-                alert('You must be logged in');
+                addToast('You must be logged in', 'error');
                 return;
             }
 
@@ -135,7 +137,7 @@ const UploadCompetitions = () => {
             });
 
             if (response.ok) {
-                alert('Competition created successfully!');
+                addToast('Competition created successfully!', 'success');
                 setFormData({
                     title: '',
                     organizer: '',
@@ -153,11 +155,11 @@ const UploadCompetitions = () => {
                 });
             } else {
                 const error = await response.json();
-                alert(`Error: ${error.error}`);
+                addToast(`Error: ${error.error}`, 'error');
             }
         } catch (err) {
             console.error('Error uploading competition:', err);
-            alert('Failed to upload competition');
+            addToast('Failed to upload competition', 'error');
         }
     };
 

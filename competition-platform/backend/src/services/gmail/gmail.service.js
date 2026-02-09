@@ -520,7 +520,109 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
     }
 };
 
+// ... existing exports ...
+
+const SHORTLIST_KEYWORDS = [
+    'shortlisted', 'selected for the next round', 'qualified', 'congratulations! you are in','congratulations! your team is in',
+    'round 2', 'finalist', 'moved to the next stage', 'application selected','your team has been selected','your team has been selected for the next round','your team has been shortlisted for the next round','your team has been shortlisted',
+    "you're in round 2"
+];
+
+
+
+/**
+ * Check for Shortlist/Winner updates for an existing registration
+ */
+const checkShortlistStatus = async (accessToken, competition, lastSyncedAt = null) => {
+    try {
+        if (!accessToken) throw new Error("AccessToken is missing");
+
+        // STRICT VALIDATION: If no last sync time, we cannot reliably determine "new" updates 
+        // without risking re-processing old registration emails as "shortlist" false positives.
+        if (!lastSyncedAt) {
+            console.log('[GmailService] No lastSyncedAt provided. Skipping shortlist check.');
+            return { status: null, confidence: 0 };
+        }
+
+        const auth = new google.auth.OAuth2();
+        auth.setCredentials({ access_token: accessToken });
+        const gmail = google.gmail({ version: 'v1', auth });
+
+        // 1. Construct Query (Similar to sync but focused on recent updates)
+        // We assume the user is already registered, so we look for NEW emails since last sync
+        const titleTokens = tokenize(competition.title);
+        const mainTerms = titleTokens.slice(0, 2).join(' ');
+        let queryString = `"${mainTerms}"`;
+        if (competition.platform) {
+            queryString = `(${queryString}) OR "${competition.platform}"`;
+        }
+
+        // 2. Strict Time Window
+        const date = new Date(lastSyncedAt);
+        if (isNaN(date.getTime())) {
+            console.log('[GmailService] Invalid lastSyncedAt date. Skipping.');
+            return { status: null, confidence: 0 };
+        }
+        queryString += ` after:${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+
+        const response = await gmail.users.messages.list({
+            userId: 'me',
+            q: queryString,
+            maxResults: 10
+        });
+
+        const messages = response.data.messages || [];
+        if (messages.length === 0) {
+            return { status: null, confidence: 0 };
+        }
+
+        let bestStatus = null;
+        let bestMatch = null;
+
+        for (const msg of messages) {
+            const msgDetails = await gmail.users.messages.get({
+                userId: 'me',
+                id: msg.id,
+                format: 'full'
+            });
+
+            const emailData = {
+                snippet: msgDetails.data.snippet,
+                body: extractBodyFromPayload(msgDetails.data.payload).toLowerCase(),
+                subject: (msgDetails.data.payload.headers.find(h => h.name === 'Subject')?.value || '').toLowerCase()
+            };
+
+            const content = `${emailData.subject} ${emailData.body} ${emailData.snippet.toLowerCase()}`;
+
+
+
+            // Check for Shortlist
+            for (const shortWord of SHORTLIST_KEYWORDS) {
+                if (content.includes(shortWord)) {
+                    bestStatus = 'QUALIFIED';
+                    bestMatch = { keyword: shortWord, snippet: emailData.snippet };
+                }
+            }
+        }
+
+        if (bestStatus) {
+            return {
+                status: bestStatus,
+                confidence: 80,
+                match_details: bestMatch
+            };
+        }
+
+        return { status: null, confidence: 0 };
+
+    } catch (error) {
+        console.error('Error in Shortlist Check:', error.message);
+        throw error;
+    }
+};
+
 module.exports = {
     syncStudentCompetition,
-    analyzeEmail // Exported for testing/verification if needed
+    analyzeEmail,
+    checkShortlistStatus
 };

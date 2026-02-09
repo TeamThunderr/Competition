@@ -1,25 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { Link } from 'react-router-dom';
-import { Upload } from 'lucide-react';
+import { Pencil, Trash2, Upload, X, AlertTriangle } from 'lucide-react';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+import CompetitionCard from '../../components/features/competitions/CompetitionCard';
+import EditCompetitionModal from '../../components/admin/EditCompetitionModal';
+import { useToast } from '../../contexts/ToastContext';
 
 const AdminDashboard = () => {
+    const { addToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         activeCompetitions: 0,
         totalParticipation: "0",
         lastSync: "00:00",
-        lastUpload: "Never",
         closingSoonCount: 0
     });
 
-    const [recentActivity, setRecentActivity] = useState([]);
+    const [competitions, setCompetitions] = useState([]);
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [selectedCompetition, setSelectedCompetition] = useState(null);
+    const [deleteConfirmation, setDeleteConfirmation] = useState({ open: false, competition: null });
 
     const fetchDashboardData = async () => {
         try {
-            // 1. Fetch Department Stats using central client
+            // 1. Fetch Department Stats
             const json = await api.get('/api/admin/stats');
             let totalVerified = 0;
 
@@ -30,17 +36,14 @@ const AdminDashboard = () => {
                 totalVerified = json.reduce((sum, dept) => sum + (dept.verified_registrations || 0), 0);
             }
 
-            // 2. Fetch Competitions for Active Count
+            // 2. Fetch All Competitions
             const compRes = await api.get('/api/competitions');
             const comps = compRes?.data || (Array.isArray(compRes) ? compRes : []);
 
             let activeCount = 0;
-            let activities = [];
             let closingSoon = 0;
-            let lastDate = "Never";
 
             if (comps) {
-
                 const now = new Date();
 
                 // Filter active competitions
@@ -60,37 +63,23 @@ const AdminDashboard = () => {
 
                 activeCount = activeComps.length;
 
-                // Activity Feed - Sort by created_at DESC to get true latest
-                const sortedByNewest = [...comps].sort((a, b) =>
+                // Sort by upload time (newest first) for admin view
+                const sortedComps = [...comps].sort((a, b) =>
                     new Date(b.created_at || 0) - new Date(a.created_at || 0)
                 );
-
-                activities = sortedByNewest.slice(0, 5).map(c => ({
-                    action: "Competition added",
-                    target: c.title,
-                    user: "System",
-                    time: c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'
-                }));
-
-                if (sortedByNewest.length > 0) {
-                    lastDate = sortedByNewest[0]?.created_at ? new Date(sortedByNewest[0].created_at).toLocaleDateString() : "Just now";
-                }
+                setCompetitions(sortedComps);
             }
 
             setStats({
                 activeCompetitions: activeCount,
                 totalParticipation: totalVerified.toString(),
                 lastSync: new Date().toLocaleTimeString(),
-                lastUpload: lastDate,
                 closingSoonCount: closingSoon
             });
 
-            if (activities.length > 0) {
-                setRecentActivity(activities);
-            }
-
         } catch (err) {
             console.error("Fetch Stats Error:", err);
+            addToast('Failed to fetch dashboard data', 'error');
         } finally {
             setLoading(false);
         }
@@ -101,8 +90,50 @@ const AdminDashboard = () => {
     }, []);
 
     const handleRefresh = () => {
-        setLoading(true); // Optional: show loading state briefly or just refresh
+        setLoading(true);
         fetchDashboardData();
+    };
+
+    const handleEdit = (competition) => {
+        setSelectedCompetition(competition);
+        setEditModalOpen(true);
+    };
+
+    const handleDeleteClick = (competition) => {
+        setDeleteConfirmation({ open: true, competition });
+    };
+
+    const handleDeleteConfirm = async () => {
+        const { competition } = deleteConfirmation;
+        setDeleteConfirmation({ open: false, competition: null });
+
+        try {
+            const response = await api.del(`/api/admin/competition/${competition.id}`);
+
+            if (response.success !== false) {
+                addToast('Competition deleted successfully', 'success');
+                fetchDashboardData();
+            } else {
+                addToast(response.message || 'Failed to delete competition', 'error');
+            }
+        } catch (err) {
+            console.error('Delete error:', err);
+            addToast('Failed to delete competition', 'error');
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteConfirmation({ open: false, competition: null });
+    };
+
+    const handleModalClose = () => {
+        setEditModalOpen(false);
+        setSelectedCompetition(null);
+    };
+
+    const handleCompetitionUpdate = (updatedCompetition) => {
+        fetchDashboardData();
+        handleModalClose();
     };
 
     if (loading) {
@@ -159,78 +190,137 @@ const AdminDashboard = () => {
                             </div>
                             <button
                                 onClick={handleRefresh}
-                                className="text-blue-600 text-xs font-semibold hover:underline"
+                                className="text-blue-600 dark:text-blue-400 text-xs font-semibold hover:underline"
                             >
                                 Force Refresh
                             </button>
                         </div>
                     </div>
 
-                    {/* Content Grid (Action + Feed) */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                        {/* Manage Competitions Action Card */}
-                        <div className="lg:col-span-2 bg-brand-600 rounded-xl p-8 text-white relative overflow-hidden shadow-lg">
-                            {/* Background Pattern Hint */}
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 -translate-y-1/2 translate-x-1/2"></div>
+                    {/* Quick Actions */}
+                    <div className="mb-6 flex gap-3">
+                        <Link
+                            to="/admin/upload"
+                            className="bg-brand-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-brand-700 transition-colors shadow-sm"
+                        >
+                            <Upload size={20} />
+                            Upload Competition
+                        </Link>
+                        <Link
+                            to="/admin/repository"
+                            className="bg-card border border-border text-foreground px-6 py-3 rounded-lg font-semibold hover:bg-muted/10 transition-colors"
+                        >
+                            View Repository
+                        </Link>
+                    </div>
 
-                            <div className="relative z-10">
-                                <h2 className="text-2xl font-bold mb-3">Manage Competitions</h2>
-                                <p className="text-brand-100 mb-10 max-w-md">
-                                    Upload new competition details via Excel or manually add upcoming events to the global repository.
-                                </p>
-                                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                                    <Link to="/admin/upload" className="bg-white text-brand-600 px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-brand-50 transition-colors shadow-sm">
-                                        <Upload size={20} />
-                                        Launch Upload Panel
-                                    </Link>
-                                    <Link to="/admin/repository" className="bg-brand-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-brand-800 transition-colors border border-brand-500">
-                                        View All Competitions
-                                    </Link>
-                                </div>
-                                <p className="mt-4 text-sm text-brand-200 opacity-80">
-                                    Last upload: <span className="font-mono font-medium text-white">{stats.lastUpload}</span>
-                                </p>
-                            </div>
+                    {/* Competitions Grid */}
+                    <div className="mb-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold text-foreground">All Competitions</h2>
+                            <span className="text-sm text-muted">Sorted by upload time (newest first)</span>
                         </div>
-
-                        {/* Activity Feed */}
-                        {/* Activity Feed */}
-                        <div className="bg-card rounded-xl border border-border shadow-sm p-6">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-lg font-bold text-foreground">Recent System Activity</h3>
-                                <Link to="/admin/logs" className="text-brand-600 text-sm font-medium hover:underline">View all logs</Link>
+                        {competitions.length === 0 ? (
+                            <div className="bg-card rounded-xl border border-border p-12 text-center">
+                                <p className="text-muted">No competitions found. Upload your first competition to get started.</p>
                             </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {competitions.map((comp) => (
+                                    <div key={comp.id} className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                                        {/* Competition Info */}
+                                        <div className="p-6 flex-1">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full">
+                                                    {comp.platform || 'Unknown Platform'}
+                                                </span>
+                                                <span className="text-xs text-muted">
+                                                    {comp.created_at ? new Date(comp.created_at).toLocaleDateString('en-US', {
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        year: 'numeric'
+                                                    }) : 'N/A'}
+                                                </span>
+                                            </div>
+                                            <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-2">{comp.title || 'Untitled Competition'}</h3>
+                                            <p className="text-sm text-muted mb-4 line-clamp-2">{comp.description}</p>
 
-                            <div className="space-y-6 relative">
-                                {/* Timeline Line */}
-                                <div className="absolute left-1.5 top-2 bottom-2 w-0.5 bg-gray-100 dark:bg-slate-700"></div>
-
-                                {recentActivity.slice(0, 3).map((activity, index) => (
-                                    <div key={index} className="relative pl-6">
-                                        {/* Timeline Dot */}
-                                        <div className="absolute left-0 top-1.5 w-3.5 h-3.5 bg-brand-100 border-2 border-brand-600 rounded-full z-10"></div>
-
-                                        <div className="mb-1">
-                                            <span className="text-foreground font-medium">{activity.action}</span>
-                                            <span className="text-muted mx-1">–</span>
-                                            <span className="text-muted">{activity.target}</span>
+                                            <div className="space-y-2 text-xs text-muted">
+                                                <div>Deadline: {comp.registration_deadline ? new Date(comp.registration_deadline).toLocaleDateString() : 'TBA'}</div>
+                                                <div>Registrations: {comp.registrations?.[0]?.count || 0}</div>
+                                            </div>
                                         </div>
-                                        <div className="text-xs text-muted flex items-center gap-1">
-                                            <span className="font-medium text-foreground">{activity.user}</span>
-                                            <span>·</span>
-                                            <span>{activity.time}</span>
+
+                                        {/* Action Buttons */}
+                                        <div className="border-t border-border p-4 flex gap-2">
+                                            <button
+                                                onClick={() => handleEdit(comp)}
+                                                className="flex-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                <Pencil size={14} />
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteClick(comp)}
+                                                className="flex-1 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                <Trash2 size={14} />
+                                                Delete
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
-
-                                {recentActivity.length === 0 && (
-                                    <div className="text-muted text-sm text-center py-4">No recent activity</div>
-                                )}
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
+
+            {/* Edit Competition Modal */}
+            {editModalOpen && selectedCompetition && (
+                <EditCompetitionModal
+                    competition={selectedCompetition}
+                    isOpen={editModalOpen}
+                    onClose={handleModalClose}
+                    onUpdate={handleCompetitionUpdate}
+                />
+            )}
+
+            {/* Delete Confirmation Dialog */}
+            {deleteConfirmation.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-card border border-border rounded-xl shadow-2xl max-w-md w-full p-6">
+                        <div className="flex items-start gap-4 mb-4">
+                            <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full">
+                                <AlertTriangle className="text-red-600 dark:text-red-400" size={24} />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-lg font-bold text-foreground mb-1">Delete Competition</h3>
+                                <p className="text-sm text-muted">
+                                    Are you sure you want to delete <span className="font-semibold text-foreground">"{deleteConfirmation.competition?.title}"</span>?
+                                </p>
+                                <p className="text-xs text-muted mt-2">
+                                    This will permanently remove the competition and all related data. This action cannot be undone.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={handleDeleteCancel}
+                                className="px-4 py-2 bg-muted/20 hover:bg-muted/30 text-foreground rounded-lg font-medium transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteConfirm}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -36,13 +36,13 @@ const syncCompetition = async (req, res) => {
         const safeSummary = {
             REGISTERED: 0,
             QUALIFIED: 0,
-            WON: 0,
             PENDING: 0,
             REJECTED: 0
         };
 
         registrations.forEach(r => {
             let key = r.status || 'PENDING';
+            if (key === 'WON') key = 'QUALIFIED'; // Map legacy to Shortlisted
             if (!safeSummary.hasOwnProperty(key)) {
                 key = 'PENDING';
             }

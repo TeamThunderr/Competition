@@ -5,8 +5,10 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import EditCompetitionModal from '../../components/admin/EditCompetitionModal';
+import { useToast } from '../../contexts/ToastContext';
 
 const ActivityLogs = () => {
+    const { addToast } = useToast();
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -61,10 +63,10 @@ const ActivityLogs = () => {
                 const response = await api.del(`/api/admin/competition/${id}`);
                 // In a perfect world we check response, but axios throws on error status
                 setLogs(prev => prev.filter(log => log.id !== id));
-                alert("Competition deleted successfully.");
+                addToast("Competition deleted successfully.", "success");
             } catch (err) {
                 console.error("Delete failed", err);
-                alert("Failed to delete competition.");
+                addToast("Failed to delete competition.", "error");
             }
         }
     };

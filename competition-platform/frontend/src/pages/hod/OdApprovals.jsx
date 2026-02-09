@@ -120,7 +120,7 @@ const OdApprovals = () => {
 
                 <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg flex items-center space-x-2 w-full md:w-auto justify-center dark:bg-blue-900/30 dark:border-blue-900/50">
                     <ShieldCheck size={18} className="text-blue-600 dark:text-blue-400" />
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Automated DKIM Verification Active</span>
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300"></span>
                 </div>
             </div>
 
