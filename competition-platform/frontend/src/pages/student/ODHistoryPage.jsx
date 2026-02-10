@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { api } from '../../services/api';
 import { Calendar, CheckCircle, Clock, XCircle, FileText, Download } from 'lucide-react';
+import { generateODLetter } from '../../utils/odGenerator';
 
 const ODHistoryPage = () => {
     const [ods, setOds] = useState([]);
@@ -126,7 +127,15 @@ const ODHistoryPage = () => {
                                     {/* Action Buttons */}
                                     <div className="flex flex-col gap-2">
                                         {od.status === 'APPROVED' && (
-                                            <button className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-lg text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition">
+                                            <button
+                                                onClick={() => {
+                                                    const userData = JSON.parse(localStorage.getItem('user'));
+                                                    // Handle both wrapped {user: {...}} and direct {...} formats
+                                                    const user = userData?.user || userData;
+                                                    generateODLetter(od, user);
+                                                }}
+                                                className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-lg text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"
+                                            >
                                                 <Download size={16} /> Download Letter
                                             </button>
                                         )}
