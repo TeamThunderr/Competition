@@ -161,19 +161,20 @@ const getCompetitionStats = async (req, res) => {
                 total_sections: [],
                 registered: [],
                 registered_sections: [],
-                shortlisted: []
+                shortlisted: [],
+                winners: []
             });
         }
 
 
-        // 2. Fetch Registrations (Chunked) - Single source of truth
+        // 2. Fetch Registrations (Chunked) - Now includes status and qualification_verified
         let registrations = [];
         const chunkSize = 50;
         for (let i = 0; i < myStudentIds.length; i += chunkSize) {
             const chunk = myStudentIds.slice(i, i + chunkSize);
             const { data: regData, error: regError } = await supabase
                 .from('registrations')
-                .select('user_id, verified, source')
+                .select('user_id, verified, status, qualification_verified, source')
                 .eq('competition_id', competitionId)
                 .in('user_id', chunk);
 
@@ -181,26 +182,30 @@ const getCompetitionStats = async (req, res) => {
             if (regData) registrations = [...registrations, ...regData];
         }
 
-        // 3. Fetch Shortlisted (Chunked)
-        let statusData = [];
-        for (let i = 0; i < myStudentIds.length; i += chunkSize) {
-            const chunk = myStudentIds.slice(i, i + chunkSize);
-            const { data: sData, error: sError } = await supabase
-                .from('competition_status')
-                .select('user_id, is_shortlisted, is_winner')
-                .eq('competition_id', competitionId)
-                .in('user_id', chunk);
-
-            if (sError) throw sError;
-            if (sData) statusData = [...statusData, ...sData];
-        }
-
         // Map Data - registrations is now single source of truth
         const registeredMap = new Map();
-        registrations.forEach(r => registeredMap.set(r.user_id, { verified: r.verified, source: r.source }));
+        const shortlistedSet = new Set();
+        const winnersSet = new Set();
 
-        const shortlistedSet = new Set(statusData.filter(s => s.is_shortlisted).map(s => s.user_id));
-        const winnersSet = new Set(statusData.filter(s => s.is_winner).map(s => s.user_id));
+        registrations.forEach(r => {
+            // Store registration info
+            registeredMap.set(r.user_id, {
+                verified: r.verified,
+                source: r.source,
+                status: r.status,
+                qualification_verified: r.qualification_verified
+            });
+
+            // Qualified: status='Qualified' or 'SHORTLISTED' AND qualification_verified=true
+            if ((r.status === 'Qualified' || r.status === 'SHORTLISTED') && r.qualification_verified === true) {
+                shortlistedSet.add(r.user_id);
+            }
+
+            // Winner: status='Winner'
+            if (r.status === 'Winner') {
+                winnersSet.add(r.user_id);
+            }
+        });
 
         const registeredStudents = allStudents
             .filter(s => registeredMap.has(s.id))
@@ -213,37 +218,53 @@ const getCompetitionStats = async (req, res) => {
                 section: s.section,
                 admission_year: s.admission_year,
                 verified: registeredMap.get(s.id)?.verified || false,
-                confidence: registeredMap.get(s.id)?.confidence || 0
+                status: registeredMap.get(s.id)?.status || 'Registered'
+            }));
+
+        const shortlistedStudents = allStudents
+            .filter(s => shortlistedSet.has(s.id))
+            .map(s => ({
+                id: s.id,
+                full_name: s.full_name,
+                name: s.full_name,
+                registration_no: s.registration_no,
+                regNo: s.registration_no,
+                section: s.section,
+                admission_year: s.admission_year
+            }));
+
+        const winnerStudents = allStudents
+            .filter(s => winnersSet.has(s.id))
+            .map(s => ({
+                id: s.id,
+                full_name: s.full_name,
+                name: s.full_name,
+                registration_no: s.registration_no,
+                regNo: s.registration_no,
+                section: s.section,
+                admission_year: s.admission_year
             }));
 
         const response = {
             total_sections: groupStudentsBySection(allStudents),
             registered: registeredStudents, // Keep flat list for counts/compatibility
-            registered_sections: groupStudentsBySection(registeredStudents), // New grouped list
-            shortlisted: allStudents
-                .filter(s => shortlistedSet.has(s.id))
-                .map(s => ({
-                    id: s.id,
-                    name: s.full_name,
-                    regNo: s.registration_no,
-                    section: s.section
-                })),
-            winners: allStudents
-                .filter(s => winnersSet.has(s.id))
-                .map(s => ({
-                    id: s.id,
-                    name: s.full_name,
-                    regNo: s.registration_no,
-                    section: s.section
-                }))
+            registered_sections: groupStudentsBySection(registeredStudents), // Grouped list
+            shortlisted: shortlistedStudents, // Keep flat list for backward compatibility
+            shortlisted_sections: groupStudentsBySection(shortlistedStudents), // NEW: Grouped list
+            winners: winnerStudents, // Keep flat list for backward compatibility
+            winners_sections: groupStudentsBySection(winnerStudents) // NEW: Grouped list
         };
 
         // Debug logging
         console.log(`[HOD Stats] Competition ${competitionId}:`);
         console.log(`  - Total students: ${allStudents.length}`);
         console.log(`  - Registered students: ${registeredStudents.length}`);
+        console.log(`  - Shortlisted students: ${response.shortlisted.length}`);
+        console.log(`  - Winner students: ${response.winners.length}`);
         console.log(`  - Total sections groups: ${response.total_sections.length}`);
         console.log(`  - Registered sections groups: ${response.registered_sections.length}`);
+        console.log(`  - Shortlisted sections groups: ${response.shortlisted_sections.length}`);
+        console.log(`  - Winners sections groups: ${response.winners_sections.length}`);
         if (response.total_sections.length > 0) {
             console.log(`  - Sample total section:`, JSON.stringify(response.total_sections[0], null, 2));
         }
