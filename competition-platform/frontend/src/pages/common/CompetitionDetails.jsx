@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Users, ExternalLink, ArrowLeft, Globe, Clock, MessageSquare, Layers, Download } from 'lucide-react';
+import { Calendar, Users, ExternalLink, ArrowLeft, Globe, Clock, MessageSquare, Layers, Download, RefreshCw } from 'lucide-react';
 import { getCurrentUser } from '../../services/authService';
 import { getCompetitionStudents } from '../../services/facultyService';
 import { getHODCompetitionStats } from '../../services/hodService';
@@ -10,6 +10,8 @@ import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import StudentListModal from '../../components/common/StudentListModal';
 import TotalSectionsStats from '../../components/features/competitions/stats/TotalSectionsStats';
 import StudentStatsList from '../../components/features/competitions/stats/StudentStatsList';
+import ConfirmModal from '../../components/common/ConfirmModal';
+import { useToast } from '../../contexts/ToastContext';
 
 import { UserCheck, UserPlus } from 'lucide-react';
 
@@ -28,6 +30,9 @@ const CompetitionDetails = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalTitle, setModalTitle] = useState('');
     const [selectedStudents, setSelectedStudents] = useState([]);
+    const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+    const [syncing, setSyncing] = useState(false);
+    const { addToast } = useToast();
 
     const user = getCurrentUser();
     const isFaculty = user?.role === 'FACULTY';
@@ -202,25 +207,10 @@ const CompetitionDetails = () => {
                                         <Download size={14} /> Unregistered
                                     </button>
                                     <button
-                                        onClick={async () => {
-                                            if (confirm(`Start Gmail Sync for ${competition.title}? This may take a moment.`)) {
-                                                setLoading(true);
-                                                try {
-                                                    await api.post(`/api/faculty/competition/${id}/sync`, {});
-                                                    alert("Sync Completed! Refreshing data...");
-                                                    const students = await getCompetitionStudents(id);
-                                                    setStatsData(students);
-                                                } catch (e) {
-                                                    console.error(e);
-                                                    alert("Sync failed: " + (e.message || "Unknown error"));
-                                                } finally {
-                                                    setLoading(false);
-                                                }
-                                            }
-                                        }}
+                                        onClick={() => setIsSyncModalOpen(true)}
                                         className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
                                     >
-                                        🔄 Sync
+                                        <RefreshCw size={14} /> Sync
                                     </button>
                                 </div>
                             )}
@@ -603,6 +593,40 @@ const CompetitionDetails = () => {
                 onClose={() => setIsModalOpen(false)}
                 title={modalTitle}
                 students={selectedStudents}
+            />
+
+            <ConfirmModal
+                isOpen={isSyncModalOpen}
+                onClose={() => setIsSyncModalOpen(false)}
+                title="Sync Competition Data"
+                message={`Start Gmail Sync for ${competition.title}? This will scan for new registrations and update the student lists. This may take a moment.`}
+                confirmText="Start Sync"
+                loading={syncing}
+                onConfirm={async () => {
+                    setSyncing(true);
+                    try {
+                        const response = await api.post(`/api/faculty/competition/${id}/sync`, {});
+                        const syncResult = response.data || response;
+
+                        // Show Toast based on results
+                        if (syncResult?.results?.detected > 0) {
+                            addToast(`Sync Completed: Found ${syncResult.results.detected} new registrations for this competition.`, 'success');
+                        } else {
+                            addToast("Sync Completed: No new registrations found for this competition.", 'info');
+                        }
+
+                        // Refresh Data
+                        const students = await getCompetitionStudents(id);
+                        setStatsData(students);
+                        setIsSyncModalOpen(false);
+                    } catch (e) {
+                        console.error(e);
+                        addToast("Sync failed: " + (e.message || "Unknown error"), 'error');
+                        setIsSyncModalOpen(false);
+                    } finally {
+                        setSyncing(false);
+                    }
+                }}
             />
         </div >
     );
