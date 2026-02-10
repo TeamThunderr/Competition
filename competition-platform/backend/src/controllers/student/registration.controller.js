@@ -275,8 +275,63 @@ const uploadShortlistProof = async (req, res) => {
 
 
 
+const updateWinningStatus = async (req, res) => {
+    try {
+        const { competition_id, won_status, winning_proof_url } = req.body;
+        const student_id = req.userId;
+
+        if (!competition_id || !won_status) {
+            return res.status(400).json({ error: 'Competition ID and Won Status are required' });
+        }
+
+        // Verify eligibility: Must be Qualified and Qualification Verified
+        const { data: reg, error: regError } = await supabase
+            .from('registrations')
+            .select('qualification_verified, status')
+            .eq('user_id', student_id)
+            .eq('competition_id', competition_id)
+            .single();
+
+        if (regError || !reg) {
+            return res.status(403).json({ error: 'Registration not found' });
+        }
+
+        if (reg.status !== 'Qualified' || reg.qualification_verified !== true) {
+            return res.status(403).json({ error: 'You must be Qualification Verified to update winning status.' });
+        }
+
+        const updateData = {
+            won_status: won_status,
+            winning_proof_url: winning_proof_url || null,
+            // If they marked as WON, they need faculty verification. If NOT_WON, it's auto-verified
+            winning_verified: won_status === 'WON' ? false : true,
+            // If they marked as WON, we can also update the top-level status to 'Winner' for legacy compatibility
+            status: won_status === 'WON' ? 'Winner' : 'Qualified'
+        };
+
+        const { data, error } = await supabase
+            .from('registrations')
+            .update(updateData)
+            .eq('user_id', student_id)
+            .eq('competition_id', competition_id)
+            .select();
+
+        if (error) throw error;
+
+        res.status(200).json({
+            message: `Winning status updated to ${won_status}`,
+            data: data[0]
+        });
+
+    } catch (err) {
+        console.error('Update Winning Status Error:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
     checkRegistrationStatus,
     uploadProof,
-    uploadShortlistProof
+    uploadShortlistProof,
+    updateWinningStatus
 };

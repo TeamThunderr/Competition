@@ -63,6 +63,18 @@ export const verifyShortlist = async (registrationId, action) => {
     });
 };
 
+export const getPendingWinningVerifications = async () => {
+    const response = await api.get('/api/faculty/pending-winning');
+    return response.data || response;
+};
+
+export const verifyWinning = async (registrationId, action) => {
+    return await api.post('/api/faculty/verify-winning', {
+        registration_id: registrationId,
+        action
+    });
+};
+
 // Competition Management
 export const getCompetitionStudents = async (competitionId) => {
     const response = await api.get(`/api/faculty/competition/${competitionId}/students`);
@@ -148,5 +160,7 @@ export default {
     downloadParticipationReport,
     getPendingShortlistVerifications,
     verifyShortlist,
+    getPendingWinningVerifications,
+    verifyWinning,
     downloadCompetitionStudents
 };

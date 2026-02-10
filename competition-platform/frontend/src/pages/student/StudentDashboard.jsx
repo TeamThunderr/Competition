@@ -7,6 +7,7 @@ import UploadProofModal from '../../components/common/UploadProofModal';
 import { supabase } from '../../services/supabaseClient';
 import { api } from '../../services/api';
 import { studentService } from '../../services/studentService';
+import { useToast } from '../../contexts/ToastContext';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
 const StudentDashboard = () => {
@@ -18,8 +19,11 @@ const StudentDashboard = () => {
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [selectedCompId, setSelectedCompId] = useState(null);
     const [selectedTeamId, setSelectedTeamId] = useState(null);
+    const [selectedProofType, setSelectedProofType] = useState(null);
+    const [isShortlistUpload, setIsShortlistUpload] = useState(false);
     const [selectedTeamData, setSelectedTeamData] = useState(null);
     const [odRequests, setOdRequests] = useState([]);
+    const { addToast } = useToast();
 
     // Alert Modal
     const [confirmModal, setConfirmModal] = useState({
@@ -125,38 +129,87 @@ const StudentDashboard = () => {
         navigate(`/student/od-request/${compId}`);
     };
 
-    const handleUploadProofSubmit = async (compIdOrTeamId, proofUrl) => {
+    const handleRegisterClick = (compId, proofType = 'REGISTERED') => {
+        setSelectedCompId(compId);
+        setSelectedProofType(proofType);
+        setIsShortlistUpload(proofType === 'QUALIFIED');
+        setIsUploadModalOpen(true);
+    };
+
+    const [resultConfirmModal, setResultConfirmModal] = useState({
+        isOpen: false,
+        compId: null
+    });
+
+    const handleWonStatusUpdate = (compId) => {
+        setResultConfirmModal({ isOpen: true, compId });
+    };
+
+    const submitResultUpdate = async (won) => {
+        const compId = resultConfirmModal.compId;
+        setResultConfirmModal({ isOpen: false, compId: null });
+
+        if (!won) {
+            try {
+                await studentService.updateWinningStatus(compId, 'NOT_WON');
+                addToast("Status updated to Participant", 'success');
+                fetchCompetitions();
+            } catch (err) {
+                addToast("Failed to update status", 'error');
+            }
+        } else {
+            setSelectedCompId(compId);
+            setSelectedProofType('WINNER');
+            setIsShortlistUpload(false);
+            setIsUploadModalOpen(true);
+        }
+    };
+
+    const handleUploadProofSubmit = async (compIdOrTeamId, file, proofType) => {
         try {
-            if (selectedTeamId) {
-                // Team Mode
-                await studentService.uploadTeamProof(selectedTeamId, proofUrl);
-                setConfirmModal({
-                    isOpen: true,
-                    title: 'Success',
-                    message: "Team Proof uploaded! Waiting for faculty verification.",
-                    type: 'success',
-                    onConfirm: closeConfirmModal
-                });
+            if (isShortlistUpload || selectedTeamId || proofType === 'WINNER') {
+                // Manual Upload Flow for Shortlist, Team, and Winner Proofs
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError || !user) throw new Error("User not authenticated");
+                const studentId = user.id;
+
+                const fileExt = file.name.split('.').pop();
+                const prefix = proofType === 'WINNER' ? 'winning_' : (isShortlistUpload ? 'shortlist_' : 'team_');
+                const fileName = `${prefix}${compIdOrTeamId}_${studentId}_${Date.now()}.${fileExt}`;
+                const filePath = `proofs/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('proofs')
+                    .upload(filePath, file);
+
+                if (uploadError) throw new Error(`Storage Error: ${uploadError.message}`);
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('proofs')
+                    .getPublicUrl(filePath);
+
+                const proofUrl = publicUrl;
+
+                if (proofType === 'WINNER') {
+                    await studentService.updateWinningStatus(compIdOrTeamId, 'WON', proofUrl);
+                    addToast("Winning Proof uploaded! Waiting for faculty verification.", 'success');
+                } else if (isShortlistUpload) {
+                    await studentService.uploadShortlistProof(compIdOrTeamId, proofUrl);
+                    addToast("Shortlist Proof uploaded! Waiting for faculty verification.", 'success');
+                } else if (selectedTeamId) {
+                    await studentService.uploadTeamProof(selectedTeamId, proofUrl);
+                    addToast("Team Proof uploaded! Waiting for faculty verification.", 'success');
+                }
             } else {
-                // Individual Mode
-                setConfirmModal({
-                    isOpen: true,
-                    title: 'Success',
-                    message: "Proof uploaded!",
-                    type: 'success',
-                    onConfirm: closeConfirmModal
-                });
+                // Individual Registration Mode
+                await studentService.uploadProof(compIdOrTeamId, file, proofType);
+                addToast("Proof uploaded! Waiting for faculty approval.", 'success');
             }
             fetchCompetitions();
+            setIsUploadModalOpen(false);
         } catch (err) {
             console.error("Upload process error:", err);
-            setConfirmModal({
-                isOpen: true,
-                title: 'Error',
-                message: "An error occurred: " + err.message,
-                type: 'danger',
-                onConfirm: closeConfirmModal
-            });
+            addToast("An error occurred: " + (err.message || 'Unknown error'), 'error');
         }
     };
 
@@ -216,7 +269,8 @@ const StudentDashboard = () => {
                                     <CompetitionCard
                                         key={comp.id}
                                         competition={comp}
-                                        onRegister={() => navigate('/student/competitions')}
+                                        onWonStatusUpdate={handleWonStatusUpdate}
+                                        onRegister={handleRegisterClick}
                                         onRequestOD={handleRequestOD}
                                     />
                                 ))}
@@ -240,7 +294,8 @@ const StudentDashboard = () => {
                                         <CompetitionCard
                                             key={comp.id}
                                             competition={comp}
-                                            onRegister={() => navigate('/student/competitions')}
+                                            onWonStatusUpdate={handleWonStatusUpdate}
+                                            onRegister={handleRegisterClick}
                                             onRequestOD={handleRequestOD}
                                         />
                                     ))}
@@ -266,10 +321,23 @@ const StudentDashboard = () => {
             </div>
             <UploadProofModal
                 isOpen={isUploadModalOpen}
-                onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); }}
+                onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); setSelectedProofType(null); }}
                 competitionId={selectedCompId}
                 onSubmit={handleUploadProofSubmit}
-                title={selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof"}
+                title={selectedProofType === 'WINNER' ? "Upload Winning Proof" : (selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof")}
+                defaultProofType={selectedProofType}
+            />
+
+            <ConfirmModal
+                isOpen={resultConfirmModal.isOpen}
+                onClose={() => setResultConfirmModal({ isOpen: false, compId: null })}
+                onConfirm={() => submitResultUpdate(true)}
+                title="Did you win?"
+                message="Congratulations on completing the competition! Did you secure a prize (Won) or participate? If you won, you'll need to upload proof."
+                type="success"
+                confirmText="Yes, I WON"
+                cancelText="No, just Participated"
+                onCancel={() => submitResultUpdate(false)}
             />
             {/* Global Alert Modal */}
             <ConfirmModal
