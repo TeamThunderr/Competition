@@ -306,14 +306,7 @@ const getDashboardStats = async (req, res) => {
 
         if (qualError) throw qualError;
 
-        // 3. Won Count: is_winner = true
-        const { count: wonCount, error: wonError } = await supabase
-            .from('competition_status')
-            .select('*', { count: 'exact', head: true })
-            .in('user_id', myStudentIds)
-            .eq('is_winner', true);
 
-        if (wonError) throw wonError;
 
         // 5. Calculate batch label
         let batchLabel = 'N/A';
@@ -333,7 +326,6 @@ const getDashboardStats = async (req, res) => {
             total_students: myStudentIds.length,
             comp_registered: participationCount || 0,
             comp_qualified: qualifiedCount || 0,
-            comp_won: wonCount || 0,
             od_requests: 0, // Explicitly zeroed out as Faculty has no OD role
             section_label: assigned_sections?.join(', ') || 'N/A',
             batch_label: batchLabel,
@@ -355,7 +347,7 @@ const getDashboardStats = async (req, res) => {
 
 const syncCompetition = async (req, res) => {
     try {
-        const competitionId = req.params.competitionId || req.body.competitionId; // Check params first, then body
+        const competitionId = req.params.id || req.body.competitionId; // Check params first, then body
         const facultyId = req.user.id;
         const { department_id, assigned_sections } = req.user;
 
@@ -497,8 +489,7 @@ const getStudentDetails = async (req, res) => {
             const statusEntry = statuses?.find(s => s.competition_id === reg.competitions.id);
 
             let currentStatus = 'Registered';
-            if (statusEntry?.is_winner) currentStatus = 'Won';
-            else if (statusEntry?.is_shortlisted) currentStatus = 'Qualified';
+            if (statusEntry?.is_winner || statusEntry?.is_shortlisted) currentStatus = 'Qualified';
 
             return {
                 id: reg.competitions.id,
@@ -515,8 +506,7 @@ const getStudentDetails = async (req, res) => {
         // Calculate Stats
         const stats = {
             registered: registrations.length,
-            qualified: competitionDetails.filter(c => c.status === 'Qualified' || c.status === 'Won').length,
-            won: competitionDetails.filter(c => c.status === 'Won').length,
+            qualified: competitionDetails.filter(c => c.status === 'Qualified').length,
         };
 
         // 4. Class Advisor Logic (Robust - matched with HOD controller)
@@ -840,6 +830,65 @@ const verifyRegistration = async (req, res) => {
     }
 };
 
+const downloadParticipationReport = async (req, res) => {
+    try {
+        const { assigned_sections, department_id } = req.user;
+        const myStudentIds = await getMyStudentIds(req.user.id, department_id, assigned_sections || []);
+
+        if (myStudentIds.length === 0) {
+            return res.status(200).send('No students found related to your assigned sections.');
+        }
+
+        // Fetch comprehensive data for the report
+        const { data: reportData, error } = await supabase
+            .from('registrations')
+            .select(`
+                registered_at, verified, status,
+                users!registrations_user_id_fkey ( full_name, registration_no, section, email, phone_number ),
+                competitions!inner ( title, organizer, event_date, platform, venue )
+            `)
+            .in('user_id', myStudentIds)
+            .order('registered_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Generate CSV
+        const csvRows = [];
+        // Header
+        csvRows.push(['Student Name', 'Register No', 'Section', 'Email', 'Phone', 'Competition', 'Organizer', 'Platform', 'Date', 'Status', 'Verified', 'Registered At', 'Venue'].join(','));
+
+        reportData.forEach(r => {
+            const row = [
+                r.users?.full_name || 'N/A',
+                r.users?.registration_no || 'N/A',
+                r.users?.section || 'N/A',
+                r.users?.email || 'N/A',
+                r.users?.phone_number || 'N/A',
+                r.competitions?.title || 'N/A',
+                r.competitions?.organizer || 'N/A',
+                r.competitions?.platform || 'N/A',
+                r.competitions?.event_date || 'N/A',
+                r.status || 'Pending',
+                r.verified ? 'Yes' : 'No',
+                new Date(r.registered_at).toLocaleString(),
+                r.competitions?.venue || 'N/A'
+            ].map(field => `"${String(field).replace(/"/g, '""')}"`); // Escape quotes
+
+            csvRows.push(row.join(','));
+        });
+
+        const csvString = csvRows.join('\n');
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="participation_report_${Date.now()}.csv"`);
+        res.status(200).send(csvString);
+
+    } catch (err) {
+        console.error('[Faculty] Export Error:', err);
+        sendResponse(res, 500, null, 'Failed to export report');
+    }
+};
+
 module.exports = {
     getMyStudents,
     getRecentRegistrations,
@@ -853,5 +902,5 @@ module.exports = {
     verifyRegistration,
     getPendingShortlistVerifications,
     verifyShortlist,
-    downloadParticipationReport: () => { }
+    downloadParticipationReport
 };

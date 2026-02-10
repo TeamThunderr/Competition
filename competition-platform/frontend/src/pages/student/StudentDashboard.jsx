@@ -7,6 +7,8 @@ import UploadProofModal from '../../components/common/UploadProofModal';
 import { supabase } from '../../services/supabaseClient';
 import { api } from '../../services/api';
 import { studentService } from '../../services/studentService';
+import { useToast } from '../../contexts/ToastContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
@@ -17,8 +19,21 @@ const StudentDashboard = () => {
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [selectedCompId, setSelectedCompId] = useState(null);
     const [selectedTeamId, setSelectedTeamId] = useState(null);
+    const [selectedProofType, setSelectedProofType] = useState(null);
+    const [isShortlistUpload, setIsShortlistUpload] = useState(false);
     const [selectedTeamData, setSelectedTeamData] = useState(null);
     const [odRequests, setOdRequests] = useState([]);
+    const { addToast } = useToast();
+
+    // Alert Modal
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        onConfirm: () => { }
+    });
+    const closeConfirmModal = () => setConfirmModal(prev => ({ ...prev, isOpen: false }));
 
     const fetchCompetitions = async () => {
         setLoading(true);
@@ -49,24 +64,39 @@ const StudentDashboard = () => {
             new Date(od.to_date) >= now
         );
 
+        const pendingOD = odRequests.find(od => od.status === 'PENDING');
+
         if (activeOD) {
             return (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 rounded-xl flex items-center gap-4">
-                    <div className="p-3 bg-emerald-100 dark:bg-emerald-800 rounded-full text-emerald-600 dark:text-emerald-300">
-                        <Trophy size={24} />
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 rounded-xl flex flex-col gap-3">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-emerald-100 dark:bg-emerald-800 rounded-full text-emerald-600 dark:text-emerald-300">
+                            <Trophy size={24} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-emerald-800 dark:text-emerald-200">Active OD</h3>
+                            <p className="text-sm text-emerald-700 dark:text-emerald-300 line-clamp-1">{activeOD.competitions?.title}</p>
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                                {new Date(activeOD.from_date).toLocaleDateString()} - {new Date(activeOD.to_date).toLocaleDateString()}
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="font-bold text-emerald-800 dark:text-emerald-200">Active OD</h3>
-                        <p className="text-sm text-emerald-700 dark:text-emerald-300 line-clamp-1">{activeOD.competitions?.title}</p>
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                            {new Date(activeOD.from_date).toLocaleDateString()} - {new Date(activeOD.to_date).toLocaleDateString()}
-                        </p>
-                    </div>
+
+                    {/* Extension / Pending Alert inside Active Card */}
+                    {pendingOD && (
+                        <div className="pt-3 border-t border-emerald-200 dark:border-emerald-800 flex items-start gap-3">
+                            <Clock size={16} className="text-amber-600 dark:text-amber-400 mt-0.5" />
+                            <div>
+                                <h4 className="text-xs font-bold text-amber-700 dark:text-amber-300">Extension Request Pending</h4>
+                                <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                                    For {pendingOD.competitions?.title} ({new Date(pendingOD.from_date).toLocaleDateString()})
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
-
-        const pendingOD = odRequests.find(od => od.status === 'PENDING');
         if (pendingOD) {
             return (
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-xl flex items-center gap-4">
@@ -95,29 +125,91 @@ const StudentDashboard = () => {
         );
     };
 
-
-
-
-
     const handleRequestOD = (compId) => {
         navigate(`/student/od-request/${compId}`);
     };
 
-    const handleUploadProofSubmit = async (compIdOrTeamId, proofUrl) => {
+    const handleRegisterClick = (compId, proofType = 'REGISTERED') => {
+        setSelectedCompId(compId);
+        setSelectedProofType(proofType);
+        setIsShortlistUpload(proofType === 'QUALIFIED');
+        setIsUploadModalOpen(true);
+    };
+
+    const [resultConfirmModal, setResultConfirmModal] = useState({
+        isOpen: false,
+        compId: null
+    });
+
+    const handleWonStatusUpdate = (compId) => {
+        setResultConfirmModal({ isOpen: true, compId });
+    };
+
+    const submitResultUpdate = async (won) => {
+        const compId = resultConfirmModal.compId;
+        setResultConfirmModal({ isOpen: false, compId: null });
+
+        if (!won) {
+            try {
+                await studentService.updateWinningStatus(compId, 'NOT_WON');
+                addToast("Status updated to Participant", 'success');
+                fetchCompetitions();
+            } catch (err) {
+                addToast("Failed to update status", 'error');
+            }
+        } else {
+            setSelectedCompId(compId);
+            setSelectedProofType('WINNER');
+            setIsShortlistUpload(false);
+            setIsUploadModalOpen(true);
+        }
+    };
+
+    const handleUploadProofSubmit = async (compIdOrTeamId, file, proofType) => {
         try {
-            if (selectedTeamId) {
-                // Team Mode
-                await studentService.uploadTeamProof(selectedTeamId, proofUrl);
-                alert("Team Proof uploaded! Waiting for faculty verification.");
+            if (isShortlistUpload || selectedTeamId || proofType === 'WINNER') {
+                // Manual Upload Flow for Shortlist, Team, and Winner Proofs
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError || !user) throw new Error("User not authenticated");
+                const studentId = user.id;
+
+                const fileExt = file.name.split('.').pop();
+                const prefix = proofType === 'WINNER' ? 'winning_' : (isShortlistUpload ? 'shortlist_' : 'team_');
+                const fileName = `${prefix}${compIdOrTeamId}_${studentId}_${Date.now()}.${fileExt}`;
+                const filePath = `proofs/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('proofs')
+                    .upload(filePath, file);
+
+                if (uploadError) throw new Error(`Storage Error: ${uploadError.message}`);
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('proofs')
+                    .getPublicUrl(filePath);
+
+                const proofUrl = publicUrl;
+
+                if (proofType === 'WINNER') {
+                    await studentService.updateWinningStatus(compIdOrTeamId, 'WON', proofUrl);
+                    addToast("Winning Proof uploaded! Waiting for faculty verification.", 'success');
+                } else if (isShortlistUpload) {
+                    await studentService.uploadShortlistProof(compIdOrTeamId, proofUrl);
+                    addToast("Shortlist Proof uploaded! Waiting for faculty verification.", 'success');
+                } else if (selectedTeamId) {
+                    await studentService.uploadTeamProof(selectedTeamId, proofUrl);
+                    addToast("Team Proof uploaded! Waiting for faculty verification.", 'success');
+                }
             } else {
-                // Individual Mode (Legacy or if needed here)
-                // await studentService.uploadProof(compIdOrTeamId, proofUrl);
-                alert("Proof uploaded!");
+                // Individual Registration Mode
+                await studentService.uploadProof(compIdOrTeamId, file, proofType);
+                addToast("Proof uploaded! Waiting for faculty approval.", 'success');
             }
             fetchCompetitions();
+            setIsUploadModalOpen(false);
         } catch (err) {
             console.error("Upload process error:", err);
-            alert("An error occurred: " + err.message);
+            addToast("An error occurred: " + (err.message || 'Unknown error'), 'error');
         }
     };
 
@@ -177,7 +269,8 @@ const StudentDashboard = () => {
                                     <CompetitionCard
                                         key={comp.id}
                                         competition={comp}
-                                        onRegister={() => navigate('/student/competitions')}
+                                        onWonStatusUpdate={handleWonStatusUpdate}
+                                        onRegister={handleRegisterClick}
                                         onRequestOD={handleRequestOD}
                                     />
                                 ))}
@@ -201,7 +294,8 @@ const StudentDashboard = () => {
                                         <CompetitionCard
                                             key={comp.id}
                                             competition={comp}
-                                            onRegister={() => navigate('/student/competitions')}
+                                            onWonStatusUpdate={handleWonStatusUpdate}
+                                            onRegister={handleRegisterClick}
                                             onRequestOD={handleRequestOD}
                                         />
                                     ))}
@@ -227,10 +321,34 @@ const StudentDashboard = () => {
             </div>
             <UploadProofModal
                 isOpen={isUploadModalOpen}
-                onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); }}
+                onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); setSelectedProofType(null); }}
                 competitionId={selectedCompId}
                 onSubmit={handleUploadProofSubmit}
-                title={selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof"}
+                title={selectedProofType === 'WINNER' ? "Upload Winning Proof" : (selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof")}
+                defaultProofType={selectedProofType}
+            />
+
+            <ConfirmModal
+                isOpen={resultConfirmModal.isOpen}
+                onClose={() => setResultConfirmModal({ isOpen: false, compId: null })}
+                onConfirm={() => submitResultUpdate(true)}
+                title="Did you win?"
+                message="Congratulations on completing the competition! Did you secure a prize (Won) or participate? If you won, you'll need to upload proof."
+                type="success"
+                confirmText="Yes, I WON"
+                cancelText="No, just Participated"
+                onCancel={() => submitResultUpdate(false)}
+            />
+            {/* Global Alert Modal */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={closeConfirmModal}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                confirmText="Okay"
+                cancelText="Close"
             />
 
         </div>

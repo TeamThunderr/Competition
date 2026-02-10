@@ -2,7 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
 
-const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = true, isApplied = false, onToggleApplied }) => {
+const CompetitionCard = (props) => {
+    const { competition, onRegister, onRequestOD, onWonStatusUpdate, showRegister = true, isApplied = false, onToggleApplied } = props;
     const { my_registration, my_status, my_od } = competition;
 
     const deadlineDate = new Date(competition.registration_deadline);
@@ -57,31 +58,70 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
         // 3. Verified / Registered
         if (my_registration.verified) {
             // Check for OD Status first
-            if (my_od) {
-                return (
-                    <div className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium text-center ${my_od.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                        my_od.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                            'bg-purple-50 text-purple-700'
-                        }`}>
-                        OD: {my_od.status}
-                    </div>
-                );
-            }
+            const odBadge = my_od ? (
+                <div className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium text-center ${my_od.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                    my_od.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                        'bg-purple-50 text-purple-700'
+                    }`}>
+                    OD: {my_od.status}
+                </div>
+            ) : null;
 
             // Allow OD Request ONLY for Shortlisted (or Winner)
             if (my_status?.is_shortlisted || my_status?.is_winner) {
-                // 4a. Check if Shortlisted Proof is already uploaded & Verified (QUALIFIED status)
-                // We enforce source === 'MANUAL_SCREENSHOT' to ensure they actually uploaded a proof for this stage.
                 const isShortlistVerified = my_registration.qualification_verified === true &&
                     my_registration.shortlist_proof_url !== null;
 
                 if (isShortlistVerified) {
+                    // Check Winning Status
+                    if (my_registration.won_status === 'WON') {
+                        if (my_registration.winning_verified) {
+                            return (
+                                <div className="flex-1 bg-amber-100 text-amber-800 py-2 px-4 rounded-lg text-sm font-bold text-center border border-amber-200">
+                                    🏆 WINNER
+                                </div>
+                            );
+                        } else {
+                            return (
+                                <div className="flex-1 bg-yellow-50 border border-yellow-200 text-yellow-700 py-2 px-4 rounded-lg text-sm font-medium text-center">
+                                    Winning Verification Pending
+                                </div>
+                            );
+                        }
+                    }
+
+                    if (my_registration.won_status === 'NOT_WON') {
+                        return (
+                            <div className="flex flex-col gap-2 flex-1">
+                                {odBadge}
+                                <div className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium text-center border border-gray-200">
+                                    Participant
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    // Default: Show OD and Update Result
                     return (
-                        <button
-                            onClick={() => onRequestOD(competition.id)}
-                            className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm">
-                            Request OD
-                        </button>
+                        <div className="flex flex-col gap-2 flex-1">
+                            <div className="flex gap-2">
+                                {odBadge ? odBadge : (
+                                    <button
+                                        onClick={() => onRequestOD(competition.id)}
+                                        className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm">
+                                        Request OD
+                                    </button>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const handler = onWonStatusUpdate || competition.onWonStatusUpdate;
+                                    handler?.(competition.id);
+                                }}
+                                className="flex-1 bg-amber-500 text-white py-2 px-4 rounded-lg text-sm font-bold hover:bg-amber-600 transition-colors shadow-sm">
+                                Update Result
+                            </button>
+                        </div>
                     );
                 }
 
@@ -205,6 +245,15 @@ const CompetitionCard = ({ competition, onRegister, onRequestOD, showRegister = 
                     <Users className="w-4 h-4 mr-2" />
                     <span>Team: {competition.min_team_size}-{competition.max_team_size}</span>
                 </div>
+                {competition.venue && (
+                    <div className="flex items-center text-sm text-muted">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>Venue: {competition.venue}</span>
+                    </div>
+                )}
             </div>
 
             <div className="mt-auto flex gap-3 flex-col sm:flex-row">

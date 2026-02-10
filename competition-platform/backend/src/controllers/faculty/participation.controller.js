@@ -317,11 +317,7 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                 }
 
                 const regRow = regMap.get(student.id);
-                if (regRow && regRow.status === 'WON') {
-                    stats.skipped++;
-                    logs.skipped.push({ email: student.email, reason: 'Already WON' });
-                    continue;
-                }
+
 
                 const authClient = getAuthClient(student.google_refresh_token);
                 const result = await syncSingleStudent(student, competition, syncFrom, gmailService, authClient);
@@ -378,13 +374,11 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                         });
                     }
 
-                    // Update competition_status if Qualified/Shortlisted
-                    if (['SHORTLISTED', 'WINNER', 'QUALIFIED'].includes(result.upsertData.status)) {
+                    if (['SHORTLISTED', 'QUALIFIED'].includes(result.upsertData.status)) {
                         await supabase.from('competition_status').upsert({
                             user_id: result.upsertData.user_id,
                             competition_id: result.upsertData.competition_id,
                             is_shortlisted: true,
-                            is_winner: result.upsertData.status === 'WINNER',
                             updated_at: new Date()
                         }, { onConflict: 'user_id, competition_id' });
                     }

@@ -1,5 +1,6 @@
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { ToastProvider } from './contexts/ToastContext';
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
 import StudentCompetitions from './pages/student/StudentCompetitions';
@@ -48,57 +49,60 @@ function App() {
   // For now, removing Supabase Auth Listener completely.
 
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
+    <ToastProvider>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
 
 
-      {/* Role Based Routes - Can protect these later with Middleware */}
-      <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
-      <Route path="/student/dashboard" element={<StudentDashboard />} />
-      <Route path="/student/competitions" element={<StudentCompetitions />} />
-      <Route path="/student/profile" element={<Profile />} />
-      <Route path="/student/od-letters" element={<ODLetter />} />
-      <Route path="/student/settings" element={<Settings />} />
-      <Route path="/student/stats" element={<StudentAnalytics />} />
-      <Route path="/student/od-request/:competitionId" element={<ODRequestPage />} />
-      <Route path="/student/od-history" element={<ODHistoryPage />} />
+        {/* Role Based Routes - Can protect these later with Middleware */}
+        <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
+        <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/student/competitions" element={<StudentCompetitions />} />
+        <Route path="/student/profile" element={<Profile />} />
+        <Route path="/student/od-letters" element={<ODLetter />} />
+        <Route path="/student/settings" element={<Settings />} />
+        <Route path="/student/stats" element={<StudentAnalytics />} />
+        <Route path="/student/od-request/:competitionId" element={<ODRequestPage />} />
+        <Route path="/student/od-history" element={<ODHistoryPage />} />
 
-      <Route path="/faculty/verification" element={<ManualVerification />} />
+        <Route path="/hod/od-requests/:id" element={<OdRequestDetail />} /> {/* New Route */}
 
-      <Route path="/faculty" element={<FacultyDashboard />} />
-      <Route path="/faculty/students" element={<StudentList />} />
-      <Route path="/faculty/students/:id" element={<StudentDetail />} />
-      <Route path="/faculty/verify" element={<FacultyVerify />} />
-      <Route path="/faculty/verify-teams" element={<FacultyTeamVerify />} />
-      <Route path="/faculty/competitions" element={<ActiveCompetitions />} />
+        <Route path="/faculty/verification" element={<ManualVerification />} />
+
+        <Route path="/faculty" element={<FacultyDashboard />} />
+        <Route path="/faculty/students" element={<StudentList />} />
+        <Route path="/faculty/students/:id" element={<StudentDetail />} />
+        <Route path="/faculty/verify" element={<FacultyVerify />} />
+        <Route path="/faculty/verify-teams" element={<FacultyTeamVerify />} />
+        <Route path="/faculty/competitions" element={<ActiveCompetitions />} />
 
 
 
-      {/* HOD Routes */}
-      <Route path="/hod" element={<HodDashboard />} />
-      <Route path="/hod/approvals" element={<OdApprovals />} />
-      <Route path="/hod/od-requests/:id" element={<OdRequestDetail />} /> {/* New Route */}
-      <Route path="/hod/analytics" element={<HodAnalytics />} />
-      <Route path="/hod/competitions" element={<HodCompetitions />} />
-      <Route path="/hod/students/:id" element={<HodStudentDetail />} />
-      <Route path="/hod/students/:id" element={<HodStudentDetail />} />
-      <Route path="/hod/faculty" element={<HodFaculty />} />
-      <Route path="/hod/competitions/:id/section/:sectionName" element={<CompetitionSectionDetails />} />
+        {/* HOD Routes */}
+        <Route path="/hod" element={<HodDashboard />} />
+        <Route path="/hod/approvals" element={<OdApprovals />} />
+        <Route path="/hod/analytics" element={<HodAnalytics />} />
+        <Route path="/hod/competitions" element={<HodCompetitions />} />
+        <Route path="/hod/students/:id" element={<HodStudentDetail />} />
+        <Route path="/hod/students/:id" element={<HodStudentDetail />} />
+        <Route path="/hod/faculty" element={<HodFaculty />} />
+        <Route path="/hod/competitions/:id/section/:sectionName" element={<CompetitionSectionDetails />} />
 
-      {/* Admin Routes */}
-      <Route path="/admin" element={<AdminDashboard />} />
-      <Route path="/admin/search" element={<StudentSearch />} />
-      <Route path="/admin/upload" element={<UploadCompetitions />} />
-      <Route path="/admin/repository" element={<GlobalRepository />} />
-      <Route path="/admin/logs" element={<ActivityLogs />} />
-      <Route path="/admin/repository/:id" element={<CompetitionStats />} />
-      <Route path="/admin/student/:id" element={<StudentDetails />} />
-      <Route path="/admin/performance" element={<DeptPerformance />} />
+        {/* Admin Routes */}
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/search" element={<StudentSearch />} />
+        <Route path="/admin/upload" element={<UploadCompetitions />} />
+        <Route path="/admin/repository" element={<GlobalRepository />} />
+        <Route path="/admin/logs" element={<ActivityLogs />} />
+        <Route path="/admin/repository/:id" element={<CompetitionStats />} />
+        <Route path="/admin/performance" element={<DeptPerformance />} />
+        <Route path="/admin/student/:id" element={<StudentDetails />} />
 
-      {/* Common Routes */}
-      <Route path="/competitions/:id" element={<CompetitionDetails />} />
-    </Routes>
+        {/* Common Routes */}
+        <Route path="/competitions/:id" element={<CompetitionDetails />} />
+      </Routes>
+    </ToastProvider>
   );
 }
 

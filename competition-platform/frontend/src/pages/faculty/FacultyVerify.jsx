@@ -7,9 +7,10 @@ import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
 const FacultyVerify = () => {
-    const [activeTab, setActiveTab] = useState('registration'); // 'registration' | 'shortlist'
+    const [activeTab, setActiveTab] = useState('registration'); // 'registration' | 'shortlist' | 'winning'
     const [registrations, setRegistrations] = useState([]);
     const [shortlisted, setShortlisted] = useState([]);
+    const [winning, setWinning] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
 
@@ -25,25 +26,21 @@ const FacultyVerify = () => {
     const fetchPending = async () => {
         setLoading(true);
         try {
-            // Fetch both lists in parallel
-            const [regData, shortlistData] = await Promise.all([
+            // Fetch all lists in parallel
+            const [regData, shortlistData, winningData] = await Promise.all([
                 getPendingVerifications(),
-                getPendingShortlistVerifications()
+                getPendingShortlistVerifications(),
+                api.get('/api/faculty/pending-winning').then(res => res.data || res) // Use API directly if service not updated/exported correctly in this scope
             ]);
 
-            // Handle Registration Data (Legacy check not needed as we control API, but safe to keep array check)
-            if (Array.isArray(regData)) {
-                setRegistrations(regData);
-            } else {
-                setRegistrations(regData?.registrations || []);
-            }
+            // Handle Registration Data
+            setRegistrations(Array.isArray(regData) ? regData : regData?.registrations || []);
 
             // Handle Shortlist Data
-            if (Array.isArray(shortlistData)) {
-                setShortlisted(shortlistData);
-            } else {
-                setShortlisted([]);
-            }
+            setShortlisted(Array.isArray(shortlistData) ? shortlistData : []);
+
+            // Handle Winning Data
+            setWinning(Array.isArray(winningData) ? winningData : []);
 
         } catch (err) {
             console.error("Error fetching pending verifications:", err);
@@ -80,14 +77,13 @@ const FacultyVerify = () => {
         try {
             if (activeTab === 'registration') {
                 await verifyRegistration(id, action);
-            } else {
-                await verifyShortlist(id, action);
-            }
-
-            if (activeTab === 'registration') {
                 setRegistrations(prev => prev.filter(p => p.id !== id));
-            } else {
+            } else if (activeTab === 'shortlist') {
+                await verifyShortlist(id, action);
                 setShortlisted(prev => prev.filter(p => p.id !== id));
+            } else if (activeTab === 'winning') {
+                await api.post('/api/faculty/verify-winning', { registration_id: id, action });
+                setWinning(prev => prev.filter(p => p.id !== id));
             }
 
             // Close modal on success
@@ -103,7 +99,11 @@ const FacultyVerify = () => {
         }
     };
 
-    const currentList = activeTab === 'registration' ? registrations : shortlisted;
+    const currentList = activeTab === 'registration'
+        ? registrations
+        : activeTab === 'shortlist'
+            ? shortlisted
+            : winning;
 
     return (
         <div className="flex bg-background min-h-screen font-sans text-foreground">
@@ -145,6 +145,20 @@ const FacultyVerify = () => {
                             </span>
                         )}
                     </button>
+                    <button
+                        onClick={() => setActiveTab('winning')}
+                        className={`pb-3 px-1 text-sm font-medium transition-colors relative ${activeTab === 'winning'
+                            ? 'text-primary border-b-2 border-primary'
+                            : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                    >
+                        Winning Proofs
+                        {winning.length > 0 && (
+                            <span className="ml-2 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full dark:bg-primary/20">
+                                {winning.length}
+                            </span>
+                        )}
+                    </button>
                 </div>
 
                 {loading ? (
@@ -158,7 +172,7 @@ const FacultyVerify = () => {
                         </div>
                         <h3 className="text-lg font-bold text-foreground">All Caught Up!</h3>
                         <p className="text-muted mt-2">
-                            No pending {activeTab === 'registration' ? 'registration' : 'shortlist'} verification requests.
+                            No pending {activeTab === 'registration' ? 'registration' : activeTab === 'shortlist' ? 'shortlist' : 'winning'} verification requests.
                         </p>
                     </div>
                 ) : (
@@ -168,12 +182,12 @@ const FacultyVerify = () => {
                                 {/* Proof Image Preview (Click to open full) */}
                                 <div className="w-full md:w-64 h-48 md:h-auto bg-muted/10 md:border-r border-border relative group">
                                     <img
-                                        src={item.proofUrl || item.proof_url || item.shortlist_proof_url} // Handle various backend naming conventions
+                                        src={item.winning_proof_url || item.shortlist_proof_url || item.proof_url || item.proofUrl} // Handle various backend naming conventions
                                         alt="Proof"
                                         className="w-full h-full object-cover"
                                     />
                                     <a
-                                        href={item.proofUrl || item.proof_url || item.shortlist_proof_url}
+                                        href={item.winning_proof_url || item.shortlist_proof_url || item.proof_url || item.proofUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -193,9 +207,11 @@ const FacultyVerify = () => {
                                         </h3>
                                         <span className={`px-2 py-1 text-xs rounded-full font-medium ${activeTab === 'registration'
                                             ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                                            : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                            : activeTab === 'shortlist'
+                                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
                                             }`}>
-                                            {activeTab === 'registration' ? 'Registration' : 'Shortlist'}
+                                            {activeTab === 'registration' ? 'Registration' : activeTab === 'shortlist' ? 'Shortlist' : 'Winning'}
                                         </span>
                                     </div>
 

@@ -4,6 +4,7 @@
 
 const supabase = require('../../config/supabaseClient');
 const crypto = require('crypto');
+const studentService = require('../../services/student/student.service');
 
 // Create a new team
 const createTeam = async (req, res) => {
@@ -115,6 +116,7 @@ const acceptInvite = async (req, res) => {
 
 // Submit Team Verification (Wizard Flow V2 + Auto OD Request)
 const submitVerification = async (req, res) => {
+    console.log("LOG_ID: TEAM_CONTROLLER_SUBMIT_VERIFICATION");
     try {
         const {
             competition_id,
@@ -137,9 +139,57 @@ const submitVerification = async (req, res) => {
         const userId = req.userId;
 
         // Validation
-        if (!competition_id || !proof_urls || proof_urls.length === 0) {
-            return res.status(400).json({ error: 'Competition and at least one Proof are required.' });
+        if (!competition_id) {
+            return res.status(400).json({ error: 'Competition ID is required.' });
         }
+
+        // =====================================================
+        // [NEW] AUTO-FETCH PROOF & VALIDATE ELIGIBILITY
+        // =====================================================
+        const { data: registration, error: regError } = await supabase
+            .from('registrations')
+            .select('status, qualification_verified, shortlist_proof_url')
+            .eq('user_id', userId)
+            .eq('competition_id', competition_id)
+            .single();
+
+        if (regError || !registration) {
+            return res.status(403).json({ error: 'You are not registered for this competition.' });
+        }
+
+        if (registration.status !== 'Qualified') {
+            return res.status(403).json({ error: 'You must be Qualified to request OD.' });
+        }
+
+        if (registration.qualification_verified !== true) {
+            return res.status(403).json({ error: 'Your shortlist proof must be verified by Faculty before requesting OD.' });
+        }
+
+        const mainProofUrl = registration.shortlist_proof_url;
+        if (!mainProofUrl) {
+            return res.status(400).json({ error: 'System Error: Shortlist proof not found. Please contact admin.' });
+        }
+
+        // =====================================================
+        // [NEW] TEAMMATE VALIDATION
+        // =====================================================
+        if (!is_solo && members_info && members_info.length > 0) {
+            for (const member of members_info) {
+                const validationResult = await studentService.validateTeammate(
+                    member.reg_no,
+                    member.name,
+                    competition_id
+                );
+                if (!validationResult.valid) {
+                    return res.status(400).json({
+                        error: `Teammate Validation Failed: ${validationResult.error} (${member.reg_no})`
+                    });
+                }
+            }
+        }
+
+        // Auto-assign proof
+        const finalProofUrls = [mainProofUrl];
 
         // derived team name for solo
         let finalTeamName = team_name;
@@ -151,7 +201,27 @@ const submitVerification = async (req, res) => {
 
         let currentTeamId = team_id;
 
-        // 1. If no team_id, Create a New Team
+        // 1. Check if team already exists for this competition and leader
+        if (!currentTeamId) {
+            const { data: existingTeam, error: existingError } = await supabase
+                .from('teams')
+                .select('id')
+                .eq('competition_id', competition_id)
+                .eq('leader_id', userId)
+                .maybeSingle();
+
+            if (existingError) {
+                console.error('Error checking existing team:', existingError);
+            }
+
+            if (existingTeam) {
+                // Reuse existing team
+                currentTeamId = existingTeam.id;
+                console.log(`[Team] Reusing existing team ${currentTeamId} for competition ${competition_id}`);
+            }
+        }
+
+        // 2. If no team_id and no existing team, Create a New Team
         if (!currentTeamId) {
             // Create Team
             const { data: newTeam, error: createError } = await supabase
@@ -164,11 +234,10 @@ const submitVerification = async (req, res) => {
                     leader_reg_no, // Store it
                     section,
                     academic_year,
-                    academic_year,
                     department,
                     members_info, // Store JSON
-                    proof_urls, // Store array
-                    proof_url: proof_urls[0], // Legacy support
+                    proof_urls: finalProofUrls, // Store array
+                    proof_url: finalProofUrls[0], // Legacy support
                     verification_status: 'PENDING'
                 }])
                 .select()
@@ -208,8 +277,8 @@ const submitVerification = async (req, res) => {
                     academic_year,
                     department,
                     members_info,
-                    proof_urls,
-                    proof_url: proof_urls[0],
+                    proof_urls: finalProofUrls,
+                    proof_url: finalProofUrls[0],
                     verification_status: 'PENDING'
                 })
                 .eq('id', currentTeamId);
@@ -217,55 +286,110 @@ const submitVerification = async (req, res) => {
             if (updateError) throw updateError;
         }
 
-        // 3. Auto-Create/Upsert OD Request (V3 Automation)
-        // Manual Upsert Logic to avoid missing constraint issues
+        // 3. [UPDATED] OD EXTENSION LOGIC - MERGE APPROACH (V3 Automation)
         if (reason && from_date && to_date) {
-            // Check existing
-            const { data: existingOD } = await supabase
-                .from('od_requests')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('competition_id', competition_id)
-                .maybeSingle();
+            const reqFrom = new Date(from_date);
+            const oneDayMs = 24 * 60 * 60 * 1000;
+            const prevOdSearchDate = new Date(reqFrom.getTime() - oneDayMs).toISOString().split('T')[0];
 
-            if (existingOD) {
-                // Update
+            // Find APPROVED ODs that can be extended
+            const { data: candidates, error: extError } = await supabase
+                .from('od_requests')
+                .select('*, competitions(title, event_date)')
+                .eq('user_id', userId)
+                .gte('to_date', prevOdSearchDate)
+                .eq('status', 'APPROVED');
+
+            if (extError) throw extError;
+
+            const extendableOD = candidates?.find(od => {
+                const prevEnd = new Date(od.to_date);
+                const gapTime = reqFrom - prevEnd;
+                const gapDays = Math.ceil(gapTime / oneDayMs);
+                return gapDays === 1;
+            });
+
+            if (extendableOD) {
+                console.log(`[OD Extension] Extending OD ${extendableOD.id} by merging dates in TeamController`);
+
+                let competitionsInfo = extendableOD.competitions_info || [];
+                if (competitionsInfo.length === 0) {
+                    competitionsInfo.push({
+                        competition_id: extendableOD.competition_id,
+                        title: extendableOD.competitions?.title || 'Unknown',
+                        from_date: extendableOD.from_date,
+                        to_date: extendableOD.to_date
+                    });
+                }
+
+                const { data: newComp } = await supabase
+                    .from('competitions')
+                    .select('title')
+                    .eq('id', competition_id)
+                    .single();
+
+                competitionsInfo.push({
+                    competition_id: competition_id,
+                    title: newComp?.title || 'Unknown',
+                    from_date: from_date,
+                    to_date: to_date
+                });
+
                 const { error: updateError } = await supabase
                     .from('od_requests')
                     .update({
+                        to_date: to_date,
+                        competition_id: competition_id,
                         team_id: currentTeamId,
-                        reason,
-                        from_date,
-                        to_date,
-                        status: 'PENDING'
+                        reason: `${extendableOD.reason}\n\n[Extended]: ${reason}`,
+                        status: 'PENDING',
+                        is_extension: true,
+                        extension_count: (extendableOD.extension_count || 0) + 1,
+                        original_from_date: extendableOD.original_from_date || extendableOD.from_date,
+                        competitions_info: competitionsInfo,
+                        parent_od_id: extendableOD.parent_od_id || extendableOD.id
                     })
-                    .eq('id', existingOD.id);
+                    .eq('id', extendableOD.id);
 
-                if (updateError) {
-                    console.error("Auto OD Update Error:", updateError);
-                    throw new Error("Failed to update OD Request: " + updateError.message);
-                }
+                if (updateError) throw updateError;
             } else {
-                // Insert
-                const { error: insertError } = await supabase
+                // Regular OD Upsert
+                const { data: existingOD } = await supabase
                     .from('od_requests')
-                    .insert([{
-                        user_id: userId,
-                        competition_id,
-                        team_id: currentTeamId,
-                        reason,
-                        from_date,
-                        to_date,
-                        status: 'PENDING'
-                    }]);
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('competition_id', competition_id)
+                    .maybeSingle();
 
-                if (insertError) {
-                    console.error("Auto OD Insert Error:", insertError);
-                    throw new Error("Failed to create OD Request: " + insertError.message);
+                if (existingOD) {
+                    const { error: updateError } = await supabase
+                        .from('od_requests')
+                        .update({
+                            team_id: currentTeamId,
+                            reason,
+                            from_date,
+                            to_date,
+                            status: 'PENDING',
+                            is_extension: false // Ensure reset if it was manually set
+                        })
+                        .eq('id', existingOD.id);
+                    if (updateError) throw updateError;
+                } else {
+                    const { error: insertError } = await supabase
+                        .from('od_requests')
+                        .insert([{
+                            user_id: userId,
+                            competition_id,
+                            team_id: currentTeamId,
+                            reason,
+                            from_date,
+                            to_date,
+                            status: 'PENDING',
+                            is_extension: false
+                        }]);
+                    if (insertError) throw insertError;
                 }
             }
-        } else {
-            console.warn("Skipping Auto OD: Missing required fields (reason, from_date, or to_date)");
         }
 
 

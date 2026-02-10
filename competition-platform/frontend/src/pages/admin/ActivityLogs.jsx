@@ -5,10 +5,10 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import EditCompetitionModal from '../../components/admin/EditCompetitionModal';
-import ConfirmModal from '../../components/common/ConfirmModal';
-import AlertModal from '../../components/common/AlertModal';
+import { useToast } from '../../contexts/ToastContext';
 
 const ActivityLogs = () => {
+    const { addToast } = useToast();
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -101,15 +101,17 @@ const ActivityLogs = () => {
         e.preventDefault(); // Prevent Link navigation
         e.stopPropagation();
 
-        setConfirmConfig({
-            isOpen: true,
-            title: 'Delete Competition',
-            message: 'Are you sure you want to delete this competition? This action cannot be undone.',
-            type: 'danger',
-            confirmText: 'Delete',
-            loading: false,
-            onConfirm: () => processDelete(id)
-        });
+        if (window.confirm("Are you sure you want to delete this competition? This action cannot be undone.")) {
+            try {
+                const response = await api.del(`/api/admin/competition/${id}`);
+                // In a perfect world we check response, but axios throws on error status
+                setLogs(prev => prev.filter(log => log.id !== id));
+                addToast("Competition deleted successfully.", "success");
+            } catch (err) {
+                console.error("Delete failed", err);
+                addToast("Failed to delete competition.", "error");
+            }
+        }
     };
 
     const handleEdit = (e, competition) => {

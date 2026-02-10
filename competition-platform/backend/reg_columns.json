@@ -1,0 +1,19 @@
+[
+  "id",
+  "user_id",
+  "competition_id",
+  "source",
+  "proof_url",
+  "verified",
+  "verified_by",
+  "registered_at",
+  "status",
+  "gmail_message_id",
+  "matched_keyword",
+  "confidence_score",
+  "last_synced_at",
+  "remarks",
+  "updated_at",
+  "qualification_verified",
+  "shortlist_proof_url"
+]

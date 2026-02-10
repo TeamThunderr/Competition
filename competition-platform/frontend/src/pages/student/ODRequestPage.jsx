@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar'; // Student Sidebar
-import { ArrowLeft, User, Users, Upload, Trash2, Calendar, FileText, PlusCircle, CheckCircle, Info } from 'lucide-react';
+import { ArrowLeft, User, Users, Upload, Trash2, Calendar, FileText, PlusCircle, CheckCircle, Info, AlertCircle, Loader2, XCircle } from 'lucide-react';
 import { studentService } from '../../services/studentService';
 import { supabase } from '../../services/supabaseClient';
 import { api } from '../../services/api';
@@ -23,19 +23,7 @@ const ODRequestPage = () => {
             try {
                 const data = await studentService.getMyODRequests();
                 setExistingODs(data || []);
-
-                // [NEW] Immediate Check for Pending Requests
-                const pending = data?.find(od => od.status === 'PENDING');
-                if (pending) {
-                    setAlertModal({
-                        isOpen: true,
-                        title: 'Pending Request Exists',
-                        message: `You already have a Pending OD Request for "${pending.competitions?.title || 'another competition'}".\n\nYou cannot submit a new request until your pending request is approved or rejected by the HOD.`,
-                        type: 'danger',
-                        onConfirm: () => navigate('/student'), // Redirect back on confirm
-                        onClose: () => navigate('/student')    // Redirect back on close/cancel
-                    });
-                }
+                // Removed blocking logic - allow extensions of PENDING ODs
             } catch (err) {
                 console.error("Error fetching existing ODs:", err);
             }
@@ -197,6 +185,7 @@ const ODRequestPage = () => {
 
     // Extension Detection
     const [isExtension, setIsExtension] = useState(null); // { prevOD: ... }
+    const [dateError, setDateError] = useState(null); // For overlap errors
 
     // Check for Overlaps AND Extensions
     const handleInputChange = (e) => {
@@ -207,21 +196,81 @@ const ODRequestPage = () => {
             const newFrom = name === 'from_date' ? value : formData.from_date;
             const newTo = name === 'to_date' ? value : formData.to_date;
 
+            // Reset states
+            setIsExtension(null);
+            setDateError(null);
+
             if (newFrom) {
                 // Check Extension: Is newFrom == prevEnd + 1 day?
                 const newStart = new Date(newFrom);
-                const prevOD = existingODs.find(od => {
-                    if (!['APPROVED', 'VERIFIED'].includes(od.status)) return false;
+                const extensionOD = existingODs.find(od => {
+                    // ONLY APPROVED ODs can be extended (per user requirement)
+                    if (od.status !== 'APPROVED') return false;
+
                     const prevEnd = new Date(od.to_date);
                     const diffTime = newStart - prevEnd;
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    // Must be exactly 1 day after previous OD ends
                     return diffDays === 1;
                 });
 
-                if (prevOD) {
-                    setIsExtension(prevOD);
+                if (extensionOD) {
+                    // Show extension modal
+                    setIsExtension(extensionOD);
+                    setDateError(null);
+
+                    const extendedEndDate = formData.to_date ? new Date(formData.to_date).toLocaleDateString() : '(select end date)';
+
+                    setAlertModal({
+                        isOpen: true,
+                        title: '🔗 Extending Your Previous OD',
+                        message: `These dates will extend your existing OD for "${extensionOD.competitions?.title || 'Competition'}".\n\nCurrent: ${new Date(extensionOD.from_date).toLocaleDateString()} to ${new Date(extensionOD.to_date).toLocaleDateString()}\nExtended: ${new Date(extensionOD.from_date).toLocaleDateString()} to ${extendedEndDate}`,
+                        type: 'info',
+                        onConfirm: closeAlert
+                    });
                 } else {
-                    setIsExtension(null);
+                    // Check for date overlaps with ANY existing OD (not extension)
+                    if (newFrom && newTo) {
+                        const newStartDate = new Date(newFrom);
+                        const newEndDate = new Date(newTo);
+
+                        const overlappingOD = existingODs.find(od => {
+                            // Check all statuses except REJECTED
+                            if (od.status === 'REJECTED') return false;
+
+                            const existingStart = new Date(od.from_date);
+                            const existingEnd = new Date(od.to_date);
+
+                            // Check if dates overlap
+                            return (newStartDate <= existingEnd && newEndDate >= existingStart);
+                        });
+
+                        if (overlappingOD) {
+                            // Show error modal
+                            setDateError({
+                                message: `These dates overlap with your existing ${overlappingOD.status} OD`,
+                                existingOD: overlappingOD
+                            });
+
+                            setAlertModal({
+                                isOpen: true,
+                                title: '⚠️ Oops! These dates won\'t work',
+                                message: `You already have an OD for these dates.\n\n📌 ${overlappingOD.competitions?.title || 'Competition'}\n📅 ${new Date(overlappingOD.from_date).toLocaleDateString()} to ${new Date(overlappingOD.to_date).toLocaleDateString()}\nStatus: ${overlappingOD.status}\n\nPlease choose different dates.`,
+                                type: 'danger',
+                                onConfirm: () => {
+                                    // Clear the dates so user must select again
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        from_date: '',
+                                        to_date: ''
+                                    }));
+                                    setDateError(null);
+                                    closeAlert();
+                                }
+                            });
+                        }
+                    }
                 }
             }
 
@@ -246,10 +295,83 @@ const ODRequestPage = () => {
         }));
     };
 
+    // Teammate Search & Validation State
+    const [suggestions, setSuggestions] = useState({}); // { index: [list] }
+    const [memberStatus, setMemberStatus] = useState({}); // { index: { loading, error, valid } }
+
     const handleMemberChange = (index, field, value) => {
         const updatedMembers = [...formData.members];
         updatedMembers[index][field] = value;
         setFormData({ ...formData, members: updatedMembers });
+
+        // If reg_no changed, trigger autocomplete
+        if (field === 'reg_no') {
+            handleRegNoChange(index, value);
+        } else if (field === 'name') {
+            // Reset status if name changed manually
+            setMemberStatus(prev => ({
+                ...prev,
+                [index]: { loading: false, error: null, valid: false }
+            }));
+        }
+    };
+
+    // Handle Registration Number Change with Autocomplete
+    const handleRegNoChange = async (index, regNo) => {
+        // Reset status for this member
+        setMemberStatus(prev => ({
+            ...prev,
+            [index]: { loading: false, error: null, valid: false }
+        }));
+
+        if (regNo.length >= 2) {
+            try {
+                const results = await studentService.searchStudents(regNo, competitionId);
+                setSuggestions(prev => ({ ...prev, [index]: results }));
+            } catch (err) {
+                console.error("Search error:", err);
+            }
+        } else {
+            setSuggestions(prev => ({ ...prev, [index]: [] }));
+        }
+    };
+
+    // Select a student from suggestions
+    const selectStudent = async (index, student) => {
+        const updatedMembers = [...formData.members];
+        updatedMembers[index] = {
+            name: student.full_name,
+            reg_no: student.registration_no
+        };
+        setFormData({ ...formData, members: updatedMembers });
+        setSuggestions(prev => ({ ...prev, [index]: [] }));
+
+        // Validate selection
+        validateMember(index, student.registration_no, student.full_name);
+    };
+
+    // Explicitly validate a member
+    const validateMember = async (index, regNo, name) => {
+        if (!regNo || !name) return;
+
+        setMemberStatus(prev => ({
+            ...prev,
+            [index]: { loading: true, error: null, valid: false }
+        }));
+
+        try {
+            const result = await studentService.validateTeammate(regNo, name, competitionId);
+            setMemberStatus(prev => ({
+                ...prev,
+                [index]: { loading: false, error: result.valid ? null : result.error, valid: result.valid }
+            }));
+        } catch (err) {
+            const errMsg = err.response?.data?.error || "Validation failed";
+            setMemberStatus(prev => ({
+                ...prev,
+                [index]: { loading: false, error: errMsg, valid: false }
+            }));
+        }
     };
 
     // File Handlers
@@ -264,32 +386,40 @@ const ODRequestPage = () => {
         if (step === 1) {
             if (!formData.leader_name || !formData.section) return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Please fill leader details.", type: 'danger', onConfirm: closeAlert });
             if (!isSolo && !formData.team_name) return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Team Name is required.", type: 'danger', onConfirm: closeAlert });
+
             // Validate members
-            if (!isSolo && formData.members.some(m => !m.name || !m.reg_no)) return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Please fill all team member details.", type: 'danger', onConfirm: closeAlert });
+            if (!isSolo) {
+                if (formData.members.some(m => !m.name || !m.reg_no)) {
+                    return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Please fill all team member details.", type: 'danger', onConfirm: closeAlert });
+                }
+
+                // NEW: Ensure all members are valid & verified
+                const invalidMemberIdx = formData.members.findIndex((m, idx) => !memberStatus[idx]?.valid);
+                if (invalidMemberIdx !== -1) {
+                    const status = memberStatus[invalidMemberIdx];
+                    const msg = status?.error || "This member is not yet validated or eligible (Must be qualified & verified).";
+                    return setAlertModal({
+                        isOpen: true,
+                        title: 'Invalid Teammate',
+                        message: `Member ${invalidMemberIdx + 1} (${formData.members[invalidMemberIdx].reg_no}) is invalid: ${msg}`,
+                        type: 'danger',
+                        onConfirm: closeAlert
+                    });
+                }
+            }
 
             setStep(2);
         } else if (step === 2) {
             if (!formData.from_date || !formData.to_date || !formData.reason) return setAlertModal({ isOpen: true, title: 'Missing Info', message: "Please fill OD details.", type: 'danger', onConfirm: closeAlert });
-            setStep(3);
+            // No step 3 anymore
         }
     };
 
     const handleSubmit = async () => {
-        if (formData.proof_files.length === 0) return alert("Please upload proof.");
+        // No proof file check logic anymore (Automated backend fetch)
 
         setLoading(true);
         try {
-            let uploadedUrls = [];
-
-            // Upload Files
-            for (const file of formData.proof_files) {
-                const fileName = `od_req/${competitionId}_${Date.now()}_${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
-                const { error } = await supabase.storage.from('proofs').upload(fileName, file);
-                if (error) throw error;
-                const { data } = supabase.storage.from('proofs').getPublicUrl(fileName);
-                uploadedUrls.push(data.publicUrl);
-            }
-
             // Payload - Unified for Direct HOD Request
             const payload = {
                 competition_id: competitionId,
@@ -299,7 +429,7 @@ const ODRequestPage = () => {
                 section: formData.section.toUpperCase(),
                 department: formData.department,
                 academic_year: formData.academic_year,
-                proof_urls: uploadedUrls, // Backend needs this to attach to team/record
+                // proof_urls removed - handled by backend automation
 
                 // OD Details (Required Now)
                 from_date: formData.from_date,
@@ -307,7 +437,11 @@ const ODRequestPage = () => {
                 reason: formData.reason,
 
                 // NEW: Members Info
-                members_info: isSolo ? [] : formData.members
+                members_info: isSolo ? [] : formData.members,
+
+                // Extension Metadata (Helper for Backend)
+                is_extension: !!isExtension,
+                parent_od_id: isExtension?.id || null
             };
 
             console.log("DEBUG: Submitting Verification Payload:", payload);
@@ -356,17 +490,19 @@ const ODRequestPage = () => {
                 </div>
 
                 {/* Wizard Container */}
-                <div className="bg-white dark:bg-card rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden max-w-3xl mx-auto">
+                {/* Wizard Container - Removed overflow-hidden to fix DatePicker clipping */}
+                {/* Adaptive Container - Balanced width with smooth transitions */}
+                <div className="bg-white dark:bg-card rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 w-full max-w-5xl mx-auto flex flex-col min-h-[450px] transition-all duration-300 ease-in-out">
                     {/* Steps */}
-                    <div className="flex border-b border-gray-100 dark:border-gray-700">
-                        {['Team Details', 'OD Info', 'Proofs'].map((label, idx) => (
+                    <div className="flex border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+                        {['Team Details', 'OD Info'].map((label, idx) => (
                             <div key={idx} className={`flex-1 py-4 text-center text-sm font-semibold transition-colors ${step === idx + 1 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 dark:bg-blue-900/20' : 'text-gray-400 dark:text-gray-500'}`}>
                                 {idx + 1}. {label}
                             </div>
                         ))}
                     </div>
 
-                    <div className="p-8">
+                    <div className="p-8 flex-1">
                         {/* STEP 1: Team & Leader */}
                         {step === 1 && (
                             <div className="space-y-6 animate-fadeIn">
@@ -437,28 +573,76 @@ const ODRequestPage = () => {
 
                                         {formData.members.length === 0 && <p className="text-sm text-gray-400 italic">No members added yet.</p>}
 
-                                        <div className="space-y-3">
+                                        <div className="space-y-4">
                                             {formData.members.map((member, idx) => (
-                                                <div key={idx} className="flex gap-3 items-start">
-                                                    <div className="flex-1">
-                                                        <input
-                                                            placeholder="Member Name"
-                                                            value={member.name}
-                                                            onChange={(e) => handleMemberChange(idx, 'name', e.target.value)}
-                                                            className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg text-sm outline-none focus:border-blue-500 bg-white dark:bg-gray-800 dark:text-white"
-                                                        />
+                                                <div key={idx} className="space-y-2">
+                                                    <div className="flex gap-3 items-start relative">
+                                                        {/* Registration Number Input with Autocomplete */}
+                                                        <div className="w-40 relative">
+                                                            <div className="relative">
+                                                                <input
+                                                                    placeholder="Reg No"
+                                                                    value={member.reg_no}
+                                                                    onChange={(e) => handleMemberChange(idx, 'reg_no', e.target.value)}
+                                                                    className={`w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-blue-500 bg-white dark:bg-gray-800 dark:text-white uppercase ${memberStatus[idx]?.valid ? 'border-green-500' : memberStatus[idx]?.error ? 'border-red-500' : 'dark:border-gray-600'}`}
+                                                                />
+                                                                <div className="absolute right-2 top-2">
+                                                                    {memberStatus[idx]?.loading ? (
+                                                                        <Loader2 size={16} className="text-blue-500 animate-spin" />
+                                                                    ) : memberStatus[idx]?.valid ? (
+                                                                        <CheckCircle size={16} className="text-green-500" />
+                                                                    ) : memberStatus[idx]?.error ? (
+                                                                        <XCircle size={16} className="text-red-500" />
+                                                                    ) : null}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Autocomplete Dropdown */}
+                                                            {suggestions[idx]?.length > 0 && (
+                                                                <div className="absolute z-[100] w-64 mt-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                                                    {suggestions[idx].map((student) => (
+                                                                        <button
+                                                                            key={student.id}
+                                                                            type="button"
+                                                                            onClick={() => selectStudent(idx, student)}
+                                                                            className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30 border-b dark:border-gray-700 last:border-0"
+                                                                        >
+                                                                            <div className="font-semibold text-gray-900 dark:text-white">{student.registration_no}</div>
+                                                                            <div className="text-xs text-gray-500 dark:text-gray-400">{student.full_name}</div>
+                                                                            {!student.is_verified && (
+                                                                                <div className="text-[10px] text-red-500 mt-1 font-medium italic">
+                                                                                    {!student.is_qualified ? '❌ Not Qualified' : '⚠️ Not Verified by Faculty'}
+                                                                                </div>
+                                                                            )}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Name Input */}
+                                                        <div className="flex-1">
+                                                            <input
+                                                                placeholder="Member Name"
+                                                                value={member.name}
+                                                                onChange={(e) => handleMemberChange(idx, 'name', e.target.value)}
+                                                                onBlur={() => validateMember(idx, member.reg_no, member.name)}
+                                                                className={`w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-blue-500 bg-white dark:bg-gray-800 dark:text-white ${memberStatus[idx]?.valid ? 'border-green-500' : memberStatus[idx]?.error ? 'border-red-500' : 'dark:border-gray-600'}`}
+                                                            />
+                                                        </div>
+
+                                                        {/* Remove Action */}
+                                                        <button onClick={() => removeMember(idx)} className="p-2 text-gray-400 hover:text-red-500 transition mt-0.5">
+                                                            <Trash2 size={16} />
+                                                        </button>
                                                     </div>
-                                                    <div className="w-32">
-                                                        <input
-                                                            placeholder="Reg No"
-                                                            value={member.reg_no}
-                                                            onChange={(e) => handleMemberChange(idx, 'reg_no', e.target.value)}
-                                                            className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg text-sm outline-none focus:border-blue-500 bg-white dark:bg-gray-800 dark:text-white uppercase"
-                                                        />
-                                                    </div>
-                                                    <button onClick={() => removeMember(idx)} className="p-2 text-gray-400 hover:text-red-500 transition">
-                                                        <Trash2 size={16} />
-                                                    </button>
+
+                                                    {/* Error Message */}
+                                                    {memberStatus[idx]?.error && (
+                                                        <p className="text-[11px] text-red-500 flex items-center gap-1 ml-1 animate-fadeIn">
+                                                            <AlertCircle size={12} /> {memberStatus[idx].error}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -471,19 +655,6 @@ const ODRequestPage = () => {
                         {step === 2 && (
                             <div className="space-y-6 animate-fadeIn">
                                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">OD Request Details</h3>
-
-                                {isExtension && (
-                                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg flex items-start gap-3">
-                                        <Info className="text-blue-600 dark:text-blue-400 mt-1" size={20} />
-                                        <div>
-                                            <h4 className="font-semibold text-blue-800 dark:text-blue-300">OD Extension Detected</h4>
-                                            <p className="text-sm text-blue-700 dark:text-blue-400">
-                                                This request starts the day after your existing OD for <strong>{isExtension.competitions?.title}</strong> ends.
-                                                Submitting this will <strong>extend</strong> that OD record to cover these new dates, and it will be resubmitted for HOD approval.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
 
                                 <div className="grid grid-cols-2 gap-6">
                                     <div>
@@ -510,43 +681,29 @@ const ODRequestPage = () => {
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason for OD</label>
                                     <textarea name="reason" value={formData.reason} onChange={handleInputChange} rows="4" className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white" placeholder="Explain why you need OD..." />
                                 </div>
-                            </div>
-                        )}
-
-                        {/* STEP 3: Proofs */}
-                        {step === 3 && (
-                            <div className="space-y-6 animate-fadeIn">
-                                <div className="bg-blue-50 dark:bg-blue-900/10 border-2 border-dashed border-blue-200 dark:border-blue-800 rounded-xl p-8 hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors cursor-pointer relative text-center">
-                                    <input type="file" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} accept="image/*,application/pdf" />
-                                    <Upload className="mx-auto text-blue-500 mb-4" size={48} />
-                                    <p className="text-gray-700 dark:text-gray-300 font-medium">Click to upload Proofs</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Screenshots, Registration Confirmations (JPG, PNG, PDF)</p>
-                                </div>
-                                <div className="space-y-2">
-                                    {formData.proof_files.map((file, i) => (
-                                        <div key={i} className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700 shadow-sm">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2"><FileText size={16} className="text-blue-500" /> {file.name}</span>
-                                            <button onClick={() => removeFile(i)} className="text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
-                                        </div>
-                                    ))}
-                                </div>
+                                {/* Spacer for DatePicker Poppver */}
+                                <div className="h-20"></div>
                             </div>
                         )}
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="p-6 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-between">
+                    <div className="p-6 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-between flex-shrink-0">
                         {step > 1 ? (
                             <button onClick={() => setStep(step - 1)} className="px-6 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg font-medium">Back</button>
                         ) : (
                             <div></div> // Spacer
                         )}
 
-                        {step < 3 ? (
+                        {step < 2 ? (
                             <button onClick={handleNext} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-sm shadow-blue-200 dark:shadow-none">Next Step</button>
                         ) : (
-                            <button onClick={handleSubmit} disabled={loading} className="px-8 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 shadow-sm shadow-green-200 dark:shadow-none disabled:opacity-70 disabled:cursor-wait">
-                                {loading ? 'Submitting...' : 'Submit Verification'}
+                            <button
+                                onClick={handleSubmit}
+                                disabled={loading || dateError}
+                                className="px-8 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 shadow-sm shadow-green-200 dark:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600"
+                            >
+                                {loading ? 'Submitting...' : (isExtension ? 'Extend OD' : 'Submit OD Request')}
                             </button>
                         )}
                     </div>

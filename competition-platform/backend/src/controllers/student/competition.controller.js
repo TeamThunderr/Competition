@@ -13,7 +13,7 @@ const getAllCompetitions = async (req, res) => {
         const { data: competitions, error: compError } = await supabase
             .from('competitions')
             .select('*, registrations(count)')
-            .order('registration_deadline', { ascending: false })
+            .order('registration_deadline', { ascending: true })
 
         if (compError) {
             console.log("Student Controller - DB Error:", compError);
@@ -25,7 +25,7 @@ const getAllCompetitions = async (req, res) => {
         // Fetch user's registrations for these competitions
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
-            .select('competition_id, source, verified, proof_url, status, gmail_message_id, confidence_score, qualification_verified, shortlist_proof_url')
+            .select('competition_id, source, verified, proof_url, status, gmail_message_id, confidence_score, qualification_verified, shortlist_proof_url, won_status, winning_proof_url, winning_verified, winning_verified_by')
             .eq('user_id', userId);
 
         if (regError) throw regError;
@@ -35,8 +35,9 @@ const getAllCompetitions = async (req, res) => {
         try {
             const { data, error: odError } = await supabase
                 .from('od_requests')
-                .select('competition_id, status')
-                .eq('user_id', userId);
+                .select('competition_id, status, competitions_info')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
 
             if (odError) throw odError;
             odRequests = data || [];
@@ -48,12 +49,24 @@ const getAllCompetitions = async (req, res) => {
         // Merge data
         const enrichedCompetitions = competitions.map(comp => {
             const reg = registrations.find(r => r.competition_id === comp.id);
-            const od = odRequests.find(o => o.competition_id === comp.id);
+
+            // Check if this competition is the main one OR part of combined competitions in ANY OD request
+            const od = odRequests.find(o => {
+                // Direct match
+                if (o.competition_id === comp.id) return true;
+
+                // Check in merged competitions info (JSONB array)
+                if (o.competitions_info && Array.isArray(o.competitions_info)) {
+                    return o.competitions_info.some(c => c.competition_id === comp.id);
+                }
+
+                return false;
+            });
 
             // Derive Shortlist Status from Registration 'status' column (Unified Logic)
             const isShortlisted = (reg?.status === 'Qualified') || (reg?.status === 'SHORTLISTED');
-            // Assuming 'Winner' status might exist in registrations eventually, or defaulting false for now
-            const isWinner = (reg?.status === 'Winner');
+            // Use both legacy 'Winner' status and new 'won_status' column
+            const isWinner = (reg?.status === 'Winner') || (reg?.won_status === 'WON');
 
             const derivedStatus = {
                 is_shortlisted: isShortlisted,

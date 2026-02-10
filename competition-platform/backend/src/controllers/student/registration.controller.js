@@ -64,11 +64,59 @@ const checkRegistrationStatus = async (req, res) => {
 
         console.log(`[RegistrationV2] Verifying '${competition.title}' for user ${student_id}...`);
 
-        // Use existing Gmail service for detection
+        // Check CURRENT status in DB
+        const { data: currentStatus } = await supabase
+            .from('registrations')
+            .select('verified, last_synced_at')
+            .eq('user_id', student_id)
+            .eq('competition_id', competition_id)
+            .single();
+
+        // If already registered/verified, check for SHORTLIST/WINNER status
+        if (currentStatus && currentStatus.verified) {
+            console.log('[RegistrationV2] User already registered. Checking for Shortlist/Winner updates...');
+
+            const shortlistMatch = await gmailService.checkShortlistStatus(
+                provider_token,
+                competition,
+                currentStatus.last_synced_at // Respect sync window
+            );
+
+            if (shortlistMatch.status) {
+                console.log(`[RegistrationV2] Found update: ${shortlistMatch.status}`);
+
+                // Update DB
+                if (shortlistMatch.status === 'QUALIFIED') {
+                    await upsertCompetitionStatus(student_id, competition_id, { is_shortlisted: true });
+                }
+
+                // Update last synced time
+                await supabase.from('registrations')
+                    .update({ last_synced_at: new Date().toISOString() })
+                    .eq('user_id', student_id)
+                    .eq('competition_id', competition_id);
+
+                return res.status(200).json({
+                    verified: true,
+                    status: shortlistMatch.status,
+                    confidence: shortlistMatch.confidence,
+                    message: `Status updated to ${shortlistMatch.status}!`
+                });
+            } else {
+                console.log('[RegistrationV2] No new updates found.');
+                return res.status(200).json({
+                    verified: true,
+                    status: 'REGISTERED', // No change
+                    message: 'No new updates found. Still Registered.'
+                });
+            }
+        }
+
+        // Use existing Gmail service for detection (Initial Registration)
         const match = await gmailService.syncStudentCompetition(
             provider_token,
             competition,
-            null // No lastSyncedAt for individual student check
+            null // No lastSyncedAt for initial check
         );
 
         if (match && match.suggested_status && match.confidence >= 40) {
@@ -86,10 +134,7 @@ const checkRegistrationStatus = async (req, res) => {
                     await ensureRegistrationExists(student_id, competition_id, 'AUTO_GMAIL');
                     await upsertCompetitionStatus(student_id, competition_id, { is_shortlisted: true });
                     break;
-                case 'WON':
-                    await ensureRegistrationExists(student_id, competition_id, 'AUTO_GMAIL');
-                    await upsertCompetitionStatus(student_id, competition_id, { is_shortlisted: true, is_winner: true });
-                    break;
+
                 default:
                     console.log(`[RegistrationV2] Status ${detectedStatus} - no action taken`);
             }
@@ -208,7 +253,8 @@ const uploadShortlistProof = async (req, res) => {
             .from('registrations')
             .update({
                 shortlist_proof_url: proof_url,
-                qualification_verified: false // Reset for Faculty Verification
+                qualification_verified: false, // Reset for Faculty Verification
+                status: 'Qualified' // Set status so frontend can show "Verification Pending"
             })
             .eq('user_id', student_id)
             .eq('competition_id', competition_id)
@@ -229,8 +275,63 @@ const uploadShortlistProof = async (req, res) => {
 
 
 
+const updateWinningStatus = async (req, res) => {
+    try {
+        const { competition_id, won_status, winning_proof_url } = req.body;
+        const student_id = req.userId;
+
+        if (!competition_id || !won_status) {
+            return res.status(400).json({ error: 'Competition ID and Won Status are required' });
+        }
+
+        // Verify eligibility: Must be Qualified and Qualification Verified
+        const { data: reg, error: regError } = await supabase
+            .from('registrations')
+            .select('qualification_verified, status')
+            .eq('user_id', student_id)
+            .eq('competition_id', competition_id)
+            .single();
+
+        if (regError || !reg) {
+            return res.status(403).json({ error: 'Registration not found' });
+        }
+
+        if (reg.status !== 'Qualified' || reg.qualification_verified !== true) {
+            return res.status(403).json({ error: 'You must be Qualification Verified to update winning status.' });
+        }
+
+        const updateData = {
+            won_status: won_status,
+            winning_proof_url: winning_proof_url || null,
+            // If they marked as WON, they need faculty verification. If NOT_WON, it's auto-verified
+            winning_verified: won_status === 'WON' ? false : true,
+            // If they marked as WON, we can also update the top-level status to 'Winner' for legacy compatibility
+            status: won_status === 'WON' ? 'Winner' : 'Qualified'
+        };
+
+        const { data, error } = await supabase
+            .from('registrations')
+            .update(updateData)
+            .eq('user_id', student_id)
+            .eq('competition_id', competition_id)
+            .select();
+
+        if (error) throw error;
+
+        res.status(200).json({
+            message: `Winning status updated to ${won_status}`,
+            data: data[0]
+        });
+
+    } catch (err) {
+        console.error('Update Winning Status Error:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
     checkRegistrationStatus,
     uploadProof,
-    uploadShortlistProof
+    uploadShortlistProof,
+    updateWinningStatus
 };

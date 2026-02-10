@@ -15,10 +15,10 @@ const getPendingODRequests = async (req, res) => {
             console.warn('[HOD Debug] Warning: HOD has no department_id assigned.');
         }
 
-        // Simplified query - no joins
+        // Simplified query - Include teams for proof and competitions for title/date
         const { data, error } = await supabase
             .from('od_requests')
-            .select('*')
+            .select('*, is_extension, extension_count, parent_od_id, teams(proof_url, team_name), competitions(title, event_date)')
             .eq('status', 'PENDING');
 
         if (error) {
@@ -27,6 +27,16 @@ const getPendingODRequests = async (req, res) => {
         }
 
         console.log(`[HOD Debug] Raw query returned ${data ? data.length : 0} rows`);
+
+        // Debug: Check if extension fields are present
+        if (data && data.length > 0) {
+            console.log('[HOD Debug] Sample OD fields:', Object.keys(data[0]));
+            console.log('[HOD Debug] Extension fields check:', {
+                is_extension: data[0].is_extension,
+                extension_count: data[0].extension_count,
+                parent_od_id: data[0].parent_od_id
+            });
+        }
 
         // Manually fetch user data for each request
         if (data && data.length > 0) {
@@ -105,6 +115,7 @@ const getODRequestDetail = async (req, res) => {
             .from('od_requests')
             .select(`
                 *,
+                is_extension, extension_count, parent_od_id,
                 users:users!od_requests_user_id_fkey!inner(full_name, registration_no, department_id, section),
                 competitions(title, event_date),
                 teams (team_name, proof_url, verification_status, members_info)

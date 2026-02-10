@@ -112,6 +112,19 @@ export const uploadTeamProof = async (teamId, proofUrl) => {
     });
 };
 
+// Student Search & Validation
+export const searchStudents = async (query, competitionId = null) => {
+    return await api.get(`/api/student/search-students?query=${query}${competitionId ? `&competition_id=${competitionId}` : ''}`);
+};
+
+export const validateTeammate = async (regNo, name, competitionId) => {
+    return await api.post('/api/student/validate-teammate', {
+        reg_no: regNo,
+        name: name,
+        competition_id: competitionId
+    });
+};
+
 // Export as object for convenience
 export const studentService = {
     getAllCompetitions,
@@ -122,7 +135,16 @@ export const studentService = {
     getProfile,
     checkTeamStatus,
     uploadTeamProof,
-    uploadShortlistProof
+    uploadShortlistProof,
+    updateWinningStatus: async (competitionId, wonStatus, winningProofUrl) => {
+        return await api.post('/api/student/update-winning-status', {
+            competition_id: competitionId,
+            won_status: wonStatus,
+            winning_proof_url: winningProofUrl
+        });
+    },
+    searchStudents,
+    validateTeammate
 };
 
 export default studentService;

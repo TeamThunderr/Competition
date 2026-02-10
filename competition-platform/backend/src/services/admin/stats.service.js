@@ -93,12 +93,16 @@ const getDepartmentStats = async () => {
 
 
 
-    // Process Registrations
+    // Process Registrations (Only Verified)
     registrations.forEach(reg => {
         const user = userMap[reg.user_id];
         if (!user) return; // Skip if user not found (e.g. deleted user)
 
         const deptId = user.department_id || 'unknown';
+
+        // Filter: Only include Verified Registrations for "Active" stats
+        // User Feedback: "during verification pending... it is updating" -> Don't count pending.
+        if (!reg.verified) return;
 
         // Safety check if dept wasn't in list
         if (!stats[deptId]) {
@@ -116,10 +120,9 @@ const getDepartmentStats = async () => {
         }
 
         const s = stats[deptId];
-        s.total_registrations++;
+        s.total_registrations++; // Now effectively "Active/Verified Registrations"
         s.unique_participants.add(user.id);
-
-        if (reg.verified) s.verified_registrations++;
+        s.verified_registrations++; // Kept for consistency, though now same as total
 
         // Section breakdown
         const section = user.section || 'N/A';

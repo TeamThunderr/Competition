@@ -5,10 +5,12 @@ import { getDepartmentUsers, downloadWinnersReport } from '../../services/hodSer
 import { api } from '../../services/api';
 import StudentListTable from '../common/StudentListTable';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../contexts/ToastContext';
 
 
 const HodDashboard = () => {
     const navigate = useNavigate();
+    const { addToast } = useToast();
     const [selectedSection, setSelectedSection] = useState('All Sections');
     const [activeTab, setActiveTab] = useState('2nd'); // 2nd, 3rd, 4th
     const [isTopDropdownOpen, setIsTopDropdownOpen] = useState(false);
@@ -24,7 +26,7 @@ const HodDashboard = () => {
         try {
             await downloadWinnersReport();
         } catch (error) {
-            alert("Failed to download report");
+            addToast("Failed to download report", "error");
         }
     };
 

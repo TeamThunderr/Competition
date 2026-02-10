@@ -1,18 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Users, ExternalLink, ArrowLeft, Globe, Clock, MessageSquare, Layers } from 'lucide-react';
+import { Calendar, Users, ExternalLink, ArrowLeft, Globe, Clock, MessageSquare, Layers, Download, RefreshCw } from 'lucide-react';
 import { getCurrentUser } from '../../services/authService';
 import { getCompetitionStudents } from '../../services/facultyService';
 import { getHODCompetitionStats } from '../../services/hodService';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
-// import StudentListModal from '../../components/common/StudentListModal'; // Removed -> Uncommented below
+
 import StudentListModal from '../../components/common/StudentListModal';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import AlertModal from '../../components/common/AlertModal';
 import TotalSectionsStats from '../../components/features/competitions/stats/TotalSectionsStats';
 import StudentStatsList from '../../components/features/competitions/stats/StudentStatsList';
-// import SectionStudentList from '../../components/features/competitions/stats/SectionStudentList'; // Removed from here
+import ConfirmModal from '../../components/common/ConfirmModal';
+import { useToast } from '../../contexts/ToastContext';
+
 import { UserCheck, UserPlus } from 'lucide-react';
 
 const CompetitionDetails = () => {
@@ -30,46 +32,9 @@ const CompetitionDetails = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalTitle, setModalTitle] = useState('');
     const [selectedStudents, setSelectedStudents] = useState([]);
-
-    // UI Modals State
-    const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '', type: 'info' });
-    const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: null, loading: false });
-
-    const showAlert = (title, message, type = 'info') => {
-        setAlertConfig({ isOpen: true, title, message, type });
-    };
-
-    const handleSyncClick = () => {
-        setConfirmConfig({
-            isOpen: true,
-            title: 'Start Gmail Sync?',
-            message: `Start Gmail Sync for ${competition.title}? This may take a moment.`,
-            type: 'info',
-            confirmText: 'Start Sync',
-            loading: false,
-            onConfirm: performSync
-        });
-    };
-
-    const performSync = async () => {
-        setConfirmConfig(prev => ({ ...prev, loading: true }));
-        try {
-            await api.post(`/api/faculty/competition/${id}/sync`, {});
-            setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }));
-            showAlert('Success', "Sync Completed! Refreshing data...", 'success');
-
-            // Refresh Data
-            setLoading(true); // Show global loader for a bit while fetching
-            const students = await getCompetitionStudents(id);
-            setStatsData(students);
-            setLoading(false);
-
-        } catch (e) {
-            console.error(e);
-            setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }));
-            showAlert('Error', "Sync failed: " + (e.message || "Unknown error"), 'danger');
-        }
-    };
+    const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+    const [syncing, setSyncing] = useState(false);
+    const { addToast } = useToast();
 
     const user = getCurrentUser();
     const isFaculty = user?.role === 'FACULTY';
@@ -221,14 +186,35 @@ const CompetitionDetails = () => {
                         </div>
 
                         <div className="flex gap-3 w-full md:w-auto">
-                            {/* Faculty Sync Button - Moved to Header */}
                             {isFaculty && (
-                                <button
-                                    onClick={handleSyncClick}
-                                    className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
-                                >
-                                    🔄 Sync
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={async () => {
+                                            const { downloadCompetitionStudents } = await import('../../services/facultyService');
+                                            await downloadCompetitionStudents(id, 'registered', competition.title);
+                                        }}
+                                        className="bg-green-50 text-green-700 px-3 py-2 rounded-lg font-medium hover:bg-green-100 transition-colors flex items-center gap-1 text-sm whitespace-nowrap border border-green-200"
+                                        title="Download Registered Students"
+                                    >
+                                        <Download size={14} /> Registered
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            const { downloadCompetitionStudents } = await import('../../services/facultyService');
+                                            await downloadCompetitionStudents(id, 'unregistered', competition.title);
+                                        }}
+                                        className="bg-red-50 text-red-700 px-3 py-2 rounded-lg font-medium hover:bg-red-100 transition-colors flex items-center gap-1 text-sm whitespace-nowrap border border-red-200"
+                                        title="Download Unregistered Students"
+                                    >
+                                        <Download size={14} /> Unregistered
+                                    </button>
+                                    <button
+                                        onClick={() => setIsSyncModalOpen(true)}
+                                        className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
+                                    >
+                                        <RefreshCw size={14} /> Sync
+                                    </button>
+                                </div>
                             )}
 
                             {competition.external_link && (
@@ -246,7 +232,7 @@ const CompetitionDetails = () => {
                     </div>
 
                     {/* Integrated Event Info Bar */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-t border-border mt-2">
+                    <div className={`grid ${competition.venue ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-4'} gap-4 py-4 border-t border-border mt-2`}>
                         <div className="flex flex-col">
                             <span className="text-muted text-xs flex items-center gap-1 mb-1">
                                 <Clock size={12} /> Registration Ends
@@ -279,6 +265,19 @@ const CompetitionDetails = () => {
                                 {competition.mode || "Online"}
                             </span>
                         </div>
+                        {competition.venue && (
+                            <div className="flex flex-col">
+                                <span className="text-muted text-xs flex items-center gap-1 mb-1">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg> Venue
+                                </span>
+                                <span className="font-medium text-foreground text-sm">
+                                    {competition.venue}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -426,9 +425,15 @@ const CompetitionDetails = () => {
                                                     <span className="text-xs text-blue-600 truncate dark:text-blue-400">{student.regNo}</span>
 
                                                     {student.verified ? (
-                                                        <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded border border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
-                                                            Manual Verified
-                                                        </span>
+                                                        student.source === 'AUTO_GMAIL' ? (
+                                                            <span className="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800">
+                                                                Gmail Verified
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded border border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
+                                                                Manual Verified
+                                                            </span>
+                                                        )
                                                     ) : (student.confidence > 0 ? (
                                                         <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800" title={`Confidence: ${student.confidence}%`}>
                                                             Auto-Detected ({student.confidence}%)
@@ -556,7 +561,7 @@ const CompetitionDetails = () => {
                                         {competition.min_team_size} - {competition.max_team_size} Members
                                     </span>
                                 </div>
-                                <div className="flex justify-between py-2">
+                                <div className={`flex justify-between py-2 ${competition.venue ? 'border-b border-border' : ''}`}>
                                     <span className="text-muted flex items-center gap-2">
                                         <MessageSquare size={16} /> Mode
                                     </span>
@@ -564,6 +569,19 @@ const CompetitionDetails = () => {
                                         {competition.mode || "Online"}
                                     </span>
                                 </div>
+                                {competition.venue && (
+                                    <div className="flex justify-between py-2">
+                                        <span className="text-muted flex items-center gap-2">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg> Venue
+                                        </span>
+                                        <span className="font-medium text-foreground">
+                                            {competition.venue}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -576,26 +594,39 @@ const CompetitionDetails = () => {
                 title={modalTitle}
                 students={selectedStudents}
             />
-            {/* Confirmation Modal for Actions like Sync */}
-            <ConfirmModal
-                isOpen={confirmConfig.isOpen}
-                onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }))}
-                onConfirm={confirmConfig.onConfirm}
-                title={confirmConfig.title}
-                message={confirmConfig.message}
-                type={confirmConfig.type}
-                confirmText={confirmConfig.confirmText}
-                loading={confirmConfig.loading}
-            />
 
-            {/* Alert Modal for Success/Error feedback */}
-            <AlertModal
-                isOpen={alertConfig.isOpen}
-                onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
-                title={alertConfig.title}
-                message={alertConfig.message}
-                type={alertConfig.type}
-                autoClose={true}
+            <ConfirmModal
+                isOpen={isSyncModalOpen}
+                onClose={() => setIsSyncModalOpen(false)}
+                title="Sync Competition Data"
+                message={`Start Gmail Sync for ${competition.title}? This will scan for new registrations and update the student lists. This may take a moment.`}
+                confirmText="Start Sync"
+                loading={syncing}
+                onConfirm={async () => {
+                    setSyncing(true);
+                    try {
+                        const response = await api.post(`/api/faculty/competition/${id}/sync`, {});
+                        const syncResult = response.data || response;
+
+                        // Show Toast based on results
+                        if (syncResult?.results?.detected > 0) {
+                            addToast(`Sync Completed: Found ${syncResult.results.detected} new registrations for this competition.`, 'success');
+                        } else {
+                            addToast("Sync Completed: No new registrations found for this competition.", 'info');
+                        }
+
+                        // Refresh Data
+                        const students = await getCompetitionStudents(id);
+                        setStatsData(students);
+                        setIsSyncModalOpen(false);
+                    } catch (e) {
+                        console.error(e);
+                        addToast("Sync failed: " + (e.message || "Unknown error"), 'error');
+                        setIsSyncModalOpen(false);
+                    } finally {
+                        setSyncing(false);
+                    }
+                }}
             />
         </div >
     );

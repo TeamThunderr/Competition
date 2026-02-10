@@ -129,7 +129,105 @@ const verifyRegistration = async (req, res) => {
     }
 };
 
+const getPendingWinningVerifications = async (req, res) => {
+    try {
+        const { department_id } = req.user;
+
+        const { data: requests, error } = await supabase
+            .from('registrations')
+            .select(`
+                id,
+                registered_at,
+                source,
+                winning_proof_url,
+                won_status,
+                winning_verified,
+                users!registrations_user_id_fkey!inner (
+                    id,
+                    full_name,
+                    registration_no,
+                    section,
+                    department_id
+                ),
+                competitions!inner (
+                    id,
+                    title
+                )
+            `)
+            .eq('won_status', 'WON')
+            .eq('winning_verified', false)
+            .eq('users.department_id', department_id);
+
+        if (error) throw error;
+
+        const responseData = requests.map(req => ({
+            id: req.id,
+            studentName: req.users.full_name,
+            regNo: req.users.registration_no,
+            competition: req.competitions.title,
+            proofUrl: req.winning_proof_url,
+            status: 'Pending',
+            submittedAt: new Date(req.registered_at).toLocaleDateString(),
+            type: 'WINNING'
+        }));
+
+        sendResponse(res, 200, responseData, 'Fetched pending winning verifications');
+
+    } catch (err) {
+        console.error('[VerificationController] Error:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
+    }
+};
+
+const verifyWinning = async (req, res) => {
+    try {
+        const { registration_id, action } = req.body;
+        const faculty_id = req.user.id;
+
+        if (!registration_id || !action) {
+            return sendResponse(res, 400, null, 'Registration ID and Action are required');
+        }
+
+        if (action === 'approve') {
+            const { data, error } = await supabase
+                .from('registrations')
+                .update({
+                    winning_verified: true,
+                    winning_verified_by: faculty_id,
+                    status: 'Winner'
+                })
+                .eq('id', registration_id)
+                .select();
+
+            if (error) throw error;
+            sendResponse(res, 200, data, 'Winning Status Verified Successfully');
+
+        } else if (action === 'reject') {
+            const { error } = await supabase
+                .from('registrations')
+                .update({
+                    won_status: 'PENDING',
+                    winning_proof_url: null,
+                    winning_verified: false,
+                    status: 'Qualified'
+                })
+                .eq('id', registration_id);
+
+            if (error) throw error;
+            sendResponse(res, 200, null, 'Winning Proof Rejected');
+        } else {
+            return sendResponse(res, 400, null, 'Invalid Action');
+        }
+
+    } catch (err) {
+        console.error('[VerificationController] Error:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
+    }
+};
+
 module.exports = {
     getPendingVerifications,
-    verifyRegistration
+    verifyRegistration,
+    getPendingWinningVerifications,
+    verifyWinning
 };
