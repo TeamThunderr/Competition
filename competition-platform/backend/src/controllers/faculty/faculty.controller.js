@@ -711,7 +711,7 @@ const getPendingShortlistVerifications = async (req, res) => {
                 section: r.users.section
             },
             proof_url: r.shortlist_proof_url, // Map new col to generic 'proof_url' for frontend reuse
-            created_at: r.registered_at,
+            registered_at: r.registered_at, // Use registered_at for consistency with other endpoints
             type: 'SHORTLIST' // Tag for frontend
         }));
 

@@ -454,60 +454,154 @@ const CompetitionDetails = () => {
                         </div >
 
                         {/* Column 3: Shortlisted Students */}
-                        < div className="bg-card rounded-xl border border-border shadow-sm p-6 overflow-hidden" >
+                        <div className="bg-card rounded-xl border border-border shadow-sm p-6 overflow-hidden">
                             <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                                 <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
                                 <span className="truncate">Shortlisted ({statsData.shortlisted?.length || 0})</span>
                             </h3>
-                            <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-                                {statsData.shortlisted?.map(student => (
-                                    <div key={student.id} className="text-sm p-3 bg-purple-50 rounded-lg border border-purple-100 dark:bg-purple-900/20 dark:border-purple-800">
-                                        <div className="font-medium text-foreground truncate">{student.name}</div>
-                                        <div className="text-xs text-purple-600 truncate dark:text-purple-400">{student.regNo} {student.section && `(${student.section})`}</div>
+
+                            {/* Embedded Year Filter Dropdown */}
+                            {isHOD && (
+                                <div className="mb-3">
+                                    <div className="relative">
+                                        <select
+                                            value={selectedYear}
+                                            onChange={(e) => setSelectedYear(e.target.value)}
+                                            className="w-full appearance-none bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                                        >
+                                            <option value="2nd Year" className="dark:bg-gray-800">2nd Year</option>
+                                            <option value="3rd Year" className="dark:bg-gray-800">3rd Year</option>
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                                        </div>
                                     </div>
-                                ))}
-                                {(!statsData.shortlisted || statsData.shortlisted.length === 0) && <div className="text-sm text-muted text-center py-4">No shortlisted students</div>}
+                                </div>
+                            )}
+
+                            <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                                {isHOD && statsData.shortlisted_sections ? (
+                                    filterByYear(statsData.shortlisted_sections).length > 0 ? (
+                                        filterByYear(statsData.shortlisted_sections).map((group, gIdx) => (
+                                            <div key={gIdx} className="mb-3">
+                                                <details className="group" open={group.year === '2nd Year' || group.year === '3rd Year'}>
+                                                    <summary className="flex justify-between items-center font-bold text-foreground cursor-pointer p-2 bg-muted/10 rounded-lg hover:bg-muted/20 transition-colors">
+                                                        <span>{group.year}</span>
+                                                        <span className="text-xs bg-card px-2 py-0.5 rounded text-muted shadow-sm border border-border">
+                                                            {group.totalStudents} Qualified
+                                                        </span>
+                                                    </summary>
+                                                    <div className="mt-2 pl-2 space-y-2 border-l-2 border-border ml-2">
+                                                        {group.sections.map((sec, sIdx) => (
+                                                            <div
+                                                                key={sIdx}
+                                                                onClick={() => handleSectionClick(sec.students, group.year, sec.name, 'Shortlisted Students')}
+                                                                className="flex justify-between items-center text-sm p-2 bg-card border border-border rounded-md shadow-sm cursor-pointer hover:bg-purple-50 hover:border-purple-200 transition-colors group/item"
+                                                            >
+                                                                <div className="font-medium text-foreground flex items-center gap-2 truncate group-hover/item:text-purple-600">
+                                                                    <Layers size={14} className="text-muted flex-shrink-0 group-hover/item:text-purple-500" />
+                                                                    <span className="truncate">Section {sec.name}</span>
+                                                                </div>
+                                                                <div className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded font-medium border border-purple-100 whitespace-nowrap dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-900/50">
+                                                                    {sec.count} Qualified
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </details>
+                                            </div>
+                                        ))
+                                    ) : <div className="text-sm text-muted text-center py-4">No shortlisted students</div>
+                                ) : (
+                                    /* Faculty/Original View - Flat List */
+                                    (statsData.shortlisted && statsData.shortlisted.length > 0) ? (
+                                        statsData.shortlisted.map(student => (
+                                            <div key={student.id} className="text-sm p-3 bg-purple-50 rounded-lg border border-purple-100 dark:bg-purple-900/20 dark:border-purple-800">
+                                                <div className="font-medium text-foreground truncate">{student.name}</div>
+                                                <div className="text-xs text-purple-600 truncate dark:text-purple-400">{student.regNo} {student.section && `(${student.section})`}</div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-sm text-muted text-center py-4">No shortlisted students</div>
+                                    )
+                                )}
                             </div>
-                        </div >
+                        </div>
 
                         {/* Column 4: Winners */}
-                        < div className="bg-card rounded-xl border border-border shadow-sm p-6 overflow-hidden" >
+                        <div className="bg-card rounded-xl border border-border shadow-sm p-6 overflow-hidden">
                             <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                                 <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
                                 <span className="truncate">Winners ({statsData.winners?.length || 0})</span>
                             </h3>
 
                             {/* Embedded Year Filter Dropdown */}
-                            {
-                                isHOD && (
-                                    <div className="mb-3">
-                                        <div className="relative">
-                                            <select
-                                                value={selectedYear}
-                                                onChange={(e) => setSelectedYear(e.target.value)}
-                                                className="w-full appearance-none bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
-                                            >
-                                                <option value="2nd Year" className="dark:bg-gray-800">2nd Year</option>
-                                                <option value="3rd Year" className="dark:bg-gray-800">3rd Year</option>
-                                            </select>
-                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
-                                            </div>
+                            {isHOD && (
+                                <div className="mb-3">
+                                    <div className="relative">
+                                        <select
+                                            value={selectedYear}
+                                            onChange={(e) => setSelectedYear(e.target.value)}
+                                            className="w-full appearance-none bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                                        >
+                                            <option value="2nd Year" className="dark:bg-gray-800">2nd Year</option>
+                                            <option value="3rd Year" className="dark:bg-gray-800">3rd Year</option>
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
                                         </div>
                                     </div>
-                                )
-                            }
+                                </div>
+                            )}
 
                             <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-                                {statsData.winners?.map(student => (
-                                    <div key={student.id} className="text-sm p-3 bg-green-50 rounded-lg border border-green-100 dark:bg-green-900/20 dark:border-green-800">
-                                        <div className="font-medium text-foreground truncate">{student.name}</div>
-                                        <div className="text-xs text-green-600 truncate dark:text-green-400">{student.regNo} {student.section && `(${student.section})`}</div>
-                                    </div>
-                                ))}
-                                {(!statsData.winners || statsData.winners.length === 0) && <div className="text-sm text-muted text-center py-4">No winners yet</div>}
+                                {isHOD && statsData.winners_sections ? (
+                                    filterByYear(statsData.winners_sections).length > 0 ? (
+                                        filterByYear(statsData.winners_sections).map((group, gIdx) => (
+                                            <div key={gIdx} className="mb-3">
+                                                <details className="group" open={group.year === '2nd Year' || group.year === '3rd Year'}>
+                                                    <summary className="flex justify-between items-center font-bold text-foreground cursor-pointer p-2 bg-muted/10 rounded-lg hover:bg-muted/20 transition-colors">
+                                                        <span>{group.year}</span>
+                                                        <span className="text-xs bg-card px-2 py-0.5 rounded text-muted shadow-sm border border-border">
+                                                            {group.totalStudents} Winners
+                                                        </span>
+                                                    </summary>
+                                                    <div className="mt-2 pl-2 space-y-2 border-l-2 border-border ml-2">
+                                                        {group.sections.map((sec, sIdx) => (
+                                                            <div
+                                                                key={sIdx}
+                                                                onClick={() => handleSectionClick(sec.students, group.year, sec.name, 'Winners')}
+                                                                className="flex justify-between items-center text-sm p-2 bg-card border border-border rounded-md shadow-sm cursor-pointer hover:bg-green-50 hover:border-green-200 transition-colors group/item"
+                                                            >
+                                                                <div className="font-medium text-foreground flex items-center gap-2 truncate group-hover/item:text-green-600">
+                                                                    <Layers size={14} className="text-muted flex-shrink-0 group-hover/item:text-green-500" />
+                                                                    <span className="truncate">Section {sec.name}</span>
+                                                                </div>
+                                                                <div className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded font-medium border border-green-100 whitespace-nowrap dark:bg-green-900/30 dark:text-green-300 dark:border-green-900/50">
+                                                                    {sec.count} Winners
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </details>
+                                            </div>
+                                        ))
+                                    ) : <div className="text-sm text-muted text-center py-4">No winners yet</div>
+                                ) : (
+                                    /* Faculty/Original View - Flat List */
+                                    (statsData.winners && statsData.winners.length > 0) ? (
+                                        statsData.winners.map(student => (
+                                            <div key={student.id} className="text-sm p-3 bg-green-50 rounded-lg border border-green-100 dark:bg-green-900/20 dark:border-green-800">
+                                                <div className="font-medium text-foreground truncate">{student.name}</div>
+                                                <div className="text-xs text-green-600 truncate dark:text-green-400">{student.regNo} {student.section && `(${student.section})`}</div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-sm text-muted text-center py-4">No winners yet</div>
+                                    )
+                                )}
                             </div>
-                        </div >
+                        </div>
                     </div >
                 </div >
 

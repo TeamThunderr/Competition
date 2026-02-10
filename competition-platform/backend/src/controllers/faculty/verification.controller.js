@@ -66,10 +66,11 @@ const getPendingVerifications = async (req, res) => {
             id: req.id,
             studentName: req.users.full_name,
             regNo: req.users.registration_no,
+            section: req.users.section,
             competition: req.competitions.title,
             proofUrl: req.proof_url,
             status: 'Pending',
-            submittedAt: new Date(req.registered_at).toLocaleDateString()
+            registered_at: req.registered_at // Return raw timestamp for frontend formatting
         }));
 
         sendResponse(res, 200, responseData, 'Fetched pending verifications');
@@ -164,10 +165,11 @@ const getPendingWinningVerifications = async (req, res) => {
             id: req.id,
             studentName: req.users.full_name,
             regNo: req.users.registration_no,
+            section: req.users.section,
             competition: req.competitions.title,
             proofUrl: req.winning_proof_url,
             status: 'Pending',
-            submittedAt: new Date(req.registered_at).toLocaleDateString(),
+            registered_at: req.registered_at, // Return raw timestamp for frontend formatting
             type: 'WINNING'
         }));
 

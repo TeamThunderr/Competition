@@ -115,7 +115,10 @@ const HodDashboard = () => {
         .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', undefined, { numeric: true, sensitivity: 'base' }));
 
     // Find analytics for selected section
-    const currentSectionAnalytics = sectionData.find(s => s.section === selectedSection) || {
+    // Ensure we match both Section Name AND Academic Year to avoid conflicts if names are reused across years
+    const currentSectionAnalytics = sectionData.find(s =>
+        s.section === selectedSection && s.academicYear === `${activeTab} Year`
+    ) || {
         totalStudents: sectionStudents.length,
         batch: 'N/A', // Default if not found
         registered: 0,
