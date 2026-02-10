@@ -6,6 +6,7 @@ import { api } from '../../services/api';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import { useToast } from '../../contexts/ToastContext';
 
 const FacultyDashboard = () => {
     const [stats, setStats] = useState({
@@ -22,6 +23,7 @@ const FacultyDashboard = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    const { addToast } = useToast();
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -174,10 +176,16 @@ const FacultyDashboard = () => {
                         const { syncCompetition } = await import('../../services/facultyService');
                         const { getDashboardStats } = await import('../../services/facultyService');
 
-                        let processedCount = 0;
+                        let totalDetected = 0;
+                        let competitionCount = 0;
+
                         for (const comp of competitions) {
-                            await syncCompetition(comp.id);
-                            processedCount++;
+                            const result = await syncCompetition(comp.id);
+                            // result contains { results: { processed, detected, errors, skipped } }
+                            if (result?.results) {
+                                totalDetected += (result.results.detected || 0);
+                            }
+                            competitionCount++;
                         }
 
                         // Refresh Stats
@@ -191,10 +199,19 @@ const FacultyDashboard = () => {
                             : (Array.isArray(activeCompetitionsResponse) ? activeCompetitionsResponse : []);
 
                         setCompetitions(activeCompetitions);
+
+                        // Show Success Toast
+                        if (totalDetected > 0) {
+                            addToast(`Sync Complete: Found ${totalDetected} new registrations across ${competitionCount} competitions.`, 'success');
+                        } else {
+                            addToast(`Sync Complete: No new registrations found. Checked ${competitionCount} competitions.`, 'info');
+                        }
+
                         setIsSyncModalOpen(false); // Close on success
                     } catch (e) {
                         console.error(e);
                         setError("Sync Failed: " + (e.message || "Unknown Error"));
+                        addToast("Sync Failed: " + (e.message || "Unknown error"), 'error');
                         setIsSyncModalOpen(false); // Close on error too
                     } finally {
                         setSyncing(false);

@@ -347,7 +347,7 @@ const getDashboardStats = async (req, res) => {
 
 const syncCompetition = async (req, res) => {
     try {
-        const competitionId = req.params.competitionId || req.body.competitionId; // Check params first, then body
+        const competitionId = req.params.id || req.body.competitionId; // Check params first, then body
         const facultyId = req.user.id;
         const { department_id, assigned_sections } = req.user;
 
