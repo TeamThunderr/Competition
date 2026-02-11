@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import EditCompetitionModal from '../../components/admin/EditCompetitionModal';
+import ConfirmModal from '../../components/common/ConfirmModal';
+import AlertModal from '../../components/common/AlertModal';
 import { useToast } from '../../contexts/ToastContext';
 
 const ActivityLogs = () => {
@@ -97,7 +99,7 @@ const ActivityLogs = () => {
         }
     };
 
-    const handleDelete = (e, id) => {
+    const handleDelete = async (e, id) => {
         e.preventDefault(); // Prevent Link navigation
         e.stopPropagation();
 

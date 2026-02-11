@@ -12,7 +12,6 @@ import ConfirmModal from '../../components/common/ConfirmModal';
 import AlertModal from '../../components/common/AlertModal';
 import TotalSectionsStats from '../../components/features/competitions/stats/TotalSectionsStats';
 import StudentStatsList from '../../components/features/competitions/stats/StudentStatsList';
-import ConfirmModal from '../../components/common/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
 
 import { UserCheck, UserPlus } from 'lucide-react';
