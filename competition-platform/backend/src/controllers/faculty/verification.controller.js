@@ -49,7 +49,7 @@ const getPendingVerifications = async (req, res) => {
 
         // Filter by assigned sections (if strictly enforced)
         const allowedSections = assigned_sections
-            ? assigned_sections.map(s => s.split('-')[1] || s).map(s => s.trim())
+            ? assigned_sections.map(s => s.split('-')[1] || s).map(s => s.trim().toUpperCase())
             : [];
 
         // If assigned_sections is empty/null, maybe allow all (HOD/Admin role reuse) or none?
@@ -58,7 +58,8 @@ const getPendingVerifications = async (req, res) => {
 
         const filteredRequests = requests.filter(req => {
             if (allowedSections.length === 0) return true; // Fallback: Show all if no assignment logic
-            return allowedSections.includes(req.users.section);
+            const studentSec = (req.users.section || '').trim().toUpperCase();
+            return allowedSections.includes(studentSec);
         });
 
         // Map to UI friendly format
@@ -157,7 +158,8 @@ const getPendingWinningVerifications = async (req, res) => {
             `)
             .eq('won_status', 'WON')
             .eq('winning_verified', false)
-            .eq('users.department_id', department_id);
+            .eq('users.department_id', department_id)
+            .order('registered_at', { ascending: false });
 
         if (error) throw error;
 

@@ -30,17 +30,39 @@ const getAllCompetitions = async (req, res) => {
 
         if (regError) throw regError;
 
-        // Fetch user's OD requests
+        // Fetch user's OD requests (Personal OR Team)
         let odRequests = [];
         try {
-            const { data, error: odError } = await supabase
+            // 1. Get teams
+            const { data: myTeams } = await supabase
+                .from('team_members')
+                .select('team_id')
+                .eq('user_id', userId);
+
+            const teamIds = myTeams?.map(t => t.team_id) || [];
+
+            // 2. Query ODs
+            let query = supabase
                 .from('od_requests')
-                .select('competition_id, status, competitions_info')
-                .eq('user_id', userId)
+                .select('competition_id, status, competitions_info, teams(members_info)') // Added teams(members_info) for letter generation if needed here? Actually fetchODs in history page fetches mostly.
+                // But for status card we just need status.
                 .order('created_at', { ascending: false });
+
+            if (teamIds.length > 0) {
+                const teamListStr = teamIds.join(',');
+                query = query.or(`user_id.eq.${userId},team_id.in.(${teamListStr})`);
+            } else {
+                query = query.eq('user_id', userId);
+            }
+
+            const { data, error: odError } = await query;
 
             if (odError) throw odError;
             odRequests = data || [];
+            console.log(`[Competitions] User ${userId} - Teams: ${teamIds.length}, ODs Found: ${odRequests.length}`);
+            if (odRequests.length > 0) {
+                console.log(`[Competitions] OD IDs: ${odRequests.map(o => o.id).join(', ')}`);
+            }
         } catch (err) {
             console.warn("Warning: Could not fetch od_requests", err.message);
             odRequests = [];

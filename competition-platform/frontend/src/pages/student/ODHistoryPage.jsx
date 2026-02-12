@@ -7,6 +7,19 @@ import { generateODLetter } from '../../utils/odGenerator';
 const ODHistoryPage = () => {
     const [ods, setOds] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentUser, setCurrentUser] = useState(null);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await api.get('/api/student/profile');
+                setCurrentUser(response.data);
+            } catch (err) {
+                console.error("Fetch Profile Error:", err);
+            }
+        };
+        fetchProfile();
+    }, []);
 
     useEffect(() => {
         const fetchODs = async () => {
@@ -14,7 +27,29 @@ const ODHistoryPage = () => {
             try {
                 // Use Backend API (Service Key) to bypass RLS issues
                 const data = await api.get('/api/student/od-requests');
-                setOds(data || []);
+                // Sort: Approved (Active) > Pending > Rejected > Ended (Past)
+                const sortedData = (data || []).sort((a, b) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
+                    const getPriority = (od) => {
+                        const endDate = new Date(od.to_date);
+                        const isEnded = endDate < today;
+
+                        if (od.status === 'APPROVED' && !isEnded) return 1;
+                        if (od.status === 'PENDING') return 2;
+                        if (od.status === 'REJECTED') return 3;
+                        return 4;
+                    };
+
+                    const pA = getPriority(a);
+                    const pB = getPriority(b);
+
+                    if (pA !== pB) return pA - pB;
+                    return new Date(b.created_at) - new Date(a.created_at);
+                });
+
+                setOds(sortedData);
             } catch (err) {
                 console.error("Fetch OD Error:", err);
             } finally {
@@ -110,15 +145,57 @@ const ODHistoryPage = () => {
                                         </div>
 
                                         {/* Display Team Members if Approved */}
-                                        {od.status === 'APPROVED' && od.teams?.members_info && od.teams.members_info.length > 0 && (
+                                        {od.status === 'APPROVED' && (
                                             <div className="mt-4 pt-4 border-t border-gray-50 dark:border-gray-700">
                                                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Team Members Included:</p>
                                                 <div className="flex flex-wrap gap-2">
-                                                    {od.teams.members_info.map((m, i) => (
-                                                        <span key={i} className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1 rounded text-xs border border-gray-200 dark:border-gray-700">
-                                                            {m.name} ({m.reg_no})
-                                                        </span>
-                                                    ))}
+                                                    {(() => {
+                                                        const members = [];
+
+                                                        // 1. Add Leader (Requester)
+                                                        if (od.requester) {
+                                                            members.push({
+                                                                name: od.requester.full_name,
+                                                                reg_no: od.requester.registration_no,
+                                                                is_leader: true
+                                                            });
+                                                        } else if (od.teams?.users) {
+                                                            members.push({
+                                                                name: od.teams.users.full_name,
+                                                                reg_no: od.teams.users.registration_no,
+                                                                is_leader: true
+                                                            });
+                                                        }
+
+                                                        // 2. Add Teammates from JSON
+                                                        if (od.teams?.members_info && Array.isArray(od.teams.members_info)) {
+                                                            members.push(...od.teams.members_info.map(m => ({
+                                                                name: m.name,
+                                                                reg_no: m.reg_no,
+                                                                is_leader: false
+                                                            })));
+                                                        }
+
+                                                        // 3. Filter Unique & Not Current User
+                                                        const displayedMembers = members.filter((m, index, self) => {
+                                                            if (!m.reg_no) return false;
+                                                            // Filter out self
+                                                            if (currentUser && m.reg_no === currentUser.regNo) return false;
+
+                                                            // Unique check
+                                                            const firstIdx = self.findIndex(s => s.reg_no === m.reg_no);
+                                                            return index === firstIdx;
+                                                        });
+
+                                                        if (displayedMembers.length === 0) return <span className="text-xs text-gray-400 italic">No other participants</span>;
+
+                                                        return displayedMembers.map((m, i) => (
+                                                            <span key={i} className={`px-2 py-1 rounded text-xs border flex items-center gap-1 ${m.is_leader ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700'}`}>
+                                                                {m.name} ({m.reg_no})
+                                                                {m.is_leader && <span title="Team Leader">👑</span>}
+                                                            </span>
+                                                        ));
+                                                    })()}
                                                 </div>
                                             </div>
                                         )}

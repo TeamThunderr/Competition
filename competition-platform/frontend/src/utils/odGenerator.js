@@ -129,10 +129,39 @@ export const generateODLetter = (odData, studentProfile) => {
     yPos = drawSectionTitle("Student Participants", yPos);
 
     let students = [];
-    if (odData.teams?.members_info && odData.teams.members_info.length > 0) {
-        students = odData.teams.members_info;
-    } else if (studentProfile) {
-        // Fallback to logged-in user if no team info (Individual participation)
+
+    // 1. Add Requester/Leader (Prioritize direct user fetch, then team leader, then profile)
+    let leaderAdded = false;
+
+    // A. From Top-level User (Requester) - BEST SOURCE
+    if (odData.requester) {
+        students.push({
+            name: odData.requester.full_name,
+            reg_no: odData.requester.registration_no
+        });
+        leaderAdded = true;
+    }
+    // B. From Team Leader Relation (Backup)
+    else if (!leaderAdded && odData.teams?.users) {
+        students.push({
+            name: odData.teams.users.full_name,
+            reg_no: odData.teams.users.registration_no
+        });
+        leaderAdded = true;
+    }
+
+    // 2. Add Teammates (from teams.members_info JSON)
+    if (odData.teams?.members_info && Array.isArray(odData.teams.members_info)) {
+        odData.teams.members_info.forEach(member => {
+            // Check for duplicates (e.g. if leader is also in members_info)
+            if (!students.some(s => s.reg_no === member.reg_no)) {
+                students.push(member);
+            }
+        });
+    }
+
+    // 3. Fallback to studentProfile (Legacy/Individual without team record and no top-level user)
+    if (students.length === 0 && studentProfile) {
         // Check multiple possible field names
         const sName = studentProfile.full_name || studentProfile.name || "Student";
         const sReg = studentProfile.register_number || studentProfile.reg_no || studentProfile.roll_no || "-";
