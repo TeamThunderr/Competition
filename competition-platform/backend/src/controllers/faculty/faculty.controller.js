@@ -204,7 +204,7 @@ const getStats = async (req, res) => {
         const totalRegistrations = registrations.length;
         const verifiedRegistrations = registrations.filter(r => r.verified).length;
 
-        // 5. Winners/Shortlisted
+        // 5. Winners/Shortlisted (Robust Logic)
         const { data: statuses, error: statusError } = await supabase
             .from('competition_status')
             .select('user_id, is_winner, is_shortlisted')
@@ -212,12 +212,32 @@ const getStats = async (req, res) => {
 
         if (statusError) throw statusError;
 
+        // Fetch Registrations (Fallback)
+        const { data: regStats, error: regStatsErr } = await supabase
+            .from('registrations')
+            .select('user_id, status, won_status')
+            .in('user_id', myStudentIds);
+
+        if (regStatsErr) throw regStatsErr;
+
         const winnersSet = new Set();
         const shortlistedSet = new Set();
 
+        // Process Competition Status
         statuses.forEach(s => {
             if (s.is_winner) winnersSet.add(s.user_id);
             if (s.is_shortlisted || s.is_winner) shortlistedSet.add(s.user_id);
+        });
+
+        // Process Registrations
+        regStats.forEach(r => {
+            if (r.status === 'Winner' || r.won_status === 'WON') {
+                winnersSet.add(r.user_id);
+                shortlistedSet.add(r.user_id); // Winners are implicitly qualified
+            }
+            if (r.status === 'Qualified' || r.status === 'SHORTLISTED') {
+                shortlistedSet.add(r.user_id);
+            }
         });
 
         // 6. Rates
@@ -297,16 +317,74 @@ const getDashboardStats = async (req, res) => {
             console.error('[Faculty] Registration stats FAILED:', err.message);
         }
 
-        // 2. Qualified Count: is_shortlisted = true
-        const { count: qualifiedCount, error: qualError } = await supabase
-            .from('competition_status')
-            .select('*', { count: 'exact', head: true })
-            .in('user_id', myStudentIds)
-            .eq('is_shortlisted', true);
+        // 2. Qualified & Winner Counts (Robust Logic)
+        let qualifiedCount = 0;
+        let winnersCount = 0;
 
-        if (qualError) throw qualError;
+        try {
+            // Fetch Competition Status
+            const { data: statusData, error: statusError } = await supabase
+                .from('competition_status')
+                .select('user_id, is_shortlisted, is_winner')
+                .in('user_id', myStudentIds);
 
+            if (statusError) throw statusError;
 
+            // Fetch Registrations (for fallback status check)
+            const { data: regStatsData, error: regStatsError } = await supabase
+                .from('registrations')
+                .select('user_id, status, won_status')
+                .in('user_id', myStudentIds);
+
+            if (regStatsError) throw regStatsError;
+
+            // Consolidated Sets
+            const qualifiedSet = new Set();
+            const winnersSet = new Set();
+
+            // Process Competition Status
+            statusData.forEach(s => {
+                if (s.is_shortlisted || s.is_winner) qualifiedSet.add(s.user_id + '_status');
+                if (s.is_winner) winnersSet.add(s.user_id + '_status');
+            });
+
+            // Process Registrations (Fallback)
+            regStatsData.forEach(r => {
+                if (r.status === 'Qualified' || r.status === 'SHORTLISTED' || r.status === 'Winner' || r.won_status === 'WON') {
+                    qualifiedSet.add(r.user_id + '_reg');
+                }
+                if (r.status === 'Winner' || r.won_status === 'WON') {
+                    winnersSet.add(r.user_id + '_reg');
+                }
+            });
+
+            // Note: We use sets of (userId + source) to avoid double counting if using simple counts, 
+            // but actually we want unique STUDENTS.
+            // Let's refine: Use Sets of UserIDs.
+
+            const uniqueQualifiedStudents = new Set();
+            const uniqueWinnerStudents = new Set();
+
+            statusData.forEach(s => {
+                if (s.is_shortlisted || s.is_winner) uniqueQualifiedStudents.add(s.user_id);
+                if (s.is_winner) uniqueWinnerStudents.add(s.user_id);
+            });
+
+            regStatsData.forEach(r => {
+                if (r.status === 'Qualified' || r.status === 'SHORTLISTED' || r.status === 'Winner' || r.won_status === 'WON') {
+                    uniqueQualifiedStudents.add(r.user_id);
+                }
+                if (r.status === 'Winner' || r.won_status === 'WON') {
+                    uniqueWinnerStudents.add(r.user_id);
+                }
+            });
+
+            qualifiedCount = uniqueQualifiedStudents.size;
+            winnersCount = uniqueWinnerStudents.size;
+
+        } catch (err) {
+            console.error('[Faculty] Dashboard Stats (Qualified/Winner) Failed:', err);
+        }
 
         // 5. Calculate batch label
         let batchLabel = 'N/A';
@@ -326,12 +404,13 @@ const getDashboardStats = async (req, res) => {
             total_students: myStudentIds.length,
             comp_registered: participationCount || 0,
             comp_qualified: qualifiedCount || 0,
+            comp_won: winnersCount || 0,
             od_requests: 0, // Explicitly zeroed out as Faculty has no OD role
             section_label: assigned_sections?.join(', ') || 'N/A',
-            batch_label: batchLabel,
-            registered_details: regData // Debug info
+            batch_label: batchLabel
         };
 
+        console.log('[Faculty] Winners Count:', winnersCount);
         console.log('[Faculty] Dashboard Stats:', stats);
         sendResponse(res, 200, stats, 'Fetched dashboard stats');
 
@@ -470,7 +549,7 @@ const getStudentDetails = async (req, res) => {
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
             .select(`
-                id, registered_at, verified, source,
+                id, registered_at, verified, source, status, won_status,
                 competitions ( id, title, platform, organizer )
             `)
             .eq('user_id', studentId);
@@ -489,7 +568,15 @@ const getStudentDetails = async (req, res) => {
             const statusEntry = statuses?.find(s => s.competition_id === reg.competitions.id);
 
             let currentStatus = 'Registered';
-            if (statusEntry?.is_winner || statusEntry?.is_shortlisted) currentStatus = 'Qualified';
+
+            // Priority 1: Winner (Check both Status table and Registration fallback)
+            if (statusEntry?.is_winner || reg.status === 'Winner' || reg.won_status === 'WON') {
+                currentStatus = 'Won';
+            }
+            // Priority 2: Qualified/Shortlisted
+            else if (statusEntry?.is_shortlisted || reg.status === 'Qualified' || reg.status === 'SHORTLISTED') {
+                currentStatus = 'Qualified';
+            }
 
             return {
                 id: reg.competitions.id,
@@ -506,7 +593,8 @@ const getStudentDetails = async (req, res) => {
         // Calculate Stats
         const stats = {
             registered: registrations.length,
-            qualified: competitionDetails.filter(c => c.status === 'Qualified').length,
+            qualified: competitionDetails.filter(c => c.status === 'Qualified' || c.status === 'Won').length, // Inclusive (Funnel View)
+            won: competitionDetails.filter(c => c.status === 'Won').length
         };
 
         // 4. Class Advisor Logic (Robust - matched with HOD controller)
@@ -711,7 +799,7 @@ const getPendingShortlistVerifications = async (req, res) => {
                 section: r.users.section
             },
             proof_url: r.shortlist_proof_url, // Map new col to generic 'proof_url' for frontend reuse
-            created_at: r.registered_at,
+            registered_at: r.registered_at, // Use registered_at for consistency with other endpoints
             type: 'SHORTLIST' // Tag for frontend
         }));
 

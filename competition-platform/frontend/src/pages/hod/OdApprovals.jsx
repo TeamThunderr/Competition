@@ -179,20 +179,13 @@ const OdApprovals = () => {
                                         </span>
                                     )}
                                 </div>
-                                <div className="text-sm text-muted flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                                    <span className="flex items-center space-x-1">
-                                        <ShieldCheck size={14} />
-                                        <span>{approval.competitions?.title || 'External Event'}</span>
-                                    </span>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-500">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-muted mt-3">
                                     <div className="flex items-center space-x-2">
-                                        <ShieldCheck size={16} className="text-gray-400" />
-                                        <span className="truncate font-medium text-gray-700">{approval.competitions?.title || 'External Event'}</span>
+                                        <ShieldCheck size={16} className="text-muted flex-shrink-0" />
+                                        <span className="truncate font-medium text-foreground">{approval.competitions?.title || 'External Event'}</span>
                                     </div>
                                     <div className="flex items-center space-x-2">
-                                        <Calendar size={16} className="text-gray-400" />
+                                        <Calendar size={16} className="text-muted flex-shrink-0" />
                                         <span>{approval.competitions?.event_date ? new Date(approval.competitions.event_date).toLocaleDateString() : 'Date N/A'}</span>
                                     </div>
                                 </div>

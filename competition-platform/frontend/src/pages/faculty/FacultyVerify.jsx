@@ -233,36 +233,17 @@ const FacultyVerify = () => {
                                             <span className="text-muted block">Submitted At</span>
                                             <span className="font-medium text-foreground">
                                                 {item.registered_at
-                                                    ? new Date(item.registered_at).toLocaleDateString()
+                                                    ? new Date(item.registered_at).toLocaleString('en-IN', {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    })
                                                     : (item.submittedAt || 'N/A')}
                                             </span>
                                         </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="mt-6 flex gap-3">
-                                        <button
-                                            onClick={() => handleAction(item.id, 'approve')}
-                                            disabled={actionLoading === item.id}
-                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
-                                        >
-                                            {actionLoading === item.id ? (
-                                                <span className="animate-pulse">Processing...</span>
-                                            ) : (
-                                                <>
-                                                    <CheckCircle size={18} />
-                                                    Accept
-                                                </>
-                                            )}
-                                        </button>
-                                        <button
-                                            onClick={() => handleAction(item.id, 'reject')}
-                                            disabled={actionLoading === item.id}
-                                            className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                                        >
-                                            <XCircle size={18} />
-                                            Reject
-                                        </button>
                                     </div>
                                 </div>
 

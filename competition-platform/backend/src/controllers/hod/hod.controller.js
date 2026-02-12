@@ -12,7 +12,8 @@ const getDepartmentStats = async (req, res) => {
         console.log(`[HodController] Fetching stats for Dept: ${hodDeptId}`);
 
         // 1. Fetch ALL Student IDs in this Dept (Pagination for >1000 students)
-        console.log('[HodController] Step 1: Fetching students (paginated)...');
+        // We need detailed info to aggregate: section, admission_year, registrations with status, od_requests
+        console.log('[HodController] Step 1: Fetching students with details (paginated)...');
         let deptStudents = [];
         let page = 0;
         let hasMore = true;
@@ -21,7 +22,21 @@ const getDepartmentStats = async (req, res) => {
         while (hasMore) {
             const { data, error } = await supabase
                 .from('users')
-                .select('id, section')
+                .select(`
+                    id, 
+                    section, 
+                    role, 
+                    admission_year, 
+                    full_name,
+                    registrations:registrations!user_id ( 
+                        id, 
+                        verified, 
+                        status, 
+                        qualification_verified, 
+                        competition_id 
+                    ),
+                    od_requests:od_requests!user_id ( status, competition_id )
+                `)
                 .eq('role', 'STUDENT')
                 .eq('department_id', hodDeptId)
                 .range(page * pageSize, (page + 1) * pageSize - 1);
@@ -40,104 +55,19 @@ const getDepartmentStats = async (req, res) => {
             }
         }
 
-        const studentCount = deptStudents.length;
-        const studentIds = deptStudents.map(u => u.id);
+        console.log(`[HodController] Fetched ${deptStudents.length} students.`);
 
-        // Calculate Unique Sections
-        const uniqueSections = [...new Set(deptStudents.map(u => u.section).filter(Boolean))].length;
-
-        // 2. Active Competitions (Standard check)
-        console.log('[HodController] Step 2: Fetching active competitions...');
+        // 2. Fetch Active Competitions Count (Global)
         const now = new Date().toISOString();
         const { count: activeCompCount, error: compError } = await supabase
             .from('competitions')
             .select('id', { count: 'exact', head: true })
             .gt('registration_deadline', now);
 
-        if (compError) {
-            console.error('[HodController] Step 2 Error:', compError);
-            throw compError;
-        }
+        if (compError) console.error('Error fetching active comps:', compError);
+        const activeCompetitions = activeCompCount || 0;
 
-        // 3. Shortlisted Students (Filter by Student IDs)
-        let shortlistedCount = 0;
-        console.log('[HodController] Step 3: Fetching shortlisted count (optimized join)...');
-        // Join with users table to filter by department_id
-        const { count: sCount, error: shortError } = await supabase
-            .from('competition_status')
-            .select('users!user_id!inner(department_id)', { count: 'exact', head: true })
-            .eq('is_shortlisted', true)
-            .eq('users.department_id', hodDeptId);
-
-        if (shortError) {
-            console.error('[HodController] Step 3 Error:', shortError);
-            throw shortError;
-        }
-        shortlistedCount = sCount || 0;
-
-        // 4. Pending OD Requests (Filter by Student IDs)
-        let odCount = 0;
-        console.log('[HodController] Step 4: Fetching pending OD requests (optimized join)...');
-        // Use user_id FK to filter by requester's department
-        const { count: oCount, error: odError } = await supabase
-            .from('od_requests')
-            .select('users!user_id!inner(department_id)', { count: 'exact', head: true })
-            .eq('status', 'PENDING')
-            .eq('users.department_id', hodDeptId);
-
-        if (odError) {
-            console.error('[HodController] Step 4 Error:', odError);
-            console.error('[HodController] Step 4 full error:', JSON.stringify(odError));
-            throw odError;
-        }
-        odCount = oCount || 0;
-
-        const stats = [
-            { label: 'TOTAL DEPT. STUDENTS', value: studentCount.toString(), subtext: `Across ${uniqueSections} Sections`, borderLeft: 'border-l-4 border-blue-500' },
-            { label: 'ACTIVE COMPETITIONS', value: (activeCompCount || 0).toString(), subtext: 'Ongoing this semester', borderLeft: '' },
-            { label: 'SHORTLISTED STUDENTS', value: shortlistedCount.toString(), subtext: 'Qualified Round 1', borderLeft: '' },
-            { label: 'PENDING OD REQUESTS', value: odCount.toString(), subtext: 'Requires Immediate Action', borderLeft: '' },
-        ];
-
-        // 6. Detailed Section Analytics (Replacing Mock Data)
-        // We need: Section Name | Total Students | Registered count | Qualified count | Pending OD count
-
-        // Fetch all students in dept with their registration/status/OD info
-        // This is a bit heavy, so we might want to optimize later, but for < 1000 students it's fine.
-        // Fetch all students in dept with their registration/status/OD info
-        console.log('[HodController] Step 6: Fetching detailed analytics (paginated)...');
-        let analyticsUsers = [];
-        let aPage = 0;
-        let aHasMore = true;
-
-        while (aHasMore) {
-            const { data, error } = await supabase
-                .from('users')
-                .select(`
-                    id, section, role, admission_year,
-                    registrations:registrations!user_id ( id, verified ),
-                    competition_status:competition_status!user_id ( is_shortlisted, is_winner ),
-                    od_requests:od_requests!user_id ( status )
-                `)
-                .eq('department_id', hodDeptId)
-                .eq('role', 'STUDENT')
-                .range(aPage * pageSize, (aPage + 1) * pageSize - 1);
-
-            if (error) {
-                console.error('[HodController] Step 6 Error:', error);
-                throw error;
-            }
-
-            if (data.length > 0) {
-                analyticsUsers = [...analyticsUsers, ...data];
-                if (data.length < pageSize) aHasMore = false;
-                aPage++;
-            } else {
-                aHasMore = false;
-            }
-        }
-
-        // Process Analytics
+        // 3. Process Data for Sections & Global Cards
         const sectionMap = {};
         const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
 
@@ -148,74 +78,54 @@ const getDepartmentStats = async (req, res) => {
             .eq('role', 'FACULTY')
             .eq('department_id', hodDeptId);
 
-        analyticsUsers.forEach(u => {
-            const sec = u.section || 'Unassigned';
+        // Optimization: Pre-process faculty assignments
+        const facultyAssignmentMap = {}; // Key: "SECTION_NAME", Value: "Faculty Name"
+        if (facultyData) {
+            facultyData.forEach(f => {
+                if (f.assigned_sections && Array.isArray(f.assigned_sections)) {
+                    f.assigned_sections.forEach(sec => {
+                        // Normalize: "CSE-A" -> "A"
+                        let normalizedSec = sec.trim();
+                        if (normalizedSec.includes('-')) normalizedSec = normalizedSec.split('-').pop();
+                        facultyAssignmentMap[normalizedSec.toUpperCase()] = f.full_name;
+                    });
+                }
+            });
+        }
+
+        deptStudents.forEach(u => {
+            const rawSection = u.section || 'Unassigned';
+            const sec = rawSection.trim().toUpperCase();
 
             // Determine Academic Year
             const diff = u.admission_year ? currentYear - u.admission_year : -1;
-            const academicYearLabel = diff === 1 ? '2nd Year' :
-                diff === 2 ? '3rd Year' :
-                    diff === 3 ? '4th Year' : 'Other';
 
-            // Composite Key to separate A (2nd Year) from A (3rd Year)
-            const mapKey = `${sec}-${academicYearLabel}`;
+            let academicYearLabel = 'Other';
+            if (diff === 0) academicYearLabel = '1st Year';
+            else if (diff === 1) academicYearLabel = '2nd Year';
+            else if (diff === 2) academicYearLabel = '3rd Year';
+            else if (diff === 3) academicYearLabel = '4th Year';
+
+            // Composite Key mainly needed if Section names are reused or we want detailed breakdown
+            const mapKey = `${sec}::${academicYearLabel}`;
 
             if (!sectionMap[mapKey]) {
-                const batch = u.admission_year ? `${u.admission_year}-${u.admission_year + 4}` : 'N/A';
+                // Find Advisor
+                let advisor = facultyAssignmentMap[sec] || 'Not Assigned';
 
-                // Find Faculty Advisor
-                let facultyNames = [];
-                if (facultyData) {
-                    const advisors = facultyData.filter(f => {
-                        const sections = f.assigned_sections || [];
-                        return sections.some(s => {
-                            if (!s) return false;
-
-                            // Normalize strings
-                            const cleanAssigned = s.toString().trim().toUpperCase();
-                            const cleanTarget = sec.toString().trim().toUpperCase(); // 'A', 'B', 'CSE-A'
-
-                            // 1. Direct Exact Match
-                            if (cleanAssigned === cleanTarget) return true;
-
-                            // 2. Suffix Match (Most common: 'CSE-A' matches 'A')
-                            // Check for separators: '-', ' ', '_'
-                            const separators = ['-', ' ', '_', ':'];
-                            for (const sep of separators) {
-                                if (cleanAssigned.endsWith(`${sep}${cleanTarget}`)) return true;
-                                if (cleanTarget.endsWith(`${sep}${cleanAssigned}`)) return true;
-                            }
-
-                            // 3. Last Word Match (e.g. "Year 2 Section A" matches "A")
-                            const assignedParts = cleanAssigned.split(/[\s-_]+/);
-                            const targetParts = cleanTarget.split(/[\s-_]+/);
-                            const lastAssigned = assignedParts[assignedParts.length - 1];
-                            const lastTarget = targetParts[targetParts.length - 1];
-
-                            if (lastAssigned === cleanTarget) return true;
-                            if (lastTarget === cleanAssigned) return true;
-                            if (lastAssigned === lastTarget) return true;
-
-                            return false;
-                        });
-                    });
-
-                    if (advisors.length > 0) {
-                        facultyNames = advisors.map(a => a.full_name);
-                    }
-                }
-
-                // Format Advisor String
-                let advisorString = 'Not Assigned';
-                if (facultyNames.length > 0) {
-                    advisorString = facultyNames.join(', ');
+                // Fallback: search raw if not found
+                if (advisor === 'Not Assigned' && facultyData) {
+                    const foundF = facultyData.find(f =>
+                        f.assigned_sections?.some(s => s.trim().toUpperCase() === sec)
+                    );
+                    if (foundF) advisor = foundF.full_name;
                 }
 
                 sectionMap[mapKey] = {
-                    section: sec,
-                    batch: batch,
+                    section: u.section, // keep original casing for display
+                    batch: u.admission_year ? `${u.admission_year}-${u.admission_year + 4}` : 'N/A',
                     academicYear: academicYearLabel,
-                    classAdvisor: advisorString,
+                    classAdvisor: advisor,
                     totalStudents: 0,
                     registered: 0,
                     qualified: 0,
@@ -226,29 +136,60 @@ const getDepartmentStats = async (req, res) => {
             const s = sectionMap[mapKey];
             s.totalStudents++;
 
-            // Registered: Has at least one registration
-            if (u.registrations && u.registrations.length > 0) s.registered++;
+            // Registered: User has at least ONE verified registration
+            if (u.registrations && u.registrations.some(r => r.verified === true)) {
+                s.registered++;
+            }
 
-            // Qualified: Has at least one shortlisted status
-            if (u.competition_status && u.competition_status.some(cs => cs.is_shortlisted || cs.is_winner)) s.qualified++;
+            // Qualified: User has at least ONE registration with status='Qualified'/'SHORTLISTED' AND qualification_verified=true
+            // This matches the Student Profile logic
+            if (u.registrations && u.registrations.some(r =>
+                (r.status === 'Qualified' || r.status === 'SHORTLISTED') && r.qualification_verified === true
+            )) {
+                s.qualified++;
+            }
 
-            // Pending OD: Has pending requests
-            if (u.od_requests && u.od_requests.some(od => od.status === 'PENDING')) s.pending++;
+            // Pending OD: User has at least ONE pending OD request
+            if (u.od_requests && u.od_requests.some(od => od.status === 'PENDING')) {
+                s.pending++;
+            }
         });
 
+        // Convert Map to Array
         const sectionAnalytics = Object.values(sectionMap).sort((a, b) => {
-            // Sort by Year (desc) then Section (asc)
             if (a.academicYear !== b.academicYear) return a.academicYear.localeCompare(b.academicYear);
             return a.section.localeCompare(b.section, undefined, { numeric: true });
         });
 
+        // Calculate Global Stats
+        const totalStudents = deptStudents.length;
+        const totalUniqueSections = Object.keys(sectionMap).length;
+
+        // Global Qualified count using the same logic as Student Profile
+        const totalShortlisted = deptStudents.filter(u =>
+            u.registrations?.some(r =>
+                (r.status === 'Qualified' || r.status === 'SHORTLISTED') && r.qualification_verified === true
+            )
+        ).length;
+
+        const totalPendingOD = deptStudents.filter(u =>
+            u.od_requests?.some(od => od.status === 'PENDING')
+        ).length;
+
+        const globalStats = [
+            { label: 'TOTAL DEPT. STUDENTS', value: totalStudents.toString(), subtext: `Across ${totalUniqueSections} Sections`, borderLeft: 'border-l-4 border-blue-500' },
+            { label: 'ACTIVE COMPETITIONS', value: activeCompetitions.toString(), subtext: 'Ongoing this semester', borderLeft: '' },
+            { label: 'SHORTLISTED STUDENTS', value: totalShortlisted.toString(), subtext: 'Qualified Round 1', borderLeft: '' },
+            { label: 'PENDING OD REQUESTS', value: totalPendingOD.toString(), subtext: 'Requires Immediate Action', borderLeft: '' },
+        ];
+
         sendResponse(res, 200, {
-            cards: stats,
+            cards: globalStats,
             sections: sectionAnalytics
         }, 'Fetched department stats and analytics');
+
     } catch (err) {
         console.error('[HodController] Full Error Object:', JSON.stringify(err, null, 2));
-        // Send the actual error message to help debug (though in prod we hide it)
         sendResponse(res, 500, null, `Internal Server Error: ${err.message || 'Unknown error'}`);
     }
 };
@@ -663,7 +604,7 @@ const getStudentDetails = async (req, res) => {
         // 1b. Fetch Student
         const { data: student, error: studentError } = await supabase
             .from('users')
-            .select('id, full_name, registration_no, email, phone_number, department_id, section, cgpa, departments(name)')
+            .select('id, full_name, registration_no, email, phone_number, department_id, section, cgpa, admission_year, departments(name)')
             .eq('id', studentId)
             .single();
 
@@ -677,29 +618,28 @@ const getStudentDetails = async (req, res) => {
         }
 
         // 4. Fetch Registrations & Competitions
+        // Matching logic from profile.controller.js
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
             .select(`
                 id,
                 registered_at,
                 verified,
+                qualification_verified,
+                status,
+                shortlist_proof_url,
+                competition_id,
                 competitions (
                     id,
                     title,
-                    platform
+                    platform,
+                    organizer,
+                    event_date
                 )
             `)
             .eq('user_id', studentId);
 
         if (regError) throw regError;
-
-        // 5. Fetch Status (Qualified/Won)
-        const { data: statuses, error: statusError } = await supabase
-            .from('competition_status')
-            .select('*')
-            .eq('user_id', studentId);
-
-        if (statusError) throw statusError;
 
         // 6. Fetch Class Advisor
         let classAdvisorName = 'Not Assigned';
@@ -722,23 +662,43 @@ const getStudentDetails = async (req, res) => {
             if (advisor) classAdvisorName = advisor.full_name;
         }
 
-        // Aggregate Data
-        const competitionDetails = registrations.map(reg => {
-            const statusEntry = statuses?.find(s => s.competition_id === reg.competitions.id);
-            let status = 'Registered';
-            const isVerified = reg.verified;
+        // Calculate Stats (Matching Profile Controller Logic)
+        const verifiedRegistrations = registrations.filter(r => r.verified === true);
+        const totalCompetitions = verifiedRegistrations.length; // Registered count based on verified registrations? Or all? Profile says "verifiedRegistrations.length".
 
-            if (statusEntry?.is_shortlisted) status = 'Qualified';
-            if (statusEntry?.is_winner) status = 'Won';
+        // Profile Controller Logic for Wins:
+        const winnerRegistrations = registrations.filter(r => r.status === 'Winner');
+        const wins = winnerRegistrations.length;
+
+        // Profile Controller Logic for Qualified:
+        const qualifiedRegistrations = registrations.filter(r =>
+            (r.status === 'Qualified' || r.status === 'SHORTLISTED') &&
+            r.qualification_verified === true
+        );
+        const qualified = qualifiedRegistrations.length;
+
+        // Simplify Participation Points if needed, or just send basic stats
+        // const participationPoints = (totalCompetitions * 10) + (wins * 50);
+
+        // Aggregate Data for Table
+        const competitionDetails = registrations.map(reg => {
+            let status = 'Registered';
+            // Use same status logic as stats if possible, or use the raw status
+            if (reg.status === 'Winner') status = 'Won';
+            else if ((reg.status === 'Qualified' || reg.status === 'SHORTLISTED') && reg.qualification_verified) status = 'Qualified';
+            else if (reg.verified) status = 'Registered'; // Baseline
 
             return {
                 id: reg.competitions.id,
                 competitionName: reg.competitions.title,
                 platform: reg.competitions.platform || 'N/A',
-                regType: 'Individual',
+                organizer: reg.competitions.organizer || 'N/A',
+                eventDate: reg.competitions.event_date || 'N/A',
+                regType: 'Individual', // TODO: Add type to db if needed
                 status: status,
-                verificationStatus: isVerified ? 'Verified' : 'Pending',
-                registeredAt: reg.registered_at
+                verificationStatus: reg.verified ? 'Verified' : 'Pending',
+                registeredAt: reg.registered_at,
+                proofUrl: reg.shortlist_proof_url
             };
         });
 
@@ -764,9 +724,9 @@ const getStudentDetails = async (req, res) => {
         }
 
         const stats = {
-            registered: registrations.length,
-            qualified: statuses?.filter(s => s.is_shortlisted).length || 0,
-            won: statuses?.filter(s => s.is_winner).length || 0,
+            registered: totalCompetitions, // Using verified count
+            qualified: qualified,
+            won: wins,
         };
 
         const responseData = {
