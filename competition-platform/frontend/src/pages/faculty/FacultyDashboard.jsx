@@ -13,6 +13,7 @@ const FacultyDashboard = () => {
         total_students: 0,
         comp_registered: 0,
         comp_qualified: 0,
+        comp_won: 0, // Initialize comp_won
         od_requests: 0,
         section_label: 'Loading...',
         batch_label: '...'
@@ -33,7 +34,8 @@ const FacultyDashboard = () => {
                     api.get('/api/faculty/competitions')
                 ]);
 
-                setStats(statsData);
+                console.log('[FacultyDashboard] Stats Data:', statsData); // Debug log
+                setStats(prev => ({ ...prev, ...statsData }));
                 // Handle standardized response wrapper
                 const comps = Array.isArray(competitionsData) ? competitionsData : (competitionsData.data || []);
                 setCompetitions(comps);

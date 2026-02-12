@@ -2,7 +2,9 @@
 // Purpose: Entry point to start the server
 // Written for beginner developers
 
+// Server Entry Point - Force Restart Check
 const { PORT } = require('./config/env');
+const express = require('express');
 const app = require('./app');
 
 app.listen(PORT, () => {
