@@ -1,0 +1,20 @@
+{
+  "competition": {
+    "id": "e2e6ad00-7c1e-488c-97d9-1f7eefdaa7b3",
+    "stats": {
+      "total": 2,
+      "shortlisted": 0,
+      "winners": 1
+    },
+    "verified": true
+  },
+  "department": {
+    "id": "2498109b-4b0d-4fe1-ad78-91ebd510783f",
+    "stats": {
+      "name": "CSE",
+      "winners": 2,
+      "shortlisted": 2
+    },
+    "verified": true
+  }
+}

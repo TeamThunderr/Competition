@@ -320,8 +320,8 @@ const GlobalRepository = () => {
                                                         ? comp.departments.join(', ')
                                                         : (comp.departments || 'All')}
                                                 </td>
-                                                <td className="px-4 py-4 text-center text-sm text-muted">-</td>
-                                                <td className="px-4 py-4 text-center text-sm text-muted">-</td>
+                                                <td className="px-4 py-4 text-center text-sm text-muted">{comp.stats?.registered || 0}</td>
+                                                <td className="px-4 py-4 text-center text-sm text-muted">{comp.stats?.qualified || 0}</td>
                                             </tr>
                                         ))
                                     ) : (
