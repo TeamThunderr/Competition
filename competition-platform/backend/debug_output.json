@@ -1,0 +1,206 @@
+{
+  "registrations": [
+    {
+      "id": "dc403db6-331b-4f2f-abce-84f30b2f70e7",
+      "competition_id": "1d360f10-a243-4bd5-993f-22dbd52dd86b",
+      "competition_title": "jbu",
+      "status": "Registered",
+      "verified": true,
+      "qualification_verified": false
+    },
+    {
+      "id": "fbe12aba-abad-42d4-979c-b7f2ceafd339",
+      "competition_id": "8a07ff7a-92dd-418e-82c0-cb7e8bf6caf6",
+      "competition_title": "BugHunt - Cybersecurity Event",
+      "status": "Winner",
+      "verified": true,
+      "qualification_verified": true
+    },
+    {
+      "id": "0dca931b-42d1-47c2-96af-230b17763107",
+      "competition_id": "85c25acf-48b7-4e6a-854d-8229845f6b4d",
+      "competition_title": "Hack",
+      "status": "Qualified",
+      "verified": true,
+      "qualification_verified": true
+    },
+    {
+      "id": "1891c58a-dd69-44eb-a02e-0f69d272b6a5",
+      "competition_id": "27690e1a-22d7-48b4-837d-90c6302ff5ee",
+      "competition_title": "Hackbells 3.O",
+      "status": "Qualified",
+      "verified": true,
+      "qualification_verified": true
+    },
+    {
+      "id": "397286cf-2d60-4eb2-8e9d-f4a55a9026a5",
+      "competition_id": "d49ee7ce-45fe-4b97-8f38-bbd42f3ed34a",
+      "competition_title": "DigitalOcean Gradient™ AI Hackathon",
+      "status": "Qualified",
+      "verified": true,
+      "qualification_verified": false
+    },
+    {
+      "id": "ec86855d-3a6d-45cb-b417-d59b7b0776d2",
+      "competition_id": "2a81416e-3e1d-4bc1-89f2-6af8cd0db77c",
+      "competition_title": "COMPTETION",
+      "status": "Qualified",
+      "verified": true,
+      "qualification_verified": true
+    },
+    {
+      "id": "bed26d7b-0b36-476e-abc8-56d7124ad4d3",
+      "competition_id": "adc04de8-f86b-412a-8356-1097d7e99cb1",
+      "competition_title": "TEST",
+      "status": "Qualified",
+      "verified": true,
+      "qualification_verified": false
+    },
+    {
+      "id": "d090f0ee-b3d5-4af3-b136-63aeea49e54a",
+      "competition_id": "f799a7e3-ec28-46f4-b8e0-4111f79f2426",
+      "competition_title": "TechNova 2026",
+      "status": "Qualified",
+      "verified": true,
+      "qualification_verified": true
+    },
+    {
+      "id": "70a78e80-334a-479b-a84a-62dfcffa77d8",
+      "competition_id": "3061b3ea-0d1a-4ae7-9a31-c0ca6a3263fc",
+      "competition_title": "Gamejam",
+      "status": "Registered",
+      "verified": true,
+      "qualification_verified": false
+    },
+    {
+      "id": "b3a03752-31ce-4b08-94f6-5fdf5628e3c3",
+      "competition_id": "e2e6ad00-7c1e-488c-97d9-1f7eefdaa7b3",
+      "competition_title": "The Last Clue",
+      "status": "Winner",
+      "verified": true,
+      "qualification_verified": true
+    },
+    {
+      "id": "8144865b-6753-47d1-b1b1-80b910e40391",
+      "competition_id": "dd7bd9af-7a24-497c-9bde-b0cf44d3988d",
+      "competition_title": "Resonance",
+      "status": "Qualified",
+      "verified": true,
+      "qualification_verified": true
+    },
+    {
+      "id": "8c8ce032-4f43-4379-950c-677cac9ae0fb",
+      "competition_id": "0da38165-84b9-4275-98b1-1826c0f1d76b",
+      "competition_title": "Socio Bee 12.0",
+      "status": "Qualified",
+      "verified": true,
+      "qualification_verified": true
+    },
+    {
+      "id": "320ba2ad-bbb5-4573-97f7-95f437de2b37",
+      "competition_id": "ee8a45d3-df85-4a86-b0c7-f7bd2a7ffeb9",
+      "competition_title": "AMUHACKS 5.0",
+      "status": "Qualified",
+      "verified": true,
+      "qualification_verified": true
+    },
+    {
+      "id": "68988d37-8b0f-4f34-909c-3b32c49ef2b6",
+      "competition_id": "8d9ac73c-c03f-4743-b2ce-b44c5e2a749b",
+      "competition_title": "Test",
+      "status": "REGISTERED",
+      "verified": true,
+      "qualification_verified": false
+    },
+    {
+      "id": "3335419d-0ec1-4ff7-82b8-c88731245589",
+      "competition_id": "c3f888c4-7a51-4f87-b416-5da199efbb5b",
+      "competition_title": "CASE 1",
+      "status": "Qualified",
+      "verified": true,
+      "qualification_verified": true
+    },
+    {
+      "id": "59d2fabc-f15d-414e-8ab5-2c749a54194c",
+      "competition_id": "8da6a060-a677-4346-ba97-37786310494a",
+      "competition_title": "Sky’s the Limit - Cloud9 x JetBrains Hackathon",
+      "status": "Qualified",
+      "verified": true,
+      "qualification_verified": true
+    }
+  ],
+  "competition_status": [
+    {
+      "competition_id": "27690e1a-22d7-48b4-837d-90c6302ff5ee",
+      "competition_title": "Hackbells 3.O",
+      "is_shortlisted": true,
+      "is_winner": false
+    },
+    {
+      "competition_id": "2a81416e-3e1d-4bc1-89f2-6af8cd0db77c",
+      "competition_title": "COMPTETION",
+      "is_shortlisted": true,
+      "is_winner": false
+    },
+    {
+      "competition_id": "dd7bd9af-7a24-497c-9bde-b0cf44d3988d",
+      "competition_title": "Resonance",
+      "is_shortlisted": true,
+      "is_winner": false
+    },
+    {
+      "competition_id": "0da38165-84b9-4275-98b1-1826c0f1d76b",
+      "competition_title": "Socio Bee 12.0",
+      "is_shortlisted": true,
+      "is_winner": false
+    },
+    {
+      "competition_id": "ee8a45d3-df85-4a86-b0c7-f7bd2a7ffeb9",
+      "competition_title": "AMUHACKS 5.0",
+      "is_shortlisted": true,
+      "is_winner": false
+    }
+  ],
+  "comparison": [
+    {
+      "comp": "Hackbells 3.O",
+      "regStatus": "Qualified",
+      "csWinner": false,
+      "csShortlisted": true,
+      "calculated": "Qualified",
+      "match": true
+    },
+    {
+      "comp": "COMPTETION",
+      "regStatus": "Qualified",
+      "csWinner": false,
+      "csShortlisted": true,
+      "calculated": "Qualified",
+      "match": true
+    },
+    {
+      "comp": "Resonance",
+      "regStatus": "Qualified",
+      "csWinner": false,
+      "csShortlisted": true,
+      "calculated": "Qualified",
+      "match": true
+    },
+    {
+      "comp": "Socio Bee 12.0",
+      "regStatus": "Qualified",
+      "csWinner": false,
+      "csShortlisted": true,
+      "calculated": "Qualified",
+      "match": true
+    },
+    {
+      "comp": "AMUHACKS 5.0",
+      "regStatus": "Qualified",
+      "csWinner": false,
+      "csShortlisted": true,
+      "calculated": "Qualified",
+      "match": true
+    }
+  ]
+}

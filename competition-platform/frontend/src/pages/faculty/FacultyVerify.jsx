@@ -180,17 +180,17 @@ const FacultyVerify = () => {
                         {currentList.map((item) => (
                             <div key={item.id} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden flex flex-col md:flex-row">
                                 {/* Proof Image Preview (Click to open full) */}
-                                <div className="w-full md:w-64 h-48 md:h-auto bg-muted/10 md:border-r border-border relative group">
+                                <div className="w-full md:w-64 h-48 md:h-auto md:min-h-[12rem] bg-muted/10 md:border-r border-border relative group flex-shrink-0">
                                     <img
                                         src={item.winning_proof_url || item.shortlist_proof_url || item.proof_url || item.proofUrl} // Handle various backend naming conventions
                                         alt="Proof"
-                                        className="w-full h-full object-cover"
+                                        className="absolute inset-0 w-full h-full object-cover"
                                     />
                                     <a
                                         href={item.winning_proof_url || item.shortlist_proof_url || item.proof_url || item.proofUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                     >
                                         <div className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2">
                                             <ExternalLink size={16} />

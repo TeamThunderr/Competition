@@ -46,12 +46,7 @@ const getDepartmentStats = async () => {
     // Filter only students for accurate strength calculation
     const studentUsers = allUsers.filter(u => u.role === 'STUDENT');
 
-    // 4. Fetch Competition Status (for Winners/Shortlisted)
-    const { data: statusData, error: statusError } = await supabase
-        .from('competition_status')
-        .select('user_id, is_winner, is_shortlisted');
-
-    if (statusError) throw new Error(statusError.message);
+    // 4. Competition Status fetch removed - using registrations as source of truth
 
     // --- AGGREGATION ---
 
@@ -124,6 +119,16 @@ const getDepartmentStats = async () => {
         s.unique_participants.add(user.id);
         s.verified_registrations++; // Kept for consistency, though now same as total
 
+        // Count Winners
+        if (reg.status === 'Winner') {
+            s.unique_winners.add(user.id);
+        }
+
+        // Count Qualified
+        if ((reg.status === 'Qualified' || reg.status === 'SHORTLISTED') && reg.qualification_verified) {
+            s.unique_shortlisted.add(user.id);
+        }
+
         // Section breakdown
         const section = user.section || 'N/A';
         if (!s.sections[section]) {
@@ -134,19 +139,7 @@ const getDepartmentStats = async () => {
 
     });
 
-    // Process Winners/Shortlisted
-    statusData.forEach(st => {
-        const user = userMap[st.user_id];
-        if (!user) return;
-        const deptId = user.department_id || 'unknown';
-        if (stats[deptId]) {
-            // Count Unique Winners
-            if (st.is_winner) stats[deptId].unique_winners.add(st.user_id);
-
-            // Count Unique Shortlisted (Explicit Shortlist OR Winner)
-            if (st.is_shortlisted || st.is_winner) stats[deptId].unique_shortlisted.add(st.user_id);
-        }
-    });
+    // Process Winners/Shortlisted block removed - handled in registrations loop
 
     // Final Calculations & Format
     const result = Object.values(stats).map(dept => {
@@ -197,22 +190,12 @@ const getCompetitionStats = async (competitionId) => {
     }
     console.log(`[StatsService] Found ${registrations.length} registrations`);
 
-    // 2. Fetch Status (Shortlisted/Winners)
-    const { data: statuses, error: statusError } = await supabase
-        .from('competition_status')
-        .select('*')
-        .eq('competition_id', competitionId);
-
-    if (statusError) {
-        console.error('[StatsService] Error fetching statuses:', statusError);
-        throw statusError;
-    }
-    console.log(`[StatsService] Found ${statuses.length} status entries`);
+    // 2. Fetch Status (Shortlisted/Winners) - Removed
+    // const { data: statuses ... }
 
     // 3. User IDs involved
     const regUserIds = registrations.map(r => r.user_id);
-    const statusUserIds = statuses.map(s => s.user_id);
-    const uniqueUserIds = [...new Set([...regUserIds, ...statusUserIds])];
+    const uniqueUserIds = [...new Set(regUserIds)];
 
     console.log(`[StatsService] Unique User IDs: ${uniqueUserIds.length}`);
 
@@ -266,26 +249,21 @@ const getCompetitionStats = async (competitionId) => {
             const s = getDeptStat(deptId);
             s.registrations++;
             overall.total++;
-        }
-    });
 
-    // Count Status (Shortlisted/Winners)
-    statuses.forEach(st => {
-        const user = userMap[st.user_id];
-        if (user) {
-            const deptId = user.department_id || 'unknown';
-            const s = getDeptStat(deptId);
-
-            if (st.is_shortlisted) {
-                s.shortlisted++;
-                overall.shortlisted++;
+            if (reg.status === 'Qualified' || reg.status === 'SHORTLISTED') {
+                if (reg.qualification_verified) {
+                    s.shortlisted++;
+                    overall.shortlisted++;
+                }
             }
-            if (st.is_winner) {
+            if (reg.status === 'Winner') {
                 s.winners++;
                 overall.winners++;
             }
         }
     });
+
+    // Count Status (Shortlisted/Winners) logic removed - integrated above
 
     // 6. Detailed Participants List
     const participants = registrations.map(reg => {
@@ -307,11 +285,10 @@ const getCompetitionStats = async (competitionId) => {
             }
         }
 
-        // Find status if exists
-        const statusEntry = statuses.find(s => s.user_id === user.id);
+        // Find status from registration
         let statusLabel = 'Registered';
-        if (statusEntry?.is_winner) statusLabel = 'Winner';
-        else if (statusEntry?.is_shortlisted) statusLabel = 'Shortlisted';
+        if (reg.status === 'Winner') statusLabel = 'Winner';
+        else if ((reg.status === 'Qualified' || reg.status === 'SHORTLISTED') && reg.qualification_verified) statusLabel = 'Shortlisted';
 
         return {
             id: user.id,
