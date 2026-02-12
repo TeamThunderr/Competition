@@ -30,7 +30,7 @@ const getProfile = async (req, res) => {
         // Fetch Competition Stats (Registrations)
         const { data: registrations, error: regError } = await supabase
             .from('registrations')
-            .select('id, verified, shortlist_proof_url, qualification_verified, competition_id, status, competitions(title)')
+            .select('id, verified, shortlist_proof_url, qualification_verified, competition_id, status, won_status, winning_verified, competitions(title)')
             .eq('user_id', userId);
 
         if (regError) throw regError;
@@ -40,19 +40,42 @@ const getProfile = async (req, res) => {
         const verifiedRegistrations = registrations.filter(r => r.verified === true);
         const totalCompetitions = verifiedRegistrations.length;
 
-        // Wins usually imply they are verified, but we check anyway
-        const winnerRegistrations = registrations.filter(r => r.status === 'Winner');
+        // Wins: Must be marked as WON and Verified by Faculty
+        const winnerRegistrations = registrations.filter(r =>
+            r.won_status === 'WON' && r.winning_verified === true
+        );
         const wins = winnerRegistrations.length;
 
-        // Qualification only counts if the specific qualification/shortlist proof is verified
-        // We match CompetitionCard logic for what counts as "Qualified" in terms of verification
+        // Qualification: Must be Verified
+        // We include Winners in Qualified count or keep them separate? 
+        // "Competitions Qualified" usually implies you passed the shortlist stage. 
+        // Logic: verification of qualification OR winning verification (implies qualification)
         const qualifiedRegistrations = registrations.filter(r =>
-            (r.status === 'Qualified' || r.status === 'SHORTLISTED') &&
-            r.qualification_verified === true
+            (r.qualification_verified === true || r.winning_verified === true) &&
+            // Optional: Exclude if they are winners and you only want "Qualified but not won" in the list
+            // For now, listing all qualified competitions including those they won is safer.
+            // But to match dashboard "Qualified" vs "Winner" badges, we might want to distinct.
+            // Let's list ALL qualified for the "Qualified" stats, but maybe distinct the list? 
+            // Implementation Plan said: "Qualified: qualification_verified === true AND (won_status !== 'WON' OR winning_verified !== true)"
+            // Let's follow the plan for the LIST, but for STATS count? 
+            // Stats usually overlap. If you won, you also qualified. 
+            // Let's sticking to: 
+            // Stats Qualified: Count of registrations where qualification_verified is true OR winning_verified is true.
+            // List Qualified: Only those NOT in the Winner list to avoid duplicates.
+            true
         );
+
+        // List for UI - Distinct from Winners
+        const qualifiedListRegistrations = registrations.filter(r =>
+            r.qualification_verified === true &&
+            !(r.won_status === 'WON' && r.winning_verified === true)
+        );
+
         const qualified = qualifiedRegistrations.length;
 
         // Simple participation points logic: 10 pts per verified reg, 50 pts per win
+        // Maybe extra 20 for qualification?
+        // Let's stick to Plan: 10 per participation, 50 per win.
         const participationPoints = (totalCompetitions * 10) + (wins * 50);
 
         // 4. Calculate Batch (Heuristic)
@@ -96,7 +119,7 @@ const getProfile = async (req, res) => {
                 qualified: qualified
             },
             competitionsWon: winnerRegistrations.map(r => r.competitions?.title || 'Unknown'),
-            competitionsQualified: qualifiedRegistrations.map(r => r.competitions?.title || 'Unknown')
+            competitionsQualified: qualifiedListRegistrations.map(r => r.competitions?.title || 'Unknown')
         };
 
         sendResponse(res, 200, profileData, 'Fetched profile successfully');

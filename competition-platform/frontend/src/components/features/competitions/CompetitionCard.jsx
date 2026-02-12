@@ -50,7 +50,7 @@ const CompetitionCard = (props) => {
         if (!my_registration.verified) {
             return (
                 <div className="flex-1 bg-yellow-50 border border-yellow-200 text-yellow-700 py-2 px-4 rounded-lg text-sm font-medium text-center">
-                    Verification Pending
+                    Registration Verification Pending
                 </div>
             );
         }
@@ -129,7 +129,7 @@ const CompetitionCard = (props) => {
                 if (my_registration.status === 'Qualified' && !my_registration.qualification_verified) {
                     return (
                         <div className="flex-1 bg-yellow-50 border border-yellow-200 text-yellow-700 py-2 px-4 rounded-lg text-sm font-medium text-center">
-                            Verification Pending
+                            Shortlist Verification Pending
                         </div>
                     );
                 }

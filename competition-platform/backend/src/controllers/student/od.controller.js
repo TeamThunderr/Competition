@@ -16,7 +16,7 @@ const requestOD = async (req, res) => {
             team_name,
             leader_name,
             section,
-            team_members
+            members_info
             // proof_urls removed
         } = req.body;
 
@@ -77,13 +77,47 @@ const requestOD = async (req, res) => {
                 team_name: newTeamName,
                 verification_status: 'OD_SUBMITTED', // CRITICAL: Exclude from Faculty View
                 proof_url: mainProofUrl, // From registrations table
-                members_info: team_members || []
+                members_info: members_info || []
             }])
             .select()
             .single();
 
         if (teamError) throw teamError;
         team_id = newTeam.id; // Assign the new team ID
+
+        // [FIX] Add Team Members to 'team_members' table so they can view the OD
+        if (members_info && members_info.length > 0) {
+            const regNos = members_info.map(m => m.reg_no).filter(r => r); // Extract valid reg_nos
+
+            if (regNos.length > 0) {
+                // 1. Find User IDs for these Reg Nos
+                const { data: memberUsers, error: userError } = await supabase
+                    .from('users')
+                    .select('id, registration_no')
+                    .in('registration_no', regNos);
+
+                if (!userError && memberUsers && memberUsers.length > 0) {
+                    // 2. Prepare Insert Payload
+                    const teamMembersPayload = memberUsers.map(u => ({
+                        team_id: team_id,
+                        user_id: u.id
+                        // invite_status & role removed as they don't exist in schema
+                    }));
+
+                    // 3. Insert into team_members
+                    const { error: memberInsertError } = await supabase
+                        .from('team_members')
+                        .insert(teamMembersPayload);
+
+                    if (memberInsertError) {
+                        console.error('Failed to add members to OD Shadow Team:', memberInsertError);
+                        // We continue, as the OD itself is created, but log the error.
+                    } else {
+                        console.log(`[OD] Added ${teamMembersPayload.length} members to shadow team ${team_id}`);
+                    }
+                }
+            }
+        }
 
         // Verify if user already requested OD (Move check up slightly to fail fast?)
         const { data: existingOD } = await supabase
@@ -265,15 +299,37 @@ const getMyODRequests = async (req, res) => {
         const student_id = req.userId;
         console.log(`[OD] Fetching requests for student: ${student_id}`);
 
-        const { data, error } = await supabase
+        // 1. Get teams I belong to
+        const { data: myTeams } = await supabase
+            .from('team_members')
+            .select('team_id')
+            .eq('user_id', student_id);
+        // .eq('invite_status', 'ACCEPTED'); // Removed as column doesn't exist
+
+        const teamIds = myTeams?.map(t => t.team_id) || [];
+
+        // 2. Fetch OD Requests (My Own OR My Team's)
+        let query = supabase
             .from('od_requests')
             .select(`
                 *,
                 competitions (title, event_date),
-                teams (team_name, members_info)
+                requester:users!od_requests_user_id_fkey (full_name, registration_no),
+                teams (team_name, members_info, users!teams_leader_id_fkey(full_name, registration_no))
             `)
-            .eq('user_id', student_id)
             .order('created_at', { ascending: false });
+
+        if (teamIds.length > 0) {
+            // Valid POSTGREST syntax for IN with UUIDs: team_id.in.(uuid1,uuid2)
+            // Note: No quotes needed around filtering unless string contains special chars, but UUIDs are safe.
+            // However, Supabase JS .or() expects a specific format.
+            const teamListStr = teamIds.join(',');
+            query = query.or(`user_id.eq.${student_id},team_id.in.(${teamListStr})`);
+        } else {
+            query = query.eq('user_id', student_id);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
             console.error('[OD] Fetch Error:', error);
