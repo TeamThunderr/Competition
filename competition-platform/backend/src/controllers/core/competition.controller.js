@@ -14,7 +14,7 @@ const getAllCompetitions = async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('competitions')
-            .select('*, registrations(count)')
+            .select('*, registrations(status, verified, qualification_verified)')
             .order('registration_deadline', { ascending: true });
 
         if (error) {
@@ -22,13 +22,26 @@ const getAllCompetitions = async (req, res) => {
             return sendError(res, 500, error.message);
         }
 
-        // Use registrations count only (participation table was dropped)
+        // Calculate stats for each competition
         const enrichedData = data.map(comp => {
-            const totalCount = comp.registrations && comp.registrations[0] ? comp.registrations[0].count : 0;
+            const regs = comp.registrations || [];
+
+            const registeredCount = regs.filter(r => r.verified).length;
+            const qualifiedCount = regs.filter(r =>
+                (r.status === 'Qualified' || r.status === 'SHORTLISTED') && r.qualification_verified
+            ).length;
+
+            // Remove large registration array from response to keep payload light
+            // But keep count for backward compatibility if needed (though we use stats object now)
+            const { registrations, ...compData } = comp;
 
             return {
-                ...comp,
-                registrations: [{ count: totalCount }]
+                ...compData,
+                registrations: [{ count: registeredCount }], // Keep legacy format just in case
+                stats: {
+                    registered: registeredCount,
+                    qualified: qualifiedCount
+                }
             };
         });
 

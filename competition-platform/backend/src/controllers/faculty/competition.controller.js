@@ -170,8 +170,27 @@ const getCompetitionStudents = async (req, res) => {
             registered: myStudents
                 .filter(s => {
                     const isReg = regMap.has(s.id);
-                    const isShort = statusMap.get(s.id)?.is_shortlisted;
-                    return isReg && !isShort;
+                    const r = regMap.get(s.id);
+                    const st = statusMap.get(s.id);
+
+                    // Check for Winner Status (Source 1: competition_status, Source 2: registrations.status)
+                    const isWinner = st?.is_winner || r?.status === 'Winner' || r?.won_status === 'WON';
+
+                    // Check for Shortlisted/Qualified Status
+                    const isShort = st?.is_shortlisted || r?.status === 'Qualified' || r?.status === 'SHORTLISTED';
+
+                    // DEBUG: Log for Balaji V
+                    if (s.registration_no === '24CS0002') {
+                        console.log(`[DEBUG] Balaji V Logic Check:`);
+                        console.log(`   isReg: ${isReg}`);
+                        console.log(`   Status (Reg): ${r?.status}`);
+                        console.log(`   WonStatus (Reg): ${r?.won_status}`);
+                        console.log(`   isWinner (Calc): ${isWinner}`);
+                        console.log(`   isShort (Calc): ${isShort}`);
+                        console.log(`   Decision (Reg && !Short && !Winner): ${isReg && !isShort && !isWinner}`);
+                    }
+
+                    return isReg && !isShort && !isWinner;
                 })
                 .map(s => {
                     const r = regMap.get(s.id);
@@ -196,23 +215,50 @@ const getCompetitionStudents = async (req, res) => {
 
             shortlisted: myStudents
                 .filter(s => {
+                    const r = regMap.get(s.id);
                     const st = statusMap.get(s.id);
-                    return st && st.is_shortlisted;
+
+                    const isWinner = st?.is_winner || r?.status === 'Winner' || r?.won_status === 'WON';
+                    const isShort = st?.is_shortlisted || r?.status === 'Qualified' || r?.status === 'SHORTLISTED';
+
+                    return isShort && !isWinner;
                 })
                 .map(s => {
                     return {
                         id: s.id,
                         name: s.full_name,
                         regNo: s.registration_no,
+                        section: s.section,
                         status: 'Shortlisted'
+                    };
+                }),
+
+            winners: myStudents
+                .filter(s => {
+                    const r = regMap.get(s.id);
+                    const st = statusMap.get(s.id);
+                    return st?.is_winner || r?.status === 'Winner' || r?.won_status === 'WON';
+                })
+                .map(s => {
+                    return {
+                        id: s.id,
+                        name: s.full_name,
+                        regNo: s.registration_no,
+                        section: s.section,
+                        status: 'Winner'
                     };
                 }),
 
             unregistered: myStudents
                 .filter(s => {
                     const isReg = regMap.has(s.id);
-                    const isShort = statusMap.get(s.id)?.is_shortlisted;
-                    return !isReg && !isShort;
+                    const r = regMap.get(s.id);
+                    const st = statusMap.get(s.id);
+
+                    const isWinner = st?.is_winner || r?.status === 'Winner' || r?.won_status === 'WON';
+                    const isShort = st?.is_shortlisted || r?.status === 'Qualified' || r?.status === 'SHORTLISTED';
+
+                    return !isReg && !isShort && !isWinner;
                 })
                 .map(s => {
                     return {

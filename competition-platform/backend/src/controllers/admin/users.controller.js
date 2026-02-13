@@ -82,6 +82,8 @@ exports.getStudentDetails = async (req, res) => {
                 id,
                 registered_at,
                 verified,
+                status,
+                qualification_verified,
                 competitions (
                     id,
                     title,
@@ -93,23 +95,20 @@ exports.getStudentDetails = async (req, res) => {
 
         if (regError) throw regError;
 
-        // 3. Fetch Status (Qualified/Won)
-        const { data: statuses, error: statusError } = await supabase
-            .from('competition_status')
-            .select('*')
-            .eq('user_id', id);
-
-        if (statusError) throw statusError;
+        // 3. Remove separate competition_status fetch
+        // const { data: statuses ... } // Removed
 
         // 4. Aggregate Data & Calculate Stats
         const competitionDetails = registrations.map(reg => {
-            const statusEntry = statuses?.find(s => s.competition_id === reg.competitions.id);
-
             let status = 'Registered';
             const isVerified = reg.verified;
 
-            if (statusEntry?.is_shortlisted) status = 'Qualified';
-            if (statusEntry?.is_winner) status = 'Won';
+            // Logic matching HodController/StudentProfile
+            if (reg.status === 'Winner') {
+                status = 'Won';
+            } else if ((reg.status === 'Qualified' || reg.status === 'SHORTLISTED') && reg.qualification_verified) {
+                status = 'Qualified';
+            }
 
             return {
                 id: reg.competitions.id,
@@ -175,9 +174,9 @@ exports.getStudentDetails = async (req, res) => {
 
         // Stats
         const stats = {
-            registered: registrations.length,
-            qualified: statuses?.filter(s => s.is_shortlisted).length || 0,
-            won: statuses?.filter(s => s.is_winner).length || 0,
+            registered: registrations.filter(r => r.verified).length, // Only verified counts as registered
+            qualified: registrations.filter(r => (r.status === 'Qualified' || r.status === 'SHORTLISTED') && r.qualification_verified).length,
+            won: registrations.filter(r => r.status === 'Winner').length,
         };
 
         const enrichedData = {

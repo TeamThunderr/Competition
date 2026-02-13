@@ -1,0 +1,58 @@
+[
+  {
+    "status": "Qualified",
+    "verified": true,
+    "competitions": {
+      "title": "TEST"
+    }
+  },
+  {
+    "status": "Qualified",
+    "verified": true,
+    "competitions": {
+      "title": "DigitalOcean Gradient™ AI Hackathon"
+    }
+  },
+  {
+    "status": "Qualified",
+    "verified": true,
+    "competitions": {
+      "title": "Hackbells 3.O"
+    }
+  },
+  {
+    "status": "Qualified",
+    "verified": true,
+    "competitions": {
+      "title": "Sky’s the Limit - Cloud9 x JetBrains Hackathon"
+    }
+  },
+  {
+    "status": "Qualified",
+    "verified": true,
+    "competitions": {
+      "title": "COMPTETION"
+    }
+  },
+  {
+    "status": "Qualified",
+    "verified": true,
+    "competitions": {
+      "title": "BugHunt - Cybersecurity Event"
+    }
+  },
+  {
+    "status": "Registered",
+    "verified": false,
+    "competitions": {
+      "title": "jbu"
+    }
+  },
+  {
+    "status": "Qualified",
+    "verified": true,
+    "competitions": {
+      "title": "AMUHACKS 5.0"
+    }
+  }
+]
