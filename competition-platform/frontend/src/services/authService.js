@@ -1,7 +1,8 @@
 // File Name: authService.js
 // Purpose: Handle Authentication (Backend only)
 
-const API_URL = `${import.meta.env.VITE_API_URL}/api/auth`;
+const baseApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = `${baseApiUrl}/api/auth`;
 import { supabase } from './supabaseClient';
 
 export const loginUser = async (email) => {
