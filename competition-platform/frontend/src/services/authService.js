@@ -1,26 +1,37 @@
 // File Name: authService.js
-// Purpose: Handle Authentication API calls to Backend
-// Written for beginner developers
+// Purpose: Handle Authentication (Backend only)
 
-const API_URL = 'http://localhost:5000/api/auth';
+const baseApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = `${baseApiUrl}/api/auth`;
+import { supabase } from './supabaseClient';
 
 export const loginUser = async (email) => {
-    try {
-        console.log("Logging in with email:", email);
-        const response = await fetch(`${API_URL}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-        });
+    const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+    });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Login failed');
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error("Auth Service Error:", error);
-        throw error;
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Login failed');
     }
+
+    const user = await response.json();
+
+    // store user locally
+    localStorage.setItem('user', JSON.stringify(user));
+    return user;
+};
+
+export const getCurrentUser = () => {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+};
+
+export const logoutUser = async () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('role');
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("Supabase SignOut Error:", error);
 };

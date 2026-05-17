@@ -11,89 +11,79 @@ const login = async (req, res) => {
             return res.status(400).json({ error: 'Email is required' });
         }
 
-        console.log('Login attempt for:', email);
+        const cleanedEmail = email.trim();
+        console.log(`Login attempt for: '${cleanedEmail}' (orig: '${email}')`);
 
-        // 1. Check if user already exists
-        const { data: existingUser } = await supabase
+        // 1. Check if user already exists (Case Insensitive)
+        const { data: existingUser, error: selectError } = await supabase
             .from('users')
             .select('*')
-            .eq('email', email)
-            .single();
+            .ilike('email', cleanedEmail) // Robust matching
+            .maybeSingle();
 
-        let finalRole = 'STUDENT';
-        let fullName = email.split('@')[0]; // Default name from email
+        if (selectError && selectError.code !== 'PGRST116') { // PGRST116 is "Row not found"
+            console.error('Database Select Error:', selectError);
+            return res.status(500).json({ error: 'Database check failed: ' + selectError.message });
+        }
 
         if (existingUser) {
             console.log(`User found: ${existingUser.email} (${existingUser.role})`);
-            finalRole = existingUser.role;
-            fullName = existingUser.full_name;
+            return res.status(200).json({
+                message: 'Login successful',
+                user: existingUser,
+                role: existingUser.role
+            });
         } else {
-            // 2. New User - Determine Role from Registries
-            console.log('New user. Checking registries...');
-
-            // Check Faculty Registry
-            const { data: facultyEntry } = await supabase
-                .from('faculty_registry')
-                .select('email, full_name') // Assuming registry has names
-                .eq('email', email)
-                .single();
-
-            if (facultyEntry) {
-                finalRole = 'FACULTY';
-                if (facultyEntry.full_name) fullName = facultyEntry.full_name;
-                console.log('Found in Faculty Registry');
-            } else {
-                // Check HOD Registry
-                const { data: hodEntry } = await supabase
-                    .from('hod_registry')
-                    .select('email, full_name')
-                    .eq('email', email)
-                    .single();
-
-                if (hodEntry) {
-                    finalRole = 'HOD';
-                    if (hodEntry.full_name) fullName = hodEntry.full_name;
-                    console.log('Found in HOD Registry');
-                } else {
-                    console.log('Not in registries. Defaulting to STUDENT.');
-                }
-            }
+            console.log('User not found in database. Login rejected.');
+            return res.status(401).json({ error: 'Access Denied: User not found in database.' });
         }
-
-        // 3. Upsert User (Sync)
-        // For new users without Supabase Auth, we generate a random UUID if needed.
-        // Ideally we should use a consistent ID if possible, but randomUUID works for "No Auth" bypass.
-        let userId = existingUser ? existingUser.id : crypto.randomUUID();
-
-        const { data: upsertedUser, error: upsertError } = await supabase
-            .from('users')
-            .upsert({
-                id: userId,
-                email: email,
-                full_name: fullName,
-                role: finalRole
-            }, { onConflict: 'email' })
-            .select()
-            .single();
-
-        if (upsertError) {
-            console.error('Upsert Error:', upsertError);
-            // Fallback: Try to just get the user if upsert fails
-            const { data: fallbackUser } = await supabase.from('users').select('*').eq('email', email).single();
-            if (fallbackUser) {
-                return res.status(200).json({ message: 'Login successful', user: fallbackUser, role: fallbackUser.role });
-            }
-            return res.status(500).json({ error: upsertError.message });
-        }
-
-        res.status(200).json({ message: 'Login successful', user: upsertedUser, role: finalRole });
-
     } catch (err) {
         console.error('Unexpected error in login:', err);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
 
+const saveGoogleToken = async (req, res) => {
+    try {
+        const { email, refreshToken } = req.body;
+        console.log(`[Auth] Saving Google Token for: ${email}, Token Length: ${refreshToken ? refreshToken.length : 'null'}`);
+
+        if (!email || !refreshToken) {
+            // It's possible refreshToken is missing if user already logged in previously and consent wasn't prompted again.
+            // But we should only call this if we HAVE a token.
+            return res.status(200).json({ message: 'No new token to save' });
+        }
+
+        const { data, error } = await supabase
+            .from('users')
+            .update({ google_refresh_token: refreshToken })
+            .eq('email', email)
+            .select();
+
+        if (error) {
+            console.error('[Auth] Error saving token:', error.message);
+            // If RLS blocks it or generic error, returned 500 is fine, but let's be cleaner.
+            // If user doesn't exist, this might not error but return empty data in some configs, 
+            // but if it errors (e.g. RLS), we should fail gracefully.
+            return res.status(500).json({ error: 'DB Update Failed: ' + error.message });
+        }
+
+        if (!data || data.length === 0) {
+            console.warn(`[Auth] User not found for token save: ${email}`);
+            // This is technically not a server error, just a "user not found" scenario.
+            // We can return 200 OK to frontend to ignore it, or 404.
+            // Frontend treats any error as failure. Let's return 404.
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        return res.status(200).json({ message: 'Token saved successfully' });
+    } catch (err) {
+        console.error('[Auth] Error in saveGoogleToken:', err);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
-    login
+    login,
+    saveGoogleToken
 };

@@ -15,5 +15,6 @@ const authController = require('../../controllers/auth/auth.controller');
 // Route: POST /api/auth/login
 // Desc:  Login via email (Development/Insecure)
 router.post('/login', authController.login);
+router.post('/save-token', authController.saveGoogleToken);
 
 module.exports = router;

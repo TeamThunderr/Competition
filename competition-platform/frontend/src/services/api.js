@@ -1,17 +1,109 @@
 // File Name: api.js
-// Purpose: Handle API requests to the backend
-// Written for beginner developers
+// Purpose: Centralized API handling with auto-header injection and error management.
 
-const API_URL = 'http://localhost:5000'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// What this function does: Checks if the backend server is running
-export async function checkBackendHealth() {
+/**
+ * Get the current user from storage safely.
+ */
+const getCurrentUser = () => {
     try {
-        const response = await fetch(`${API_URL}/health`)
-        const data = await response.json()
-        return data
+        const user = localStorage.getItem('user');
+        return user ? JSON.parse(user) : null;
+    } catch {
+        return null;
+    }
+};
+
+/**
+ * Generic Request Handler
+ */
+async function request(endpoint, options = {}) {
+    // 1. Prepare Headers
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+
+    // Remove Content-Type for FormData (Browser sets boundary)
+    if (options.body instanceof FormData) {
+        delete headers['Content-Type'];
+    }
+
+    // 2. Auto-inject Auth Header (Demo Mode)
+    const user = getCurrentUser();
+    if (user?.id) {
+        headers['x-user-id'] = user.id;
+    }
+
+    // 3. Configure Config
+    const config = {
+        ...options,
+        headers,
+    };
+
+    // 4. Execute Fetch
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+
+        // 5. Handle Non-200 Responses
+        if (!response.ok) {
+            const errorBody = await response.json().catch(() => ({}));
+
+            // Auto-Logout if User ID is invalid (Stale State)
+            if (response.status === 404 && errorBody.message === "User ID provided in header not found in database") {
+                console.warn("[API] User ID invalid. Logging out...");
+                localStorage.removeItem('user');
+                localStorage.removeItem('role');
+                window.location.href = '/login';
+                return null; // Stop propagation
+            }
+
+            // Create a smarter error object
+            const error = new Error(errorBody.error || errorBody.message || `API Error: ${response.status}`);
+            error.status = response.status;
+            error.response = {
+                status: response.status,
+                data: errorBody
+            };
+
+            throw error;
+        }
+
+        // 6. Return Data based on Type
+        if (response.status === 204) return null;
+
+        // Handle Blob (File Download)
+        if (options.responseType === 'blob') {
+            return await response.blob();
+        }
+
+        // Default: JSON
+        return await response.json();
+
     } catch (error) {
-        console.error('API Error:', error)
-        throw error
+        if (error.name !== 'AbortError') {
+            console.error(`[API] Request failed: ${endpoint}`, error);
+        }
+        throw error;
     }
 }
+
+// Exported Methods
+export const api = {
+    get: (endpoint, options = {}) => request(endpoint, { method: 'GET', ...options }),
+    post: (endpoint, body, options = {}) => request(endpoint, {
+        method: 'POST',
+        body: body instanceof FormData ? body : JSON.stringify(body),
+        ...options
+    }),
+    put: (endpoint, body, options = {}) => request(endpoint, {
+        method: 'PUT',
+        body: body instanceof FormData ? body : JSON.stringify(body),
+        ...options
+    }),
+    del: (endpoint, options = {}) => request(endpoint, { method: 'DELETE', ...options }),
+
+    // Check Health
+    checkHealth: () => request('/health')
+};

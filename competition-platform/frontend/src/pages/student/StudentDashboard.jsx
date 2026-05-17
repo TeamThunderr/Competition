@@ -1,37 +1,51 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Clock, Menu, Trophy } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
-import supabase from '../../services/supabaseClient';
+import StudentSidebar from './Sidebar';
+import UploadProofModal from '../../components/common/UploadProofModal';
+import { supabase } from '../../services/supabaseClient';
+import { api } from '../../services/api';
+import { studentService } from '../../services/studentService';
+import { useToast } from '../../contexts/ToastContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const StudentDashboard = () => {
+    const navigate = useNavigate();
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
+    const [selectedCompId, setSelectedCompId] = useState(null);
+    const [selectedTeamId, setSelectedTeamId] = useState(null);
+    const [selectedProofType, setSelectedProofType] = useState(null);
+    const [isShortlistUpload, setIsShortlistUpload] = useState(false);
+    const [selectedTeamData, setSelectedTeamData] = useState(null);
+    const [odRequests, setOdRequests] = useState([]);
+    const { addToast } = useToast();
+
+    // Alert Modal
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        onConfirm: () => { }
+    });
+    const closeConfirmModal = () => setConfirmModal(prev => ({ ...prev, isOpen: false }));
 
     const fetchCompetitions = async () => {
         setLoading(true);
         try {
-            // Need user ID for headers
-            const { data: { session } } = await supabase.auth.getSession();
-            const userId = session?.user?.id;
-
-            if (!userId) {
-                console.error("No user session found");
-                return;
-            }
-
-            const response = await fetch('http://localhost:5000/api/student/competitions', {
-                headers: {
-                    'x-user-id': userId // Pass ID for backend middleware
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setCompetitions(data);
-            } else {
-                console.error('Failed to fetch competitions');
-            }
+            const [competitionsData, odData] = await Promise.all([
+                api.get('/api/student/competitions'),
+                studentService.getMyODRequests()
+            ]);
+            setCompetitions(competitionsData || []);
+            setOdRequests(odData || []);
         } catch (err) {
-            console.error('Error:', err);
+            console.error('Error fetching dashboard data:', err);
         } finally {
             setLoading(false);
         }
@@ -41,105 +55,302 @@ const StudentDashboard = () => {
         fetchCompetitions();
     }, []);
 
-    // Handlers
-    const handleCheckStatus = async (compId) => {
-        alert("Scanning your Gmail for registration confirmation... (Mock Service)");
+    // Derived State for OD Status Card
+    const getODStatusCard = () => {
+        const now = new Date();
+        const activeOD = odRequests.find(od =>
+            od.status === 'APPROVED' &&
+            new Date(od.from_date) <= now &&
+            new Date(od.to_date) >= now
+        );
 
-        // Mock API Call
-        const { data: { session } } = await supabase.auth.getSession();
-        const response = await fetch('http://localhost:5000/api/student/check-status', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': session?.user?.id
-            },
-            body: JSON.stringify({ competition_id: compId })
-        });
+        const pendingOD = odRequests.find(od => od.status === 'PENDING');
 
-        const resData = await response.json();
+        if (activeOD) {
+            return (
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 rounded-xl flex flex-col gap-3">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-emerald-100 dark:bg-emerald-800 rounded-full text-emerald-600 dark:text-emerald-300">
+                            <Trophy size={24} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-emerald-800 dark:text-emerald-200">Active OD</h3>
+                            <p className="text-sm text-emerald-700 dark:text-emerald-300 line-clamp-1">{activeOD.competitions?.title}</p>
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                                {new Date(activeOD.from_date).toLocaleDateString()} - {new Date(activeOD.to_date).toLocaleDateString()}
+                            </p>
+                        </div>
+                    </div>
 
-        if (resData.status === 'NOT_FOUND') {
-            const proofUrl = prompt("Gmail detection failed. Please paste the screenshot URL of your registration proof:");
-            if (proofUrl) {
-                handleUploadProof(compId, proofUrl);
+                    {/* Extension / Pending Alert inside Active Card */}
+                    {pendingOD && (
+                        <div className="pt-3 border-t border-emerald-200 dark:border-emerald-800 flex items-start gap-3">
+                            <Clock size={16} className="text-amber-600 dark:text-amber-400 mt-0.5" />
+                            <div>
+                                <h4 className="text-xs font-bold text-amber-700 dark:text-amber-300">Extension Request Pending</h4>
+                                <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                                    For {pendingOD.competitions?.title} ({new Date(pendingOD.from_date).toLocaleDateString()})
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        if (pendingOD) {
+            return (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-xl flex items-center gap-4">
+                    <div className="p-3 bg-amber-100 dark:bg-amber-800 rounded-full text-amber-600 dark:text-amber-300">
+                        <Clock size={24} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-amber-800 dark:text-amber-200">OD Request Pending</h3>
+                        <p className="text-sm text-amber-700 dark:text-amber-300 line-clamp-1">{pendingOD.competitions?.title}</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400">Waiting for approval...</p>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div className="bg-gray-50 dark:bg-gray-800/50 border border-border p-4 rounded-xl flex items-center gap-4 opacity-75">
+                <div className="p-3 bg-gray-200 dark:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400">
+                    <Clock size={24} />
+                </div>
+                <div>
+                    <h3 className="font-bold text-foreground">No Active OD</h3>
+                    <p className="text-sm text-muted">You are currently on campus.</p>
+                </div>
+            </div>
+        );
+    };
+
+    const handleRequestOD = (compId) => {
+        navigate(`/student/od-request/${compId}`);
+    };
+
+    const handleRegisterClick = (compId, proofType = 'REGISTERED') => {
+        setSelectedCompId(compId);
+        setSelectedProofType(proofType);
+        setIsShortlistUpload(proofType === 'QUALIFIED');
+        setIsUploadModalOpen(true);
+    };
+
+    const [resultConfirmModal, setResultConfirmModal] = useState({
+        isOpen: false,
+        compId: null
+    });
+
+    const handleWonStatusUpdate = (compId) => {
+        setResultConfirmModal({ isOpen: true, compId });
+    };
+
+    const submitResultUpdate = async (won) => {
+        const compId = resultConfirmModal.compId;
+        setResultConfirmModal({ isOpen: false, compId: null });
+
+        if (!won) {
+            try {
+                await studentService.updateWinningStatus(compId, 'NOT_WON');
+                addToast("Status updated to Participant", 'success');
+                fetchCompetitions();
+            } catch (err) {
+                addToast("Failed to update status", 'error');
             }
         } else {
-            alert("Registration Detected via Gmail!");
-            fetchCompetitions(); // Refresh
+            setSelectedCompId(compId);
+            setSelectedProofType('WINNER');
+            setIsShortlistUpload(false);
+            setIsUploadModalOpen(true);
         }
     };
 
-    const handleUploadProof = async (compId, proofUrl) => {
-        const { data: { session } } = await supabase.auth.getSession();
-        const response = await fetch('http://localhost:5000/api/student/upload-proof', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': session?.user?.id
-            },
-            body: JSON.stringify({ competition_id: compId, proof_url: proofUrl })
-        });
+    const handleUploadProofSubmit = async (compIdOrTeamId, file, proofType) => {
+        try {
+            if (isShortlistUpload || selectedTeamId || proofType === 'WINNER') {
+                // Manual Upload Flow for Shortlist, Team, and Winner Proofs
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError || !user) throw new Error("User not authenticated");
+                const studentId = user.id;
 
-        if (response.ok) {
-            alert("Proof uploaded! Waiting for faculty approval.");
+                const fileExt = file.name.split('.').pop();
+                const prefix = proofType === 'WINNER' ? 'winning_' : (isShortlistUpload ? 'shortlist_' : 'team_');
+                const fileName = `${prefix}${compIdOrTeamId}_${studentId}_${Date.now()}.${fileExt}`;
+                const filePath = `proofs/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('proofs')
+                    .upload(filePath, file);
+
+                if (uploadError) throw new Error(`Storage Error: ${uploadError.message}`);
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('proofs')
+                    .getPublicUrl(filePath);
+
+                const proofUrl = publicUrl;
+
+                if (proofType === 'WINNER') {
+                    await studentService.updateWinningStatus(compIdOrTeamId, 'WON', proofUrl);
+                    addToast("Winning Proof uploaded! Waiting for faculty verification.", 'success');
+                } else if (isShortlistUpload) {
+                    await studentService.uploadShortlistProof(compIdOrTeamId, proofUrl);
+                    addToast("Shortlist Proof uploaded! Waiting for faculty verification.", 'success');
+                } else if (selectedTeamId) {
+                    await studentService.uploadTeamProof(selectedTeamId, proofUrl);
+                    addToast("Team Proof uploaded! Waiting for faculty verification.", 'success');
+                }
+            } else {
+                // Individual Registration Mode
+                await studentService.uploadProof(compIdOrTeamId, file, proofType);
+                addToast("Proof uploaded! Waiting for faculty approval.", 'success');
+            }
             fetchCompetitions();
-        } else {
-            alert("Upload failed.");
-        }
-    };
-
-    const handleRequestOD = async (compId) => {
-        const reason = prompt("Enter reason for OD request:");
-        if (!reason) return;
-
-        const { data: { session } } = await supabase.auth.getSession();
-        const response = await fetch('http://localhost:5000/api/student/request-od', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': session?.user?.id
-            },
-            body: JSON.stringify({ competition_id: compId, reason })
-        });
-
-        if (response.ok) {
-            alert("OD Request Sent to HOD.");
-            fetchCompetitions();
-        } else {
-            alert("Request failed.");
+            setIsUploadModalOpen(false);
+        } catch (err) {
+            console.error("Upload process error:", err);
+            addToast("An error occurred: " + (err.message || 'Unknown error'), 'error');
         }
     };
 
     return (
-        <div className="p-8 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Student Dashboard</h1>
+        <div className="flex bg-background min-h-screen text-foreground font-sans">
+            <StudentSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-            <section>
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-semibold text-gray-800">Competitions</h2>
-                    <button onClick={fetchCompetitions} className="text-blue-600 text-sm hover:underline">Refresh Status</button>
+            <div className="flex-1 flex flex-col min-w-0 md:ml-sidebar">
+                {/* Mobile Header */}
+                <div className="md:hidden bg-card border-b border-border p-4 flex items-center gap-4 sticky top-0 z-20">
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    >
+                        <Menu size={24} />
+                    </button>
+                    <span className="font-bold text-lg">Student Dashboard</span>
                 </div>
 
-                {loading ? (
-                    <div className="text-gray-500">Loading events...</div>
-                ) : competitions.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {competitions.map(comp => (
-                            <CompetitionCard
-                                key={comp.id}
-                                competition={comp}
-                                onCheckStatus={handleCheckStatus}
-                                onUploadProof={handleUploadProof}
-                                onRequestOD={handleRequestOD}
-                            />
-                        ))}
+                <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+                    {/* Header */}
+                    <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">Welcome back !</h1>
+                            <p className="text-muted mt-1">Here's what's happening with your competitions.</p>
+                        </div>
+                        <div className="md:w-1/3 w-full">
+                            {getODStatusCard()}
+                        </div>
                     </div>
-                ) : (
-                    <div className="text-gray-500 bg-white p-8 rounded-lg border text-center">
-                        No competitions active at the moment.
+
+                    <section className="mb-10">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-semibold text-foreground">Upcoming Deadlines (Next 2 Days)</h2>
+                            <button onClick={() => navigate('/student/competitions')} className="text-sm text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 px-3 py-1.5 rounded-lg transition-colors font-medium">View All</button>
+                        </div>
+
+                        {competitions.filter(comp => {
+                            if (!comp.registration_deadline) return false;
+                            if (!comp.my_registration) return false;
+                            const deadline = new Date(comp.registration_deadline);
+                            const now = new Date();
+                            const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
+                            const diff = deadline - now;
+                            return diff > 0 && diff <= twoDaysInMs;
+                        }).length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {competitions.filter(comp => {
+                                    if (!comp.registration_deadline) return false;
+                                    if (!comp.my_registration) return false;
+                                    const deadline = new Date(comp.registration_deadline);
+                                    const now = new Date();
+                                    const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
+                                    const diff = deadline - now;
+                                    return diff > 0 && diff <= twoDaysInMs;
+                                }).map((comp) => (
+                                    <CompetitionCard
+                                        key={comp.id}
+                                        competition={comp}
+                                        onWonStatusUpdate={handleWonStatusUpdate}
+                                        onRegister={handleRegisterClick}
+                                        onRequestOD={handleRequestOD}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-card p-8 rounded-xl border border-border text-center shadow-sm">
+                                <Clock className="mx-auto text-muted mb-2" size={32} />
+                                <p className="text-muted">No registered competitions ending within 2 days.</p>
+                            </div>
+                        )}
+                    </section>
+
+                    <div className="grid grid-cols-1 gap-8">
+                        {/* Your Competitions List */}
+                        <div className="col-span-1">
+                            <h2 className="text-lg font-semibold text-foreground mb-4">Your Competitions</h2>
+
+                            {competitions.filter(c => c.my_registration).length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {competitions.filter(c => c.my_registration).map((comp) => (
+                                        <CompetitionCard
+                                            key={comp.id}
+                                            competition={comp}
+                                            onWonStatusUpdate={handleWonStatusUpdate}
+                                            onRegister={handleRegisterClick}
+                                            onRequestOD={handleRequestOD}
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden min-h-[300px] flex flex-col items-center justify-center p-8">
+                                    <div className="w-16 h-16 bg-muted/10 dark:bg-slate-700/50 rounded-full flex items-center justify-center mb-3">
+                                        <Trophy className="text-brand-500" size={32} />
+                                    </div>
+                                    <h3 className="text-foreground font-medium">No active competitions</h3>
+                                    <p className="text-muted text-sm mt-1 mb-4">You haven't registered for any events yet.</p>
+                                    <button
+                                        onClick={() => navigate('/student/competitions')}
+                                        className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition"
+                                    >
+                                        Browse Competitions
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                )}
-            </section>
+                </div>
+            </div>
+            <UploadProofModal
+                isOpen={isUploadModalOpen}
+                onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); setSelectedProofType(null); }}
+                competitionId={selectedCompId}
+                onSubmit={handleUploadProofSubmit}
+                title={selectedProofType === 'WINNER' ? "Upload Winning Proof" : (selectedTeamId ? "Upload Team Proof" : "Upload Registration Proof")}
+                defaultProofType={selectedProofType}
+            />
+
+            <ConfirmModal
+                isOpen={resultConfirmModal.isOpen}
+                onClose={() => setResultConfirmModal({ isOpen: false, compId: null })}
+                onConfirm={() => submitResultUpdate(true)}
+                title="Did you win?"
+                message="Congratulations on completing the competition! Did you secure a prize (Won) or participate? If you won, you'll need to upload proof."
+                type="success"
+                confirmText="Yes, I WON"
+                cancelText="No, just Participated"
+                onCancel={() => submitResultUpdate(false)}
+            />
+            {/* Global Alert Modal */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={closeConfirmModal}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                confirmText="Okay"
+                cancelText="Close"
+            />
+
         </div>
     );
 };

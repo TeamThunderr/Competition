@@ -37,10 +37,28 @@ const insertManualCompetition = async (data) => {
 const excelDateToJSDate = (serial) => {
   if (!serial) return null;
 
-  // Handle "TBA" or text strings
+  // Handle text strings (e.g. "2026-01-01", "01-17-2026 - 01-18-2026")
   if (typeof serial === 'string') {
-    if (serial.toLowerCase().includes('tba')) return null; // Convert TBA to null (empty date)
-    return serial; // Return other strings (like "2025-01-01") as is
+    if (serial.toLowerCase().includes('tba')) return null;
+
+    // Handle range: "01-17-2026 - 01-18-2026" -> iterate to find first valid date
+    if (serial.includes(' - ')) {
+      const parts = serial.split(' - ');
+      for (const part of parts) {
+        const date = new Date(part);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split('T')[0];
+        }
+      }
+      return null; // Fallback if no part is valid
+    }
+
+    // Attempt standard parse
+    const date = new Date(serial);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+    return serial;
   }
 
   // Handle Excel Serial Numbers
@@ -48,7 +66,7 @@ const excelDateToJSDate = (serial) => {
     const utc_days = Math.floor(serial - 25569);
     const utc_value = utc_days * 86400;
     const date_info = new Date(utc_value * 1000);
-    return date_info.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    return date_info.toISOString().split('T')[0];
   }
 
   return null;
@@ -61,6 +79,7 @@ const insertBulkCompetitions = async (rows) => {
     description: row.Description || row.description,
     organizer: row.Organizer || row.organizer,
     platform: row.Platform || row.platform,
+    venue: row.Venue || row.venue,
     external_link: row["Registration Link"] || row.Link || row.external_link,
     registration_deadline: excelDateToJSDate(row["Registration Deadline"] || row.Deadline || row.registration_deadline),
     event_date: excelDateToJSDate(row["Event Date"] || row.event_date),
@@ -80,8 +99,46 @@ const insertBulkCompetitions = async (rows) => {
   }
 };
 
+// ✅ Update competition
+const updateCompetition = async (id, data) => {
+  const { data: updated, error } = await supabase
+    .from("competitions")
+    .update({
+      title: data.title,
+      description: data.description,
+      platform: data.platform,
+      external_link: data.external_link || data.link,
+      registration_deadline: data.registration_deadline || data.deadline,
+      event_date: data.event_date,
+      mode: data.mode,
+      team_allowed: data.team_allowed,
+      min_team_size: data.min_team_size,
+      max_team_size: data.max_team_size,
+      organizer: data.organizer,
+      departments: data.departments
+    })
+    .eq('id', id)
+    .select();
+
+  if (error) throw new Error(error.message);
+  return updated;
+};
+
+// ✅ Delete competition
+const deleteCompetition = async (id) => {
+  const { error } = await supabase
+    .from("competitions")
+    .delete()
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+  return true;
+};
+
 module.exports = {
   fetchDashboardStats,
   insertManualCompetition,
-  insertBulkCompetitions
+  insertBulkCompetitions,
+  updateCompetition,
+  deleteCompetition
 };

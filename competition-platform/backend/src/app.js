@@ -24,6 +24,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/competitions', require('./routes/core/competition.routes'));
 app.use('/api/teams', require('./routes/core/team.routes'));
 app.use('/api/approvals', require('./routes/core/approval.routes'));
+
 // Error Handler
 app.use(errorHandler);
 

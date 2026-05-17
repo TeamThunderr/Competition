@@ -1,0 +1,126 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.competitions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  organizer text,
+  platform text,
+  external_link text,
+  registration_deadline date,
+  event_date date,
+  mode text,
+  team_allowed boolean DEFAULT false,
+  min_team_size integer DEFAULT 1,
+  max_team_size integer DEFAULT 1,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  departments ARRAY DEFAULT ARRAY['All'::text],
+  uploaded_at timestamp with time zone NOT NULL DEFAULT now(),
+  last_synced_at timestamp with time zone,
+  is_syncing boolean DEFAULT false,
+  last_sync_from timestamp with time zone,
+  last_sync_to timestamp with time zone,
+  sync_status text DEFAULT 'never'::text,
+  sync_error_message text,
+  sync_started_by uuid,
+  venue text,
+  CONSTRAINT competitions_pkey PRIMARY KEY (id),
+  CONSTRAINT competitions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.departments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT departments_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.od_requests (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  competition_id uuid,
+  reason text,
+  status USER-DEFINED DEFAULT 'PENDING'::status_type,
+  approved_by uuid,
+  approved_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  approved_days integer DEFAULT 1,
+  time_slot text,
+  team_id uuid,
+  from_date date,
+  to_date date,
+  CONSTRAINT od_requests_pkey PRIMARY KEY (id),
+  CONSTRAINT od_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT od_requests_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id),
+  CONSTRAINT od_requests_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id),
+  CONSTRAINT od_requests_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
+);
+CREATE TABLE public.registrations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  competition_id uuid,
+  source USER-DEFINED,
+  proof_url text,
+  verified boolean DEFAULT false,
+  verified_by uuid,
+  registered_at timestamp with time zone DEFAULT now(),
+  status text DEFAULT 'REGISTERED'::text,
+  gmail_message_id text,
+  matched_keyword text,
+  confidence_score integer DEFAULT 0,
+  last_synced_at timestamp with time zone,
+  remarks text,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT registrations_pkey PRIMARY KEY (id),
+  CONSTRAINT registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT registrations_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id),
+  CONSTRAINT registrations_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.team_members (
+  team_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  CONSTRAINT team_members_pkey PRIMARY KEY (team_id, user_id),
+  CONSTRAINT team_members_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id),
+  CONSTRAINT team_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.teams (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  competition_id uuid,
+  leader_id uuid,
+  team_name text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  proof_url text,
+  verification_status text DEFAULT 'PENDING'::text,
+  verified_by uuid,
+  verified_at timestamp with time zone,
+  leader_name text,
+  contact_number text,
+  proof_urls ARRAY,
+  section text,
+  academic_year text,
+  department text,
+  members_info jsonb,
+  leader_reg_no text,
+  CONSTRAINT teams_pkey PRIMARY KEY (id),
+  CONSTRAINT teams_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES public.competitions(id),
+  CONSTRAINT teams_leader_id_fkey FOREIGN KEY (leader_id) REFERENCES public.users(id),
+  CONSTRAINT teams_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,
+  full_name text NOT NULL,
+  role USER-DEFINED NOT NULL,
+  department_id uuid,
+  section text,
+  registration_no text UNIQUE,
+  cgpa numeric,
+  attendance numeric,
+  assigned_sections ARRAY,
+  created_at timestamp with time zone DEFAULT now(),
+  admission_year integer,
+  phone_number text,
+  google_refresh_token text,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id)
+);
