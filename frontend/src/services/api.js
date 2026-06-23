@@ -72,8 +72,26 @@ async function request(endpoint, options = {}) {
                 return null; // Stop propagation
             }
 
+            // Translate technical errors into user-friendly messages
+            let errorMessage = errorBody.error || errorBody.message || `API Error: ${response.status}`;
+            const lowerError = errorMessage.toLowerCase();
+
+            if (response.status === 429 || lowerError.includes('rate limit') || lowerError.includes('too many requests')) {
+                errorMessage = "You're doing that too fast. Please wait a moment and try again.";
+            } else if (lowerError.includes('validation')) {
+                errorMessage = "Some of the details provided are incorrect. Please check and try again.";
+            } else if (response.status === 500 || lowerError.includes('internal server error') || lowerError.includes('database')) {
+                errorMessage = "Something went wrong on our end. Please try again later.";
+            } else if (response.status === 401 || lowerError.includes('unauthorized')) {
+                errorMessage = "Your session has expired or you do not have permission. Please log in again.";
+            } else if (lowerError.includes('network error') || lowerError.includes('failed to fetch')) {
+                errorMessage = "Please check your internet connection and try again.";
+            } else if (lowerError.includes('duplicate') || lowerError.includes('already exists')) {
+                errorMessage = "This record already exists. Please try a different one.";
+            }
+
             // Create a smarter error object
-            const error = new Error(errorBody.error || errorBody.message || `API Error: ${response.status}`);
+            const error = new Error(errorMessage);
             error.status = response.status;
             error.response = {
                 status: response.status,
