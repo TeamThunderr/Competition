@@ -100,13 +100,13 @@ const prodAuth = async (req, res, next) => {
       });
     }
 
-    // ── 3. Extract user ID from the 'sub' claim ──────────────────────────────
-    const userId = payload.sub;
+    // ── 3. Extract user email from the 'email' claim ─────────────────────────
+    const userEmail = payload.email;
 
-    if (!userId) {
+    if (!userEmail) {
       return res.status(401).json({
         error: "Unauthorized",
-        message: "Invalid token: missing subject claim",
+        message: "Invalid token: missing email claim",
       });
     }
 
@@ -114,7 +114,7 @@ const prodAuth = async (req, res, next) => {
     const { data: user, error: dbError } = await supabase
       .from("users")
       .select("id, role, department_id, assigned_sections")
-      .eq("id", userId)
+      .eq("email", userEmail)
       .single();
 
     if (dbError || !user) {
