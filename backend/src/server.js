@@ -7,6 +7,13 @@ const app = require('./app');
 const boss = require('./config/pgBossClient');
 const { registerGmailSyncWorker } = require('./workers/gmailSync.worker');
 
+// Silence non-error logs in production for a clean console
+if (process.env.NODE_ENV === 'production') {
+  console.log = function() {};
+  console.info = function() {};
+  console.warn = function() {};
+}
+
 // ─── Start pg-boss queue then HTTP server ─────────────────────────────────────
 // pg-boss needs to create/migrate its schema in Postgres on first run,
 // so we await boss.start() before accepting HTTP traffic.
