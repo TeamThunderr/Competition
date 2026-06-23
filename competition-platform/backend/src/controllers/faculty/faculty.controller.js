@@ -1,11 +1,13 @@
 // Faculty Controller - Verified Consolidated Version
 // Integrates Gmail Sync V2 logic, improved Dashboard Stats, and robust Student Filtering
 // Supersedes facultyV2.controller.js
+// UPDATED: Added pagination support on getMyStudents and getRecentRegistrations
 
 const { sendResponse } = require('../../utils/responseHelper');
 const supabase = require('../../config/supabaseClient');
 const statsService = require('../../services/admin/stats.service');
 const { performBatchSync } = require('./participation.controller');
+const { paginatedResponse } = require('../../utils/paginate.util');
 
 // ------------------------------------------------------------------
 // 1. Student & Registration Lists (Legacy/Stable Logic)
@@ -60,7 +62,13 @@ const getMyStudents = async (req, res) => {
             return allowedSections.includes(studentSec);
         });
 
-        sendResponse(res, 200, filteredStudents, 'Fetched student list');
+        // Return paginated envelope — total is the filtered count (all loaded into memory)
+        const pagination = req.pagination || { page: 1, limit: filteredStudents.length, offset: 0 };
+        const total = filteredStudents.length;
+        const { offset, limit } = pagination;
+        const pageSlice = filteredStudents.slice(offset, offset + limit);
+
+        res.status(200).json(paginatedResponse(pageSlice, pagination, total));
     } catch (err) {
         console.error('[FacultyController] Error:', err);
         sendResponse(res, 500, null, 'Internal Server Error');
@@ -76,17 +84,20 @@ const getRecentRegistrations = async (req, res) => {
             return sendResponse(res, 200, [], 'No students found');
         }
 
-        // Fetch recent registrations with details
-        const { data: registrations, error } = await supabase
+        // Paginated registrations with exact count
+        const pagination = req.pagination || { page: 1, limit: 20, offset: 0 };
+        const { offset, limit } = pagination;
+
+        const { data: registrations, error, count } = await supabase
             .from('registrations')
             .select(`
                 id, registered_at, verified,
                 users!registrations_user_id_fkey!inner ( full_name, registration_no ),
                 competitions!inner ( title, registration_deadline )
-            `)
+            `, { count: 'exact' })
             .in('user_id', myStudentIds)
             .order('registered_at', { ascending: false })
-            .limit(10);
+            .range(offset, offset + limit - 1);
 
         if (error) throw error;
 
@@ -100,7 +111,7 @@ const getRecentRegistrations = async (req, res) => {
             registeredAt: r.registered_at
         }));
 
-        sendResponse(res, 200, mappedRegs, 'Fetched recent registrations');
+        res.status(200).json(paginatedResponse(mappedRegs, pagination, count));
 
     } catch (err) {
         console.error('[FacultyController] Error fetching registrations:', err);

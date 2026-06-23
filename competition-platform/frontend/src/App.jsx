@@ -85,7 +85,6 @@ function App() {
         <Route path="/hod/analytics" element={<HodAnalytics />} />
         <Route path="/hod/competitions" element={<HodCompetitions />} />
         <Route path="/hod/students/:id" element={<HodStudentDetail />} />
-        <Route path="/hod/students/:id" element={<HodStudentDetail />} />
         <Route path="/hod/faculty" element={<HodFaculty />} />
         <Route path="/hod/competitions/:id/section/:sectionName" element={<CompetitionSectionDetails />} />
 

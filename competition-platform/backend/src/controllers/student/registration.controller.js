@@ -58,10 +58,8 @@ const checkRegistrationStatus = async (req, res) => {
         }
 
         // 2. Perform Gmail Verification
-        if (!provider_token) {
-            return res.status(400).json({ error: 'Gmail access token required for verification.' });
-        }
-
+        // No longer require provider_token from frontend since we fetch refresh_token from DB
+        
         console.log(`[RegistrationV2] Verifying '${competition.title}' for user ${student_id}...`);
 
         // Check CURRENT status in DB
@@ -77,10 +75,15 @@ const checkRegistrationStatus = async (req, res) => {
             console.log('[RegistrationV2] User already registered. Checking for Shortlist/Winner updates...');
 
             const shortlistMatch = await gmailService.checkShortlistStatus(
-                provider_token,
+                student_id,
                 competition,
                 currentStatus.last_synced_at // Respect sync window
             );
+
+            // Handle skipped due to missing OAuth
+            if (shortlistMatch && shortlistMatch.skipped) {
+                return res.status(403).json({ error: 'Gmail not connected. Please connect your Gmail in settings first.', reason: 'gmail_not_connected' });
+            }
 
             if (shortlistMatch.status) {
                 console.log(`[RegistrationV2] Found update: ${shortlistMatch.status}`);
@@ -114,10 +117,14 @@ const checkRegistrationStatus = async (req, res) => {
 
         // Use existing Gmail service for detection (Initial Registration)
         const match = await gmailService.syncStudentCompetition(
-            provider_token,
+            student_id,
             competition,
             null // No lastSyncedAt for initial check
         );
+
+        if (match && match.skipped) {
+            return res.status(403).json({ error: 'Gmail not connected. Please connect your Gmail in settings first.', reason: 'gmail_not_connected' });
+        }
 
         if (match && match.suggested_status && match.confidence >= 40) {
             console.log('[RegistrationV2] Verification Successful:', match);

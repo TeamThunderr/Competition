@@ -9,6 +9,8 @@ const hodCompetitionController = require('../../controllers/hod/competition.cont
 const odController = require('../../controllers/hod/od.controller');
 const authMiddleware = require('../../middleware/authMiddleware');
 const roleMiddleware = require('../../middleware/role.middleware');
+const validate = require('../../middleware/validate.middleware');
+const { manageOdSchema } = require('../../validation/schemas/hod.schema');
 
 // 1. Auth & Role Guards
 console.log("Loading HOD Routes...");
@@ -41,6 +43,6 @@ router.get('/competition/:id/stats', hodCompetitionController.getCompetitionStat
 // OD Management Routes
 router.get('/pending-od', odController.getPendingODRequests);
 router.get('/od-request/:id', odController.getODRequestDetail);
-router.post('/manage-od', odController.manageODRequest);
+router.post('/manage-od', validate(manageOdSchema), odController.manageODRequest);
 
 module.exports = router;

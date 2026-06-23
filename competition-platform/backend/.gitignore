@@ -1,7 +1,11 @@
 # Logs
 .env
-logs
+.env.*
+!.env.example
+logs/
 *.log
+server_error.log
+src/scripts/*.txt
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

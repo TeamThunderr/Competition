@@ -144,7 +144,18 @@ export const studentService = {
         });
     },
     searchStudents,
-    validateTeammate
+    validateTeammate,
+    
+    // Gmail Auth Flow
+    checkGmailStatus: async () => {
+        return await api.get('/api/student/gmail/status');
+    },
+    getGmailAuthUrl: async () => {
+        return await api.get('/api/auth/gmail/url');
+    },
+    revokeGmailAccess: async () => {
+        return await api.del('/api/auth/gmail/revoke');
+    }
 };
 
 export default studentService;

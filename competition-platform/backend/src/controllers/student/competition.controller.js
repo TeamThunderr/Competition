@@ -1,26 +1,31 @@
 // File Name: competition.controller.js (Student)
 // Purpose: Handle student competition requests
 // UPDATED: Removed all references to deprecated 'participation' table
+// UPDATED: Added pagination support on getAllCompetitions
 
 const supabase = require('../../config/supabaseClient');
+const { applyPagination, paginatedResponse } = require('../../utils/paginate.util');
 
 const getAllCompetitions = async (req, res) => {
     try {
         const userId = req.userId;
+        const pagination = req.pagination || { page: 1, limit: 20, offset: 0 };
         console.log("Student Controller - Fetching competitions for user:", userId);
 
-        // Fetch competitions (only registrations count now - participation table removed)
-        const { data: competitions, error: compError } = await supabase
+        // Build paginated competitions query with exact count
+        const baseQuery = supabase
             .from('competitions')
-            .select('*, registrations(count)')
-            .order('registration_deadline', { ascending: true })
+            .select('*, registrations(count)', { count: 'exact' })
+            .order('registration_deadline', { ascending: true });
+
+        const { data: competitions, error: compError, count } = await applyPagination(baseQuery, pagination);
 
         if (compError) {
             console.log("Student Controller - DB Error:", compError);
             throw compError;
         }
 
-        console.log(`Student Controller - Fetched ${competitions.length} competitions`);
+        console.log(`Student Controller - Fetched ${competitions.length} competitions (total: ${count})`);
 
         // Fetch user's registrations for these competitions
         const { data: registrations, error: regError } = await supabase
@@ -85,7 +90,7 @@ const getAllCompetitions = async (req, res) => {
             };
         });
 
-        res.status(200).json(enrichedCompetitions);
+        res.status(200).json(paginatedResponse(enrichedCompetitions, pagination, count));
     } catch (err) {
         console.error('Error fetching competitions (FULL):', JSON.stringify(err, null, 2));
         console.error('Error Stack:', err.stack);

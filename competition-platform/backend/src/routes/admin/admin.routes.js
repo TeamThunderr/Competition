@@ -6,16 +6,20 @@ const router = express.Router();
 
 const adminController = require('../../controllers/admin/competition.controller');
 const usersController = require('../../controllers/admin/users.controller');
+const classifierController = require('../../controllers/admin/classifier.controller');
 const checkRole = require('../../middleware/role.middleware');
 const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
+const validate = require('../../middleware/validate.middleware');
+const paginate = require('../../middleware/paginate.middleware');
+const { createCompetitionSchema, updateCompetitionSchema } = require('../../validation/schemas/admin.schema');
 
 // 🔐 All admin routes are protected
 //router.use(authMiddleware, roleMiddleware("admin"));
 
 // ➕ Manual entry
-router.post("/competition", adminController.addCompetition);
-router.put("/competition/:id", adminController.editCompetition);
+router.post("/competition", validate(createCompetitionSchema), adminController.addCompetition);
+router.put("/competition/:id", validate(updateCompetitionSchema), adminController.editCompetition);
 router.delete("/competition/:id", adminController.deleteCompetition);
 
 router.post(
@@ -29,9 +33,12 @@ const statsController = require('../../controllers/admin/stats.controller');
 router.get("/stats", statsController.getDepartmentStats);
 router.get("/competition/:id/stats", statsController.getCompetitionStats);
 
-// 👥 Student & Faculty Data
-router.get("/students", usersController.getStudents);
+// 👥 Student & Faculty Data (students list is paginated)
+router.get("/students", paginate, usersController.getStudents);
 router.get("/student/:id", usersController.getStudentDetails);
 router.get("/faculty", usersController.getFaculty);
+
+// 🤖 Classifier Retraining
+router.post("/classifier/retrain", classifierController.retrainClassifier);
 
 module.exports = router;
