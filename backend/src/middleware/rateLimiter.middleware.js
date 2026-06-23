@@ -2,7 +2,7 @@ const rateLimit = require('express-rate-limit');
 
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200,
+    max: 10000, // Practically disabled
     message: { error: "Too many requests", message: "Please try again later" },
     standardHeaders: true,
     legacyHeaders: false
@@ -10,7 +10,7 @@ const globalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10,
+    max: 1000, // Practically disabled
     message: { error: "Too many login attempts", message: "Try again in 15 minutes" },
     standardHeaders: true,
     legacyHeaders: false
@@ -18,7 +18,7 @@ const authLimiter = rateLimit({
 
 const gmailSyncLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 3,
+    max: 500, // Practically disabled
     message: { error: "Sync rate limit", message: "Gmail sync allowed 3 times per 5 minutes" },
     standardHeaders: true,
     legacyHeaders: false
@@ -26,7 +26,7 @@ const gmailSyncLimiter = rateLimit({
 
 const adminLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
+    max: 5000, // Practically disabled
     message: { error: "Too many requests", message: "Please try again later" },
     standardHeaders: true,
     legacyHeaders: false
