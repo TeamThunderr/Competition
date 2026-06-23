@@ -32,6 +32,7 @@ export const getCurrentUser = () => {
 export const logoutUser = async () => {
     localStorage.removeItem('user');
     localStorage.removeItem('role');
+    localStorage.removeItem('token');
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Supabase SignOut Error:", error);
 };

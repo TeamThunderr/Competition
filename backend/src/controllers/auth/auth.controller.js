@@ -2,6 +2,7 @@
 // Purpose: specific logic for authentication routes
 
 const supabase = require('../../config/supabaseClient');
+const jwt = require('jsonwebtoken');
 
 const login = async (req, res) => {
     try {
@@ -26,10 +27,22 @@ const login = async (req, res) => {
         }
 
         if (existingUser) {
+            // Generate a JWT token to bypass Supabase OAuth for manual logins
+            const token = process.env.SUPABASE_JWT_SECRET ? jwt.sign(
+                {
+                    sub: existingUser.id,
+                    email: existingUser.email,
+                    role: 'authenticated'
+                },
+                process.env.SUPABASE_JWT_SECRET,
+                { expiresIn: '7d' }
+            ) : null;
+
             return res.status(200).json({
                 message: 'Login successful',
                 user: existingUser,
-                role: existingUser.role
+                role: existingUser.role,
+                token: token
             });
         } else {
             return res.status(401).json({ error: 'Access Denied: User not found in database.' });

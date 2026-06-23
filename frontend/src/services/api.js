@@ -40,8 +40,12 @@ async function request(endpoint, options = {}) {
 
     // Auto-inject Supabase JWT Token (Production Mode)
     const { data: { session } } = await supabase.auth.getSession();
+    const fallbackToken = localStorage.getItem('token');
+    
     if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`;
+    } else if (fallbackToken) {
+        headers['Authorization'] = `Bearer ${fallbackToken}`;
     }
 
     // 3. Configure Config
@@ -63,6 +67,7 @@ async function request(endpoint, options = {}) {
                 console.warn("[API] User ID invalid. Logging out...");
                 localStorage.removeItem('user');
                 localStorage.removeItem('role');
+                localStorage.removeItem('token');
                 window.location.href = '/login';
                 return null; // Stop propagation
             }

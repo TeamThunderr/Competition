@@ -23,6 +23,9 @@ const LoginForm = () => {
 
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('role', data.role);
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+            }
 
             if (data.role === 'STUDENT') navigate('/student');
             else if (data.role === 'FACULTY') navigate('/faculty');
