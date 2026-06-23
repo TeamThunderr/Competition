@@ -1,6 +1,8 @@
 // File Name: api.js
 // Purpose: Centralized API handling with auto-header injection and error management.
 
+import { supabase } from './supabaseClient';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 /**
@@ -34,6 +36,12 @@ async function request(endpoint, options = {}) {
     const user = getCurrentUser();
     if (user?.id) {
         headers['x-user-id'] = user.id;
+    }
+
+    // Auto-inject Supabase JWT Token (Production Mode)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
     }
 
     // 3. Configure Config
