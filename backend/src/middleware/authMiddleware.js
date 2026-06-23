@@ -8,19 +8,12 @@ const supabase = require("../config/supabaseClient");
 // ─────────────────────────────────────────────────────────────────────────────
 const devAuth = async (req, res, next) => {
   try {
-    console.log("Auth Middleware [DEV] - Received Headers:", req.headers);
     const userId = req.headers["x-user-id"];
-    console.log("Auth Middleware [DEV] - extracted userId:", userId);
 
     if (!userId) {
-      console.log("Auth Middleware [DEV] - No User ID header found");
       return res
         .status(400)
         .json({ message: "Public Mode: Please provide 'x-user-id' header" });
-
-      // Option 2 (Uncomment if you want a hardcoded default for testing without headers)
-      // req.userId = "your-test-user-uuid-here";
-      // return next();
     }
 
     // Verify this user actually exists in the DB to avoid foreign key errors
@@ -31,17 +24,11 @@ const devAuth = async (req, res, next) => {
       .single();
 
     if (error || !user) {
-      console.log("Auth Middleware [DEV] - User lookup failed:", error);
       return res
         .status(404)
         .json({ message: "User ID provided in header not found in database" });
     }
 
-    console.log(
-      "Auth Middleware [DEV] - User authenticated:",
-      user.id,
-      user.role
-    );
     req.user = user;
     req.userId = user.id;
 
@@ -118,10 +105,6 @@ const prodAuth = async (req, res, next) => {
       .single();
 
     if (dbError || !user) {
-      console.warn(
-        "Auth Middleware [PROD] - User from token not found in DB:",
-        userId
-      );
       return res.status(401).json({
         error: "Unauthorized",
         message: "User not found",
@@ -129,11 +112,6 @@ const prodAuth = async (req, res, next) => {
     }
 
     // ── 5. Attach user context to the request ────────────────────────────────
-    console.log(
-      "Auth Middleware [PROD] - User authenticated:",
-      user.id,
-      user.role
-    );
     req.user = user;
     req.userId = user.id;
 

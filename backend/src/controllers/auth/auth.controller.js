@@ -12,7 +12,6 @@ const login = async (req, res) => {
         }
 
         const cleanedEmail = email.trim();
-        console.log(`Login attempt for: '${cleanedEmail}' (orig: '${email}')`);
 
         // 1. Check if user already exists (Case Insensitive)
         const { data: existingUser, error: selectError } = await supabase
@@ -27,14 +26,12 @@ const login = async (req, res) => {
         }
 
         if (existingUser) {
-            console.log(`User found: ${existingUser.email} (${existingUser.role})`);
             return res.status(200).json({
                 message: 'Login successful',
                 user: existingUser,
                 role: existingUser.role
             });
         } else {
-            console.log('User not found in database. Login rejected.');
             return res.status(401).json({ error: 'Access Denied: User not found in database.' });
         }
     } catch (err) {
@@ -46,7 +43,6 @@ const login = async (req, res) => {
 const saveGoogleToken = async (req, res) => {
     try {
         const { email, refreshToken } = req.body;
-        console.log(`[Auth] Saving Google Token for: ${email}, Token Length: ${refreshToken ? refreshToken.length : 'null'}`);
 
         if (!email || !refreshToken) {
             // It's possible refreshToken is missing if user already logged in previously and consent wasn't prompted again.
@@ -69,7 +65,6 @@ const saveGoogleToken = async (req, res) => {
         }
 
         if (!data || data.length === 0) {
-            console.warn(`[Auth] User not found for token save: ${email}`);
             // This is technically not a server error, just a "user not found" scenario.
             // We can return 200 OK to frontend to ignore it, or 404.
             // Frontend treats any error as failure. Let's return 404.

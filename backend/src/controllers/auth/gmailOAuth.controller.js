@@ -90,8 +90,6 @@ const handleOAuthCallback = async (req, res) => {
             return res.status(500).send('Database error saving token');
         }
 
-        console.log(`[GmailOAuth] Token stored for user ${userId}`);
-
         // Redirect back to frontend
         res.redirect(`${process.env.FRONTEND_URL}/student/settings?gmail=connected`);
 
@@ -126,7 +124,6 @@ const revokeGmailAccess = async (req, res) => {
             try {
                 const oauth2Client = getOAuthClient();
                 await oauth2Client.revokeToken(refreshToken);
-                console.log(`[GmailOAuth] Token revoked from Google for user ${userId}`);
             } catch (revokeError) {
                 console.warn(`[GmailOAuth] Failed to revoke token from Google (may be expired):`, revokeError.message);
                 // Continue to clear DB anyway
