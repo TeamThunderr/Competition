@@ -127,3 +127,18 @@ CREATE TABLE public.users (
   CONSTRAINT users_pkey PRIMARY KEY (id),
   CONSTRAINT users_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id)
 );
+
+CREATE TABLE public.email_ingestion_buffer (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  competition_id uuid REFERENCES competitions(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  gmail_message_id text NOT NULL,
+  sender text,
+  subject text,
+  body_text text NOT NULL,
+  status text DEFAULT 'pending',
+  error_message text,
+  created_at timestamp with time zone DEFAULT now(),
+  processed_at timestamp with time zone,
+  UNIQUE(competition_id, user_id, gmail_message_id)
+);
