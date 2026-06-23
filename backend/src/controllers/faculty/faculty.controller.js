@@ -352,6 +352,13 @@ const getDashboardStats = async (req, res) => {
     }
 };
 
+const formatIST = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    if (isNaN(date)) return 'N/A';
+    return date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+};
+
 // ------------------------------------------------------------------
 // 3. Sync Logic (V2 Implementation)
 // ------------------------------------------------------------------
@@ -391,8 +398,8 @@ const syncCompetition = async (req, res) => {
         const response = {
             competitionTitle: competition.title,
             syncWindow: {
-                from: new Date(competition.last_synced_at || competition.uploaded_at || competition.created_at).toLocaleString(),
-                to: new Date().toLocaleString()
+                from: formatIST(competition.last_synced_at || competition.uploaded_at || competition.created_at),
+                to: formatIST(new Date().toISOString())
             },
             results: stats,
             details: logs,
@@ -409,11 +416,15 @@ const syncCompetition = async (req, res) => {
 
 const getCompetitionSyncStatus = async (req, res) => {
     try {
-        // Get all active competitions
+        // Calculate the cutoff date (10 days ago) so we keep processing for shortlists
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - 10);
+
+        // Get active competitions + ones whose deadline passed within the last 10 days
         const { data: competitions, error: compError } = await supabase
             .from('competitions')
             .select('id, title, uploaded_at, last_synced_at, registration_deadline')
-            .gte('registration_deadline', new Date().toISOString().split('T')[0])
+            .gte('registration_deadline', cutoffDate.toISOString().split('T')[0])
             .order('uploaded_at', { ascending: false });
 
         if (compError) throw compError;
@@ -421,14 +432,14 @@ const getCompetitionSyncStatus = async (req, res) => {
         const competitionsWithStatus = competitions.map(comp => ({
             id: comp.id,
             title: comp.title,
-            uploadedAt: comp.uploaded_at ? new Date(comp.uploaded_at).toLocaleString() : 'N/A',
-            lastSyncedAt: comp.last_synced_at ? new Date(comp.last_synced_at).toLocaleString() : null,
+            uploadedAt: formatIST(comp.uploaded_at),
+            lastSyncedAt: comp.last_synced_at ? formatIST(comp.last_synced_at) : null,
             registrationDeadline: comp.registration_deadline,
             syncStatus: comp.last_synced_at ? 'Synced' : 'Never Synced',
             canSync: true,
             nextSyncFrom: comp.last_synced_at
-                ? new Date(comp.last_synced_at).toLocaleString()
-                : (comp.uploaded_at ? new Date(comp.uploaded_at).toLocaleString() : 'N/A')
+                ? formatIST(comp.last_synced_at)
+                : formatIST(comp.uploaded_at)
         }));
 
         sendResponse(res, 200, competitionsWithStatus, 'Competition sync status fetched');
