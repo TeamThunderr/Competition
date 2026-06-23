@@ -731,7 +731,9 @@ const ingestStudentEmails = async (userId, competition, lastSyncedAt = null) => 
 
         const titleTokens = tokenize(competition.title);
         const mainTerms = titleTokens.slice(0, 2).join(' ');
-        let queryString = `"${mainTerms}"`;
+        
+        // Use an AND query without exact phrase quotes so Gmail finds emails where the words are separated
+        let queryString = `${mainTerms}`;
         if (competition.platform) {
             queryString = `(${queryString}) OR "${competition.platform}"`;
         }
@@ -743,7 +745,7 @@ const ingestStudentEmails = async (userId, competition, lastSyncedAt = null) => 
             }
         } else {
             const date = new Date();
-            date.setMonth(date.getMonth() - 6);
+            date.setDate(date.getDate() - 14); // Fallback to 14 days instead of 6 months
             queryString += ` after:${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
         }
 
