@@ -1,4 +1,5 @@
 const supabase = require('../../config/supabaseClient');
+const { applyPagination, paginatedResponse } = require('../../utils/paginate.util');
 
 // Fetch Students filtered by Department, Section, and Search Term
 exports.getStudents = async (req, res) => {
@@ -19,7 +20,7 @@ exports.getStudents = async (req, res) => {
                 departments (
                     name
                 )
-            `)
+            `, { count: 'exact' })
             .eq('role', 'STUDENT');
 
         // Filter by Department Name if provided
@@ -34,25 +35,22 @@ exports.getStudents = async (req, res) => {
 
         // Search by Name or Roll Number or Email
         if (search) {
-            // content-type: application/json
             // Using 'ilike' for case-insensitive partial match
-            // Syntax: column.ilike.%term%
             const term = `%${search}%`;
             query = query.or(`full_name.ilike.${term},registration_no.ilike.${term},email.ilike.${term}`);
         }
 
-        // Default constraints (ordering)
-        query = query
-            .order('full_name', { ascending: true }) // Order by name usually better for search
-            .limit(50); // Limit results for performance
+        // Apply API-level pagination (from paginate middleware; defaults to page=1, limit=50)
+        const pagination = req.pagination || { page: 1, limit: 50, offset: 0 };
+        query = query.order('full_name', { ascending: true });
 
-        const { data, error } = await query;
+        const { data, error, count } = await applyPagination(query, pagination);
 
         if (error) {
             throw error;
         }
 
-        res.status(200).json({ success: true, data });
+        res.status(200).json({ success: true, ...paginatedResponse(data, pagination, count) });
     } catch (error) {
         console.error('Error fetching students:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch students', error: error.message || error });

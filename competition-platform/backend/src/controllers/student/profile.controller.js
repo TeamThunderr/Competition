@@ -158,8 +158,29 @@ const searchStudent = async (req, res) => {
     }
 };
 
+const checkGmailStatus = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { data, error } = await supabase
+            .from('users')
+            .select('google_refresh_token')
+            .eq('id', userId)
+            .single();
+
+        if (error || !data) {
+            return sendResponse(res, 404, { connected: false }, 'User not found');
+        }
+
+        sendResponse(res, 200, { connected: !!data.google_refresh_token }, 'Gmail status fetched');
+    } catch (err) {
+        console.error('[ProfileController] Gmail Status Error:', err);
+        sendResponse(res, 500, { connected: false }, 'Internal Server Error');
+    }
+};
+
 module.exports = {
     getProfile,
     updateProfile,
-    searchStudent
+    searchStudent,
+    checkGmailStatus
 };

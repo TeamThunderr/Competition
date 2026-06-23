@@ -8,22 +8,39 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed:competitions": "node src/scripts/seed_competitions.js",
-    "test:email_mock": "node src/scripts/mock_email_verification.js"
+    "test:email_mock": "node src/scripts/mock_email_verification.js",
+    "start:prod": "pm2 start ecosystem.config.js --env production",
+    "stop:prod": "pm2 stop competition-platform-api",
+    "restart:prod": "pm2 restart competition-platform-api",
+    "logs:prod": "pm2 logs competition-platform-api",
+    "monit": "pm2 monit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.89.0",
+    "cheerio": "^1.2.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
     "googleapis": "^169.0.0",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
+    "natural": "^8.1.1",
     "node-fetch": "^2.7.0",
     "pg": "^8.16.3",
-    "xlsx": "^0.18.5"
+    "pg-boss": "^12.20.0",
+    "pm2": "^7.0.1",
+    "string-similarity": "^4.0.4",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

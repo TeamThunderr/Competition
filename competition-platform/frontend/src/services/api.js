@@ -79,7 +79,23 @@ async function request(endpoint, options = {}) {
         }
 
         // Default: JSON
-        return await response.json();
+        const data = await response.json();
+        
+        // Auto-extract paginated data for backward compatibility with components expecting arrays
+        if (data && typeof data === 'object' && !Array.isArray(data) && 'data' in data && 'total' in data) {
+            const arr = data.data;
+            if (Array.isArray(arr)) {
+                arr.meta = {
+                    total: data.total,
+                    page: data.page,
+                    limit: data.limit,
+                    totalPages: data.totalPages
+                };
+                return arr;
+            }
+        }
+        
+        return data;
 
     } catch (error) {
         if (error.name !== 'AbortError') {

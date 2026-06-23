@@ -10,11 +10,13 @@ router.use((req, res, next) => {
     next();
 });
 const authController = require('../../controllers/auth/auth.controller');
+const validate = require('../../middleware/validate.middleware');
+const { loginSchema } = require('../../validation/schemas/auth.schema');
 
 
 // Route: POST /api/auth/login
 // Desc:  Login via email (Development/Insecure)
-router.post('/login', authController.login);
+router.post('/login', validate(loginSchema), authController.login);
 router.post('/save-token', authController.saveGoogleToken);
 
 module.exports = router;

@@ -42,8 +42,8 @@ const StudentDashboard = () => {
                 api.get('/api/student/competitions'),
                 studentService.getMyODRequests()
             ]);
-            setCompetitions(competitionsData || []);
-            setOdRequests(odData || []);
+            setCompetitions(Array.isArray(competitionsData) ? competitionsData : (competitionsData?.data || []));
+            setOdRequests(Array.isArray(odData) ? odData : (odData?.data || []));
         } catch (err) {
             console.error('Error fetching dashboard data:', err);
         } finally {
@@ -140,6 +140,63 @@ const StudentDashboard = () => {
         isOpen: false,
         compId: null
     });
+
+    const handleAutoSync = async (compId) => {
+        try {
+            const statusRes = await studentService.checkGmailStatus();
+            if (!statusRes.data?.connected) {
+                setConfirmModal({
+                    isOpen: true,
+                    title: 'Gmail Not Connected',
+                    message: 'Please connect your Gmail in Settings to use Auto-Detect.',
+                    type: 'warning',
+                    onConfirm: () => {
+                        closeConfirmModal();
+                        navigate('/student/settings');
+                    }
+                });
+                return;
+            }
+            
+            addToast("Scanning Gmail for registration...", "info");
+            const res = await studentService.checkStatus(compId, null);
+            if (res.data?.status === 'REGISTERED' || res.data?.status === 'QUALIFIED') {
+                addToast("Competition registered successfully from Gmail!", "success");
+                fetchCompetitions();
+            } else {
+                setConfirmModal({
+                    isOpen: true,
+                    title: 'Not Found',
+                    message: 'Could not find registration email. Try manual upload.',
+                    type: 'warning',
+                    onConfirm: closeConfirmModal
+                });
+            }
+        } catch (err) {
+            console.error("Auto-sync error", err);
+            
+            if (err.response?.status === 403 && err.response?.data?.reason === 'gmail_not_connected') {
+                setConfirmModal({
+                    isOpen: true,
+                    title: 'Gmail Access Revoked',
+                    message: 'Your Gmail access has expired or been revoked. Please reconnect in Settings.',
+                    type: 'error',
+                    onConfirm: () => {
+                        closeConfirmModal();
+                        navigate('/student/settings');
+                    }
+                });
+            } else {
+                setConfirmModal({
+                    isOpen: true,
+                    title: 'Sync Failed',
+                    message: 'Failed to scan Gmail. ' + (err.response?.data?.error || err.message),
+                    type: 'error',
+                    onConfirm: closeConfirmModal
+                });
+            }
+        }
+    };
 
     const handleWonStatusUpdate = (compId) => {
         setResultConfirmModal({ isOpen: true, compId });
@@ -272,6 +329,7 @@ const StudentDashboard = () => {
                                         onWonStatusUpdate={handleWonStatusUpdate}
                                         onRegister={handleRegisterClick}
                                         onRequestOD={handleRequestOD}
+                                        onAutoSync={handleAutoSync}
                                     />
                                 ))}
                             </div>

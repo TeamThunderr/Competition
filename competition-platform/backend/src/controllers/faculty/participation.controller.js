@@ -2,6 +2,7 @@
 const supabase = require('../../config/supabaseClient');
 const gmailService = require('../../services/gmail/gmail.service');
 const { google } = require('googleapis');
+const { addGmailSyncJob } = require('../../queues/gmailSync.queue');
 
 // Helper to get OAuth2 Client with Refresh Token
 const getAuthClient = (refreshToken) => {
@@ -19,108 +20,64 @@ const getAuthClient = (refreshToken) => {
 };
 
 // Helper to sync a single student for a competition
-const syncSingleStudent = async (student, competition, lastSyncedAt, gmailService, authClient) => {
-    try {
-        if (!student.google_refresh_token) return { status: 'skipped', reason: 'no_token' };
-
-        const { token: accessToken } = await authClient.getAccessToken();
-        if (!accessToken) return { status: 'error', reason: 'token_refresh_failed' };
-
-        const match = await gmailService.syncStudentCompetition(
-            accessToken,
-            competition,
-            lastSyncedAt
-        );
-
-        // Check if Devpost filter rejected the email
-        if (match && match.devpost_filter && match.suggested_status === 'NOT_FOUND') {
-            return {
-                status: 'rejected',
-                reason: match.reasoning?.[0] || 'Devpost: Email filtered out'
-            };
-        }
-
-        if (match && match.suggested_status && match.suggested_status !== 'NOT_FOUND') {
-            let dbStatus = match.suggested_status;
-
-            if (dbStatus === 'QUALIFIED') dbStatus = 'SHORTLISTED';
-            if (dbStatus === 'ACTION_REQUIRED') dbStatus = 'PENDING';
-
-            const upsertData = {
-                user_id: student.id,
-                competition_id: competition.id,
-                status: dbStatus,
-                source: 'AUTO_GMAIL',
-                gmail_message_id: match.gmail_message_id,
-                matched_keyword: match.matched_keyword,
-                confidence_score: match.confidence,
-                last_synced_at: match.detected_at,
-                // FIX: Use match.match_details.reasoning for breakdown
-                remarks: `[${match.confidence}%] Match: ${match.suggested_status}. Breakdown: ${match.match_details?.reasoning?.join(' | ')}`,
-                verified: true,
-                registered_at: new Date().toISOString()
-            };
-
-            return {
-                status: 'detected',
-                upsertData,
-                email_meta: match.email_meta,
-                score_breakdown: match.match_details?.score_breakdown,
-                reasoning: match.match_details?.reasoning,
-                total_score: match.confidence
-            };
-        } else {
-            return { status: 'no_match', lastSyncedAt: new Date().toISOString() };
-        }
-
-    } catch (err) {
-        return { status: 'error', reason: err.message };
-    }
-};
-
-// SYNC Single Competition
+// SYNC Single Competition — now enqueues a background job instead of blocking
 const syncCompetition = async (req, res) => {
     try {
         const { competitionId } = req.params;
         const { id: facultyId, department_id, assigned_sections } = req.user;
 
-        console.log(`[Sync] Started by Faculty ${facultyId} for Comp ${competitionId}`);
+        console.log(`[Sync] Queue request by Faculty ${facultyId} for Comp ${competitionId}`);
 
-        const { data: competition } = await supabase.from('competitions').select('*').eq('id', competitionId).single();
-        if (!competition) return res.status(404).json({ error: 'Competition not found' });
+        // Verify competition exists before queuing
+        const { data: competition, error: compErr } = await supabase
+            .from('competitions')
+            .select('id, title, is_syncing')
+            .eq('id', competitionId)
+            .single();
 
-        // Check if sync is already in progress (Sync Lock)
+        if (compErr || !competition) {
+            return res.status(404).json({ error: 'Competition not found' });
+        }
+
+        // Prevent duplicate queuing while a sync is already running
         if (competition.is_syncing) {
             return res.status(409).json({
                 error: 'Sync already in progress',
-                message: 'Another sync is currently running. Please wait and try again.'
+                message: 'Another sync is currently running for this competition.'
             });
         }
 
-        const results = await performBatchSync(competition, department_id, assigned_sections, facultyId);
+        // Enqueue the job — worker picks it up asynchronously
+        const jobId = await addGmailSyncJob({
+            competitionId,
+            facultyId,
+            departmentId: department_id,
+            assignedSections: assigned_sections,
+        });
 
-        res.status(200).json({ message: 'Sync completed', stats: results });
+        // Return 202 immediately — do not wait for Gmail sync to finish
+        return res.status(202).json({
+            message: 'Gmail sync queued',
+            jobId,
+            competitionId,
+        });
 
     } catch (err) {
-        console.error('[Sync] General Error:', err);
+        console.error('[Sync] Queue Error:', err);
         res.status(500).json({ error: `Internal Server Error: ${err.message}` });
     }
 };
 
-// SYNC ALL Active Competitions
+// SYNC ALL Active Competitions — enqueues one job per competition
 const syncAllCompetitions = async (req, res) => {
     try {
         const { id: facultyId, department_id, assigned_sections } = req.user;
-        console.log(`[SyncAll] Started by Faculty ${facultyId}`);
-
-        if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-            return res.status(500).json({ error: 'Server Config Error: Missing Google ID' });
-        }
+        console.log(`[SyncAll] Queue request by Faculty ${facultyId}`);
 
         const now = new Date().toISOString();
         const { data: competitions, error: compError } = await supabase
             .from('competitions')
-            .select('*')
+            .select('id, title')
             .gte('registration_deadline', now);
 
         if (compError) {
@@ -128,26 +85,24 @@ const syncAllCompetitions = async (req, res) => {
             return res.status(500).json({ error: 'Database Error: Competitions' });
         }
 
-        console.log(`[SyncAll] Found ${competitions?.length || 0} active competitions.`);
+        console.log(`[SyncAll] Queuing ${competitions?.length || 0} competition sync jobs.`);
 
-        let totalStats = { processed: 0, detected: 0, errors: 0 };
+        const jobIds = await Promise.all(
+            (competitions || []).map((comp) =>
+                addGmailSyncJob({
+                    competitionId:    comp.id,
+                    facultyId,
+                    departmentId:     department_id,
+                    assignedSections: assigned_sections,
+                })
+            )
+        );
 
-        for (const comp of competitions) {
-            console.log(`[SyncAll] Processing Comp: ${comp.title}`);
-            try {
-                const compStats = await performBatchSync(comp, department_id, assigned_sections);
-                console.log(`[SyncAll] Stats for ${comp.title}:`, compStats);
-
-                totalStats.processed += compStats.processed;
-                totalStats.detected += compStats.detected;
-                totalStats.errors += compStats.errors;
-            } catch (innerErr) {
-                console.error(`[SyncAll] Error syncing ${comp.title}:`, innerErr);
-            }
-        }
-
-        console.log('[SyncAll] Completed. Total Stats:', totalStats);
-        res.status(200).json({ message: 'Sync All completed', stats: totalStats });
+        return res.status(202).json({
+            message: 'Gmail sync queued for all active competitions',
+            totalQueued: jobIds.length,
+            jobIds,
+        });
 
     } catch (err) {
         console.error('[SyncAll] Critical Error:', err);
@@ -202,19 +157,12 @@ const exportParticipationStats = async (req, res) => {
 };
 
 // Shared Logic for Batch Sync (Using Registrations Table ONLY)
-// IMPROVED: Sync Lock, Time Tracking, Status, Deduplication, Detailed Logging
 async function performBatchSync(competition, departmentId, assignedVersion, facultyId = null) {
     const syncFrom = competition.last_synced_at || competition.uploaded_at || competition.created_at;
     const syncTo = new Date().toISOString();
 
-    // Detailed stats and logs
     const stats = { processed: 0, detected: 0, errors: 0, skipped: 0 };
-    const logs = {
-        processed: [], // { email, status, time }
-        detected: [],  // { email, status, match_details }
-        errors: [],    // { email, error }
-        skipped: []    // { email, reason }
-    };
+    const logs = { processed: [], detected: [], errors: [], skipped: [] };
 
     try {
         // 1. Acquire Sync Lock
@@ -228,193 +176,137 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
             })
             .eq('id', competition.id);
 
-        if (lockError) {
-            console.error('[BatchSync] Failed to acquire lock:', lockError);
-            throw new Error('Failed to acquire sync lock');
-        }
+        if (lockError) throw new Error('Failed to acquire sync lock');
 
-        console.log(`[BatchSync] Lock acquired. Scanning emails from ${syncFrom} to ${syncTo}`);
-
-        // 2. Fetch Students (MOVED TO CONDITIONAL LOIC BELOW)
-
+        // 2. Fetch Students
         const facultySectionsParsed = (assignedVersion || []).map(s => {
             const parts = s.split('-');
             return parts.length > 1 ? parts[parts.length - 1].trim() : s.trim();
         });
 
-        console.log(`[BatchSync] Raw Sections: ${assignedVersion}, Parsed: ${facultySectionsParsed}`);
-
-        // OPTIMIZATION: If competition is CLOSED, only sync ALREADY REGISTERED students
-        // Goal: Check for updates (Won/Qualified) without scanning 1000s of non-participants
         const isClosed = competition.registration_deadline && new Date(competition.registration_deadline) < new Date();
         let targetStudents = [];
 
         if (isClosed) {
-            console.log(`[BatchSync] Competition Closed. Optimizing: Syncing ONLY registered students.`);
-
-            // Fetch users who have a registration for this competition
-            const { data: regStudents, error: regError } = await supabase
+            const { data: regStudents } = await supabase
                 .from('registrations')
                 .select('user_id, users!inner(id, email, section, google_refresh_token)')
                 .eq('competition_id', competition.id)
-                .eq('users.department_id', departmentId) // Ensure department safety
+                .eq('users.department_id', departmentId)
                 .eq('users.role', 'STUDENT');
 
-            if (regError) throw new Error(regError.message);
-
-            // Extract user objects from the join
-            const potentialStudents = regStudents.map(r => r.users);
-
-            // Apply Section Filter
-            targetStudents = potentialStudents.filter(s => {
-                const sSec = s.section ? s.section.trim().toUpperCase() : '';
-                return facultySectionsParsed.includes(sSec);
+            targetStudents = (regStudents || []).map(r => r.users).filter(s => {
+                return facultySectionsParsed.includes(s.section ? s.section.trim().toUpperCase() : '');
             });
-
         } else {
-            console.log(`[BatchSync] Competition Open. Full Scan Mode.`);
-            // Fetch ALL students in department (Standard Discovery Mode)
-            const { data: students, error: studentError } = await supabase
+            const { data: students } = await supabase
                 .from('users')
                 .select('id, email, section, google_refresh_token')
                 .eq('department_id', departmentId)
                 .eq('role', 'STUDENT');
 
-            if (studentError) throw new Error(studentError.message);
-
-            console.log(`[BatchSync] Total Students in Dept: ${students.length}`);
-
-            targetStudents = students.filter(s => {
-                const sSec = s.section ? s.section.trim().toUpperCase() : '';
-                return facultySectionsParsed.includes(sSec);
+            targetStudents = (students || []).filter(s => {
+                return facultySectionsParsed.includes(s.section ? s.section.trim().toUpperCase() : '');
             });
         }
 
-        console.log(`[BatchSync] Target Students after Filter: ${targetStudents.length}`);
-
-        // 3. Fetch Existing Registrations and gmail_message_ids for deduplication
-        const { data: existingRegs, error: regError } = await supabase
-            .from('registrations')
-            .select('user_id, status, last_synced_at, gmail_message_id')
-            .eq('competition_id', competition.id);
-
-        if (regError) throw new Error(regError.message);
-
-        const regMap = new Map(existingRegs?.map(r => [r.user_id, r]) || []);
-        const existingGmailIds = new Set(existingRegs?.filter(r => r.gmail_message_id).map(r => r.gmail_message_id) || []);
-
         const studentsToSync = targetStudents.filter(s => !!s.google_refresh_token);
-        console.log(`[BatchSync] Candidates to sync: ${studentsToSync.length}`);
 
-        // 4. Process Each Student
+        // 3. PHASE 1: INGESTION
+        console.log(`[BatchSync] Phase 1: Ingesting emails for ${studentsToSync.length} students...`);
         for (const student of studentsToSync) {
             try {
-                if (!student.google_refresh_token) {
-                    console.log(`[BatchSync] Skipping ${student.email} - Missing Refresh Token`);
-                    stats.skipped++;
-                    logs.skipped.push({ email: student.email, reason: 'Missing Token' });
-                    continue;
-                }
-
-                const regRow = regMap.get(student.id);
-
-
-                const authClient = getAuthClient(student.google_refresh_token);
-                const result = await syncSingleStudent(student, competition, syncFrom, gmailService, authClient);
-
-                if (result.status === 'detected') {
-                    // Deduplication Check
-                    if (result.upsertData.gmail_message_id && existingGmailIds.has(result.upsertData.gmail_message_id)) {
-                        console.log(`[BatchSync] Skipping duplicate email: ${result.upsertData.gmail_message_id}`);
-                        stats.skipped++;
-                        logs.skipped.push({ email: student.email, reason: 'Duplicate Email ID' });
-                        continue;
-                    }
-
-                    // Upsert to Registrations
-                    const registrationUpsertData = {
-                        user_id: result.upsertData.user_id,
-                        competition_id: result.upsertData.competition_id,
-                        source: result.upsertData.source,
-                        verified: result.upsertData.verified,
-                        registered_at: result.upsertData.registered_at,
-                        gmail_message_id: result.upsertData.gmail_message_id,
-                        matched_keyword: result.upsertData.matched_keyword,
-                        confidence_score: result.upsertData.confidence_score,
-                        last_synced_at: syncTo,
-                        remarks: result.upsertData.remarks
-                    };
-
-                    const { error: regUpsertError } = await supabase
-                        .from('registrations')
-                        .upsert(registrationUpsertData, { onConflict: 'user_id, competition_id' });
-
-                    if (regUpsertError) {
-                        console.error('[BatchSync] Registration Upsert Error:', regUpsertError);
-                        stats.errors++;
-                        logs.errors.push({ email: student.email, error: regUpsertError.message });
-                    } else {
-                        // Track this gmail_message_id as processed
-                        if (result.upsertData.gmail_message_id) {
-                            existingGmailIds.add(result.upsertData.gmail_message_id);
-                        }
-                        stats.detected++;
-                        logs.detected.push({
-                            email: student.email,
-                            status: result.upsertData.status,
-                            remarks: result.upsertData.remarks,
-                            // Deep Log Details
-                            subject: result.email_meta?.subject,
-                            sender: result.email_meta?.sender,
-                            snippet: result.email_meta?.snippet,
-                            score_breakdown: result.score_breakdown,
-                            // Deep Explanation
-                            total_score: result.total_score,
-                            matched_reasoning: result.reasoning
-                        });
-                    }
-
-                    if (['SHORTLISTED', 'QUALIFIED'].includes(result.upsertData.status)) {
-                        await supabase.from('competition_status').upsert({
-                            user_id: result.upsertData.user_id,
-                            competition_id: result.upsertData.competition_id,
-                            is_shortlisted: true,
-                            updated_at: new Date()
-                        }, { onConflict: 'user_id, competition_id' });
-                    }
-                } else if (result.status === 'no_match') {
-                    if (regRow) {
-                        await supabase.from('registrations').update({
-                            last_synced_at: syncTo
-                        }).eq('user_id', student.id).eq('competition_id', competition.id);
-                    }
-                    stats.processed++; // Count as processed even if no match found
-                    logs.processed.push({ email: student.email, status: 'No Match' });
-
-                } else if (result.status === 'error') {
-                    stats.errors++;
-                    logs.errors.push({ email: student.email, error: result.reason });
-                } else if (result.status === 'rejected') {
-                    // Devpost or other platform-specific rejection
-                    stats.skipped++;
-                    logs.skipped.push({ email: student.email, reason: result.reason || 'Email filtered out' });
-                } else {
-                    // Should not happen, but safe fallback
-                    stats.skipped++;
-                    logs.skipped.push({ email: student.email, reason: `Unknown status: ${result.status}` });
-                }
-
-            } catch (e) {
-                console.error(`Error processing ${student.email}:`, e.message);
+                await gmailService.ingestStudentEmails(student.id, competition, syncFrom);
+            } catch (err) {
+                console.error(`[BatchSync] Ingestion failed for ${student.email}:`, err.message);
                 stats.errors++;
-                logs.errors.push({ email: student.email, error: e.message });
+            }
+        }
+
+        // 4. PHASE 2: BATCH PARSING
+        console.log(`[BatchSync] Phase 2: Processing emails in batches of 50...`);
+        
+        const { data: pendingEmails, error: fetchErr } = await supabase
+            .from('email_ingestion_buffer')
+            .select('*')
+            .eq('competition_id', competition.id)
+            .eq('status', 'pending');
+
+        if (fetchErr) throw fetchErr;
+
+        const emailBatches = [];
+        for (let i = 0; i < (pendingEmails || []).length; i += 50) {
+            emailBatches.push(pendingEmails.slice(i, i + 50));
+        }
+
+        const { parseEmailBatch } = require('../../services/gmail/geminiParser.service');
+
+        for (const batch of emailBatches) {
+            try {
+                const results = await parseEmailBatch(batch, competition.title);
+
+                if (results && Array.isArray(results)) {
+                    for (const res of results) {
+                        const emailRecord = batch.find(e => e.gmail_message_id === res.id);
+                        if (!emailRecord) continue;
+                        
+                        // Update buffer
+                        await supabase
+                            .from('email_ingestion_buffer')
+                            .update({ status: 'processed', processed_at: new Date().toISOString() })
+                            .eq('id', emailRecord.id);
+
+                        if (res.is_competition_related && res.status && res.status !== 'UNKNOWN') {
+                            stats.detected++;
+                            
+                            const registrationUpsertData = {
+                                user_id: emailRecord.user_id,
+                                competition_id: competition.id,
+                                source: 'AUTO_GMAIL',
+                                verified: true,
+                                registered_at: new Date().toISOString(),
+                                gmail_message_id: res.id,
+                                matched_keyword: 'gemini_batch',
+                                confidence_score: res.confidence === 'high' ? 90 : (res.confidence === 'medium' ? 60 : 30),
+                                last_synced_at: syncTo,
+                                remarks: `[Gemini ${res.confidence}] Match: ${res.status}. Breakdown: ${(res.reasoning || []).join(' | ')}`
+                            };
+
+                            await supabase.from('registrations').upsert(registrationUpsertData, { onConflict: 'user_id, competition_id' });
+
+                            if (['SHORTLISTED', 'QUALIFIED'].includes(res.status)) {
+                                await supabase.from('competition_status').upsert({
+                                    user_id: emailRecord.user_id,
+                                    competition_id: competition.id,
+                                    is_shortlisted: true,
+                                    updated_at: new Date()
+                                }, { onConflict: 'user_id, competition_id' });
+                            }
+                        } else {
+                            stats.processed++;
+                        }
+                    }
+                }
+            } catch (batchErr) {
+                // If it's a QUOTA EXCEEDED, we must abort the sync and throw so pg-boss reschedules
+                if (batchErr.type === 'QUOTA_EXCEEDED') {
+                    console.error('[BatchSync] Quota Exceeded. Aborting current batch process to reschedule.');
+                    throw batchErr;
+                }
+
+                console.error('[BatchSync] Error processing batch:', batchErr.message);
+                
+                // Mark batch as error in buffer
+                const batchIds = batch.map(e => e.id);
+                await supabase
+                    .from('email_ingestion_buffer')
+                    .update({ status: 'error', error_message: batchErr.message })
+                    .in('id', batchIds);
             }
         }
 
         // 5. Update Competition with Success Status
         const syncStatus = stats.errors > 0 ? (stats.detected > 0 ? 'partial' : 'failed') : 'success';
-        const syncErrorMsg = stats.errors > 0 ? `${stats.errors} students failed to sync` : null;
-
         await supabase
             .from('competitions')
             .update({
@@ -422,8 +314,7 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                 last_synced_at: syncTo,
                 last_sync_from: syncFrom,
                 last_sync_to: syncTo,
-                sync_status: syncStatus,
-                sync_error_message: syncErrorMsg
+                sync_status: syncStatus
             })
             .eq('id', competition.id);
 
@@ -431,8 +322,13 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
         return { stats, logs };
 
     } catch (error) {
-        // 6. Release Lock and Set Failed Status on Error
-        console.error('[BatchSync] Critical Error:', error);
+        if (error.type === 'QUOTA_EXCEEDED') {
+            await supabase
+                .from('competitions')
+                .update({ sync_status: 'paused_quota', sync_error_message: error.message })
+                .eq('id', competition.id);
+            throw error; // pg-boss catches this
+        }
 
         await supabase
             .from('competitions')
@@ -442,7 +338,6 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                 sync_error_message: error.message
             })
             .eq('id', competition.id);
-
         throw error;
     }
 }

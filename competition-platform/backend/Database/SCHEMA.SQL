@@ -55,6 +55,8 @@ CREATE TABLE public.od_requests (
   CONSTRAINT od_requests_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id),
   CONSTRAINT od_requests_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
 );
+-- Primary participation tracking table (migrated from legacy 
+-- `participation` table — see migration notes in docs/)
 CREATE TABLE public.registrations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
@@ -68,6 +70,7 @@ CREATE TABLE public.registrations (
   gmail_message_id text,
   matched_keyword text,
   confidence_score integer DEFAULT 0,
+  raw_email_subject text,
   last_synced_at timestamp with time zone,
   remarks text,
   updated_at timestamp with time zone DEFAULT now(),
@@ -123,4 +126,19 @@ CREATE TABLE public.users (
   google_refresh_token text,
   CONSTRAINT users_pkey PRIMARY KEY (id),
   CONSTRAINT users_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id)
+);
+
+CREATE TABLE public.email_ingestion_buffer (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  competition_id uuid REFERENCES competitions(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  gmail_message_id text NOT NULL,
+  sender text,
+  subject text,
+  body_text text NOT NULL,
+  status text DEFAULT 'pending',
+  error_message text,
+  created_at timestamp with time zone DEFAULT now(),
+  processed_at timestamp with time zone,
+  UNIQUE(competition_id, user_id, gmail_message_id)
 );

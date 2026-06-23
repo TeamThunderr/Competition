@@ -2,7 +2,20 @@
 // Purpose: Centralized environment variables
 // Written for beginner developers
 
-require('dotenv').config();
+const path = require('path');
+const fs = require('fs');
+const dotenv = require('dotenv');
+
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
+const envPath = path.resolve(process.cwd(), envFile);
+
+if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+    console.log(`[Config] Loaded environment variables from ${envFile}`);
+} else {
+    dotenv.config();
+    console.log(`[Config] Loaded environment variables from default .env`);
+}
 
 module.exports = {
     PORT: process.env.PORT || 5000,

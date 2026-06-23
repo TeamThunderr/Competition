@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Users, Trophy, ExternalLink } from 'lucide-react';
+import { Calendar, Users, Trophy, ExternalLink, Mail } from 'lucide-react';
 
 const CompetitionCard = (props) => {
     const { competition, onRegister, onRequestOD, onWonStatusUpdate, showRegister = true, isApplied = false, onToggleApplied } = props;
@@ -36,7 +36,14 @@ const CompetitionCard = (props) => {
         // 1. Not Registered - Restrict to REGISTERED proof
         if (!my_registration) {
             return (
-                <div className="flex gap-2 flex-1 items-center">
+                <div className="flex gap-2 flex-1 flex-col sm:flex-row items-stretch sm:items-center">
+                    {props.onAutoSync && (
+                        <button
+                            onClick={() => props.onAutoSync(competition.id)}
+                            className="flex-1 bg-blue-50 border border-blue-200 text-blue-600 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
+                            <Mail size={16} /> Auto-Detect
+                        </button>
+                    )}
                     <button
                         onClick={() => onRegister(competition.id, 'REGISTERED')}
                         className="flex-1 bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">

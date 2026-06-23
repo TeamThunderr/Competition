@@ -1,5 +1,10 @@
 const { google } = require('googleapis');
+const { classifyEmail } = require('./naiveBayes.classifier');
+const { parseEmailWithGemini } = require('./geminiParser.service');
+const { getCachedResult, setCachedResult } = require('./geminiCache.service');
+const { canCallGemini, recordGeminiCall } = require('../../utils/geminiRateGuard');
 const supabase = require('../../config/supabaseClient');
+const cheerio = require('cheerio');
 
 // Scopes required for the application
 const SCOPES = [
@@ -68,20 +73,34 @@ const tokenize = (text) => {
         .filter(t => t.length > 2);
 };
 
-const extractBodyFromPayload = (payload) => {
+const extractCleanTextFromPayload = (payload) => {
     let body = '';
+    let isHtml = false;
+    
     if (payload.parts) {
         payload.parts.forEach(part => {
             if (part.mimeType === 'text/plain' && part.body && part.body.data) {
                 body += Buffer.from(part.body.data, 'base64').toString('utf-8');
+            } else if (part.mimeType === 'text/html' && part.body && part.body.data) {
+                body += Buffer.from(part.body.data, 'base64').toString('utf-8');
+                isHtml = true;
             } else if (part.parts) {
-                body += extractBodyFromPayload(part);
+                body += extractCleanTextFromPayload(part);
             }
         });
     } else if (payload.body && payload.body.data) {
         body = Buffer.from(payload.body.data, 'base64').toString('utf-8');
+        if (payload.mimeType === 'text/html') isHtml = true;
     }
-    return body || payload.snippet || '';
+    
+    if (!body) return payload.snippet || '';
+    
+    if (isHtml || body.includes('<html') || body.includes('<body')) {
+        const $ = cheerio.load(body);
+        body = $.text().replace(/\s+/g, ' ').trim();
+    }
+    
+    return body;
 };
 
 /**
@@ -332,16 +351,37 @@ const analyzeEmail = (emailData, competitionTitle, knownPlatform = null) => {
  * ------------------------------------------------------------------
  */
 
+const getOAuthClientForUser = async (userId) => {
+    // Fetch google_refresh_token from users table for userId
+    const { data: user, error } = await supabase
+        .from('users')
+        .select('google_refresh_token')
+        .eq('id', userId)
+        .single();
+
+    if (error || !user || !user.google_refresh_token) {
+        throw new Error('Gmail not connected for this user');
+    }
+
+    // Create a new OAuth2Client instance
+    const auth = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+    );
+
+    // Set credentials so the client will auto-refresh the access_token
+    auth.setCredentials({ refresh_token: user.google_refresh_token });
+    
+    return auth;
+};
+
 /**
  * Fetch recent emails from Gmail API
  */
-const fetchRecentEmails = async (accessToken, days = 90) => {
+const fetchRecentEmails = async (userId, days = 90) => {
     try {
-        if (!accessToken) throw new Error("AccessToken is missing");
-
-        const auth = new google.auth.OAuth2();
-        auth.setCredentials({ access_token: accessToken });
-
+        const auth = await getOAuthClientForUser(userId);
         const gmail = google.gmail({ version: 'v1', auth });
 
         // Calculate date query (after: YYYY/MM/DD)
@@ -381,7 +421,7 @@ const fetchRecentEmails = async (accessToken, days = 90) => {
                     from,
                     date: dateHeader,
                     snippet: msgDetails.data.snippet,
-                    body: extractBodyFromPayload(msgDetails.data.payload),
+                    body: extractCleanTextFromPayload(msgDetails.data.payload),
                     sender: from
                 });
             } catch (err) {
@@ -391,6 +431,10 @@ const fetchRecentEmails = async (accessToken, days = 90) => {
 
         return results;
     } catch (error) {
+        if (error.message === 'Gmail not connected for this user') {
+            console.log(`[GmailSync] User ${userId} has not connected Gmail — skipping`);
+            return { skipped: true, reason: 'gmail_not_connected' };
+        }
         console.error('Gmail API Error Details:', JSON.stringify(error, null, 2));
         throw new Error(`Failed to fetch emails from Gmail: ${error.message}`);
     }
@@ -399,12 +443,9 @@ const fetchRecentEmails = async (accessToken, days = 90) => {
 /**
  * Targeted verification for a specific competition
  */
-const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = null) => {
+const syncStudentCompetition = async (userId, competition, lastSyncedAt = null) => {
     try {
-        if (!accessToken) throw new Error("AccessToken is missing");
-
-        const auth = new google.auth.OAuth2();
-        auth.setCredentials({ access_token: accessToken });
+        const auth = await getOAuthClientForUser(userId);
         const gmail = google.gmail({ version: 'v1', auth });
 
         // 1. Construct Query
@@ -455,7 +496,7 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
                 from: headers.find(h => h.name === 'From')?.value || '',
                 date: headers.find(h => h.name === 'Date')?.value || '',
                 snippet: msgDetails.data.snippet,
-                body: extractBodyFromPayload(msgDetails.data.payload)
+                body: extractCleanTextFromPayload(msgDetails.data.payload)
             };
 
             // Explicit Time Window Check (Gmail API 'after' is only Day-level precision)
@@ -468,8 +509,59 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
                 }
             }
 
-            // Pass title and platform for new logic
-            const analysis = analyzeEmail(emailData, competition.title, competition.platform);
+            // ─── Naive Bayes Pre-filter ───
+            const bayesResult = classifyEmail(emailData.snippet + ' ' + emailData.body);
+            
+            if (bayesResult.label === 'irrelevant') {
+                if (bayesResult.confident) {
+                    console.log(`[NaiveBayes] Skipped irrelevant email: ${emailData.subject}`);
+                    continue; // Skip this email entirely
+                } else {
+                    console.log(`[NaiveBayes] Low confidence on: ${emailData.subject} — falling back to rules`);
+                    // Will continue to rules below
+                }
+            }
+
+            // ─── Gemini AI Parsing Pipeline ───
+            let analysis = null;
+            
+            // 1. Check cache
+            const cachedResult = await getCachedResult(msg.id);
+            if (cachedResult) {
+                console.log(`[Gemini] Cache hit for message: ${msg.id}`);
+                analysis = {
+                    suggested_status: cachedResult.status,
+                    confidence_score: cachedResult.confidence === 'high' ? 90 : (cachedResult.confidence === 'medium' ? 60 : 30),
+                    reasoning: ["(Gemini Parser: Cache Hit)"]
+                };
+            } else {
+                // 2. Call Gemini (Rate limit check is handled inside parseEmailWithGemini)
+                const geminiData = await parseEmailWithGemini(emailData.snippet + ' ' + emailData.body, emailData.subject);
+                
+                    if (geminiData) {
+                        console.log(`[Gemini] Parsed successfully: ${geminiData.status} (${geminiData.confidence})`);
+                        
+                        // 4. Set Cache
+                        await setCachedResult(msg.id, geminiData);
+                        
+                        analysis = {
+                            suggested_status: geminiData.status,
+                            confidence_score: geminiData.confidence === 'high' ? 90 : (geminiData.confidence === 'medium' ? 60 : 30),
+                            reasoning: ["(Gemini Parser: API Call)"]
+                        };
+                        
+                        // If Gemini explicitly says not related, drop score heavily
+                        if (geminiData.is_competition_related === false) {
+                             analysis.confidence_score = 0;
+                             analysis.suggested_status = 'NOT_FOUND';
+                        }
+                    }
+            }
+
+            if (!analysis) {
+                // Fall back to rule-based logic
+                analysis = analyzeEmail(emailData, competition.title, competition.platform);
+            }
 
             // Check if this email is actually about THE competition we are syncing
             // Simple check: does the email mention the competition title or similar?
@@ -494,10 +586,13 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
         }
 
         // Map 'classification' to 'suggested_status'
-        // HARDENED RULES: >= 80 is REGISTERED (Was 90). score 85 should pass.
-        let suggested_status = 'PENDING';
-        if (bestScore >= 70) suggested_status = 'REGISTERED';
-        else if (bestScore >= 60) suggested_status = 'PENDING';
+        // If Gemini provided a status, respect it. Otherwise fallback to rules.
+        let suggested_status = bestMatch.suggested_status || 'PENDING';
+        if (!bestMatch.suggested_status) {
+            // HARDENED RULES: >= 80 is REGISTERED (Was 90). score 85 should pass.
+            if (bestScore >= 70) suggested_status = 'REGISTERED';
+            else if (bestScore >= 60) suggested_status = 'PENDING';
+        }
 
         return {
             suggested_status,
@@ -515,6 +610,10 @@ const syncStudentCompetition = async (accessToken, competition, lastSyncedAt = n
         };
 
     } catch (error) {
+        if (error.message === 'Gmail not connected for this user') {
+            console.log(`[GmailSync] User ${userId} has not connected Gmail — skipping`);
+            return { skipped: true, reason: 'gmail_not_connected' };
+        }
         console.error('Error in Matching Engine:', error.message);
         throw error;
     }
@@ -533,10 +632,8 @@ const SHORTLIST_KEYWORDS = [
 /**
  * Check for Shortlist/Winner updates for an existing registration
  */
-const checkShortlistStatus = async (accessToken, competition, lastSyncedAt = null) => {
+const checkShortlistStatus = async (userId, competition, lastSyncedAt = null) => {
     try {
-        if (!accessToken) throw new Error("AccessToken is missing");
-
         // STRICT VALIDATION: If no last sync time, we cannot reliably determine "new" updates 
         // without risking re-processing old registration emails as "shortlist" false positives.
         if (!lastSyncedAt) {
@@ -544,8 +641,7 @@ const checkShortlistStatus = async (accessToken, competition, lastSyncedAt = nul
             return { status: null, confidence: 0 };
         }
 
-        const auth = new google.auth.OAuth2();
-        auth.setCredentials({ access_token: accessToken });
+        const auth = await getOAuthClientForUser(userId);
         const gmail = google.gmail({ version: 'v1', auth });
 
         // 1. Construct Query (Similar to sync but focused on recent updates)
@@ -588,7 +684,7 @@ const checkShortlistStatus = async (accessToken, competition, lastSyncedAt = nul
 
             const emailData = {
                 snippet: msgDetails.data.snippet,
-                body: extractBodyFromPayload(msgDetails.data.payload).toLowerCase(),
+                body: extractCleanTextFromPayload(msgDetails.data.payload).toLowerCase(),
                 subject: (msgDetails.data.payload.headers.find(h => h.name === 'Subject')?.value || '').toLowerCase()
             };
 
@@ -616,7 +712,113 @@ const checkShortlistStatus = async (accessToken, competition, lastSyncedAt = nul
         return { status: null, confidence: 0 };
 
     } catch (error) {
+        if (error.message === 'Gmail not connected for this user') {
+            console.log(`[GmailSync] User ${userId} has not connected Gmail — skipping`);
+            return { skipped: true, reason: 'gmail_not_connected' };
+        }
         console.error('Error in Shortlist Check:', error.message);
+        throw error;
+    }
+};
+
+/**
+ * Phase 1: Ingest emails from Gmail and save them to the local buffer database
+ */
+const ingestStudentEmails = async (userId, competition, lastSyncedAt = null) => {
+    try {
+        const auth = await getOAuthClientForUser(userId);
+        const gmail = google.gmail({ version: 'v1', auth });
+
+        const titleTokens = tokenize(competition.title);
+        const mainTerms = titleTokens.slice(0, 2).join(' ');
+        let queryString = `"${mainTerms}"`;
+        if (competition.platform) {
+            queryString = `(${queryString}) OR "${competition.platform}"`;
+        }
+
+        if (lastSyncedAt) {
+            const date = new Date(lastSyncedAt);
+            if (!isNaN(date.getTime())) {
+                queryString += ` after:${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+            }
+        } else {
+            const date = new Date();
+            date.setMonth(date.getMonth() - 6);
+            queryString += ` after:${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+        }
+
+        let nextPageToken = null;
+        let emailsToBuffer = [];
+        let totalIngested = 0;
+
+        do {
+            const response = await gmail.users.messages.list({
+                userId: 'me',
+                q: queryString,
+                maxResults: 100, // Fetch up to 100 per page for faster ingestion
+                pageToken: nextPageToken
+            });
+
+            const messages = response.data.messages || [];
+            nextPageToken = response.data.nextPageToken;
+
+            if (messages.length === 0) break;
+
+            for (const msg of messages) {
+                const msgDetails = await gmail.users.messages.get({
+                    userId: 'me',
+                    id: msg.id,
+                    format: 'full'
+                });
+
+                const headers = msgDetails.data.payload.headers;
+                const subject = headers.find(h => h.name === 'Subject')?.value || '';
+                const sender = headers.find(h => h.name === 'From')?.value || '';
+                const snippet = msgDetails.data.snippet;
+                const cleanBody = extractCleanTextFromPayload(msgDetails.data.payload);
+
+                // Naive Bayes Filter early to prevent bloating buffer with junk
+                const fullText = subject + ' ' + snippet + ' ' + cleanBody;
+                const bayesResult = classifyEmail(fullText);
+
+                if (bayesResult.label === 'irrelevant' && bayesResult.confident) {
+                    continue; // Skip junk entirely
+                }
+
+                emailsToBuffer.push({
+                    competition_id: competition.id,
+                    user_id: userId,
+                    gmail_message_id: msg.id,
+                    sender,
+                    subject,
+                    body_text: fullText.substring(0, 5000) // cap to prevent excessive DB size
+                });
+            }
+
+            // Flush to DB to avoid huge memory arrays if many messages
+            if (emailsToBuffer.length > 0) {
+                const { error } = await supabase
+                    .from('email_ingestion_buffer')
+                    .upsert(emailsToBuffer, { onConflict: 'competition_id, user_id, gmail_message_id' });
+
+                if (error) {
+                    console.error('[Ingestion] Error saving to buffer:', error);
+                } else {
+                    totalIngested += emailsToBuffer.length;
+                }
+                emailsToBuffer = [];
+            }
+
+        } while (nextPageToken);
+
+        console.log(`[Ingestion] User ${userId} | Competition ${competition.id} | Ingested: ${totalIngested} emails`);
+        return totalIngested;
+
+    } catch (error) {
+        if (error.message === 'Gmail not connected for this user') {
+            return 0; // Skip silently
+        }
+        console.error('[Ingestion] Error:', error.message);
         throw error;
     }
 };
@@ -624,5 +826,6 @@ const checkShortlistStatus = async (accessToken, competition, lastSyncedAt = nul
 module.exports = {
     syncStudentCompetition,
     analyzeEmail,
-    checkShortlistStatus
+    checkShortlistStatus,
+    ingestStudentEmails
 };
