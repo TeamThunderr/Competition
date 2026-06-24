@@ -136,20 +136,60 @@ async function request(endpoint, options = {}) {
     }
 }
 
+const apiCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // Exported Methods
 export const api = {
-    get: (endpoint, options = {}) => request(endpoint, { method: 'GET', ...options }),
-    post: (endpoint, body, options = {}) => request(endpoint, {
-        method: 'POST',
-        body: body instanceof FormData ? body : JSON.stringify(body),
-        ...options
-    }),
-    put: (endpoint, body, options = {}) => request(endpoint, {
-        method: 'PUT',
-        body: body instanceof FormData ? body : JSON.stringify(body),
-        ...options
-    }),
-    del: (endpoint, options = {}) => request(endpoint, { method: 'DELETE', ...options }),
+    get: (endpoint, options = {}) => {
+        // Skip cache if explicitly requested
+        if (options.cache === false) {
+            return request(endpoint, { method: 'GET', ...options });
+        }
+        
+        const cacheKey = endpoint;
+        
+        // Return cached promise if valid
+        if (apiCache.has(cacheKey)) {
+            const cached = apiCache.get(cacheKey);
+            if (Date.now() - cached.timestamp < CACHE_TTL) {
+                return cached.promise;
+            }
+            apiCache.delete(cacheKey);
+        }
+
+        // Make new request and cache the promise
+        const promise = request(endpoint, { method: 'GET', ...options }).catch(err => {
+            apiCache.delete(cacheKey); // Remove from cache if it fails
+            throw err;
+        });
+
+        apiCache.set(cacheKey, { promise, timestamp: Date.now() });
+        return promise;
+    },
+    
+    post: (endpoint, body, options = {}) => {
+        apiCache.clear(); // Bust cache on mutation
+        return request(endpoint, {
+            method: 'POST',
+            body: body instanceof FormData ? body : JSON.stringify(body),
+            ...options
+        });
+    },
+    
+    put: (endpoint, body, options = {}) => {
+        apiCache.clear(); // Bust cache on mutation
+        return request(endpoint, {
+            method: 'PUT',
+            body: body instanceof FormData ? body : JSON.stringify(body),
+            ...options
+        });
+    },
+    
+    del: (endpoint, options = {}) => {
+        apiCache.clear(); // Bust cache on mutation
+        return request(endpoint, { method: 'DELETE', ...options });
+    },
 
     // Check Health
     checkHealth: () => request('/health')
