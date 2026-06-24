@@ -1,5 +1,6 @@
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { ToastProvider } from './contexts/ToastContext';
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
@@ -54,6 +55,7 @@ function App() {
 
   return (
     <ToastProvider>
+      <Analytics />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
