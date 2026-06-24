@@ -73,11 +73,12 @@ const LoginForm = () => {
                     <label className="block text-gray-700 dark:text-gray-300 text-sm font-semibold mb-2 ml-1">Email Address</label>
                     <input
                         type="email"
-                        className="w-full px-4 py-3 bg-white dark:bg-[#0f172a]/80 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-300 shadow-sm dark:shadow-inner"
+                        className="w-full px-4 py-3 bg-white dark:bg-[#0f172a]/80 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-300 shadow-sm dark:shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="Enter your email..."
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
+                        disabled={loading}
                     />
                 </div>
 

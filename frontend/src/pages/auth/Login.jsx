@@ -56,9 +56,17 @@ const Login = () => {
 
     useEffect(() => {
         const checkSession = async () => {
+            // Immediately show loading if returning from an OAuth redirect
+            if (window.location.hash && window.location.hash.includes('access_token')) {
+                setLoading(true);
+            }
+
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user?.email) {
                 console.log("Supabase session found:", session.user.email);
+                
+                // Set loading true immediately while processing backend calls
+                setLoading(true);
 
                 // --- NEW: Save Google Refresh Token if present ---
                 // "provider_refresh_token" is available in the session object directly after OAuth callback
@@ -82,7 +90,6 @@ const Login = () => {
 
                 // User is authenticated with Supabase (Google), now check with our backend
                 try {
-                    setLoading(true);
                     const data = await loginUser(session.user.email);
 
                     console.log("[Login] Backend returned user:", data.user);
@@ -104,6 +111,8 @@ const Login = () => {
                 } finally {
                     setLoading(false);
                 }
+            } else {
+                setLoading(false);
             }
         };
 
@@ -227,11 +236,12 @@ const Login = () => {
                             <label className="block text-gray-700 dark:text-gray-300 text-sm font-semibold mb-2 ml-1">Email Address</label>
                             <input
                                 type="email"
-                                className="w-full px-4 py-3 bg-white dark:bg-[#0f172a]/80 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-300 shadow-sm dark:shadow-inner"
+                                className="w-full px-4 py-3 bg-white dark:bg-[#0f172a]/80 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-300 shadow-sm dark:shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
                                 placeholder="Enter your email..."
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
+                                disabled={loading}
                             />
                         </div>
 
