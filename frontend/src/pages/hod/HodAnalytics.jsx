@@ -13,7 +13,7 @@ import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const Card = ({ title, value, subtext, icon: Icon, color }) => (
     <div className={`bg-card p-6 rounded-xl border border-border shadow-sm border-l-4 ${color}`}>
-        <div className="flex justify-between items-start mb-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
             <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">{title}</h3>
             <div className={`p-2 rounded-lg bg-muted/10 text-muted`}>
                 <Icon size={18} />
@@ -243,7 +243,7 @@ const HodAnalytics = () => {
 
                 {/* At Risk Students */}
                 <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm border-l-4 border-l-red-400">
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-4">
                         <div>
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white">At-Risk Students</h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Zero participation in current semester</p>

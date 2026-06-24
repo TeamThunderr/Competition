@@ -194,7 +194,7 @@ const AdminDashboard = () => {
                     </div>
 
                     {/* Quick Actions */}
-                    <div className="mb-6 flex gap-3">
+                    <div className="mb-6 flex flex-col sm:flex-row gap-3">
                         <Link
                             to="/admin/upload"
                             className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200 px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-sm"
@@ -212,7 +212,7 @@ const AdminDashboard = () => {
 
                     {/* Competitions Grid */}
                     <div className="mb-6">
-                        <div className="flex justify-between items-center mb-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
                             <h2 className="text-xl font-bold text-foreground">All Competitions</h2>
                             <span className="text-sm text-muted">Sorted by upload time (newest first)</span>
                         </div>

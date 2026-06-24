@@ -278,7 +278,7 @@ const HodDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Main Content Area (Table or Student List) */}
                 <div className="lg:col-span-2 bg-card rounded-xl shadow-sm border border-border p-6 order-2 lg:order-1">
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                         <div>
                             <h2 className="text-lg font-bold text-foreground mb-1">
                                 {selectedSection === 'All Sections' ? 'Section-wise Performance' : `${selectedSection} Student List`}

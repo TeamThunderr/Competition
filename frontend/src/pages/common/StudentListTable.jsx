@@ -46,7 +46,7 @@ const StudentListTable = ({
     return (
         <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
             {/* Controls */}
-            <div className="p-6 border-b border-border flex justify-between items-center bg-card">
+            <div className="p-6 border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card">
                 <div className="relative w-full max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={18} />
                     <input

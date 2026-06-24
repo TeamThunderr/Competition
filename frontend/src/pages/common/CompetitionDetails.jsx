@@ -183,9 +183,9 @@ const CompetitionDetails = () => {
                             </div>
                         </div>
 
-                        <div className="flex gap-3 w-full md:w-auto">
+                        <div className="flex flex-wrap gap-3 w-full md:w-auto">
                             {isFaculty && (
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2">
                                     <button
                                         onClick={async () => {
                                             const { downloadCompetitionStudents } = await import('../../services/facultyService');
