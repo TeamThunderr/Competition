@@ -299,10 +299,9 @@ const getDashboardStats = async (req, res) => {
             if (regError) throw regError;
             regData = data; // Assign to outer variable
 
-            // Calculate Count Distinct User ID (Reverted based on user feedback)
-            const uniqueStudents = new Set(regData?.map(r => r.user_id)).size;
-            participationCount = uniqueStudents;
-            console.log(`[Faculty] Participation Count (Unique): ${participationCount}`);
+            // Calculate Total Registrations across all competitions
+            participationCount = regData ? regData.length : 0;
+            console.log(`[Faculty] Participation Count (Total): ${participationCount}`);
 
         } catch (err) {
             console.error('[Faculty] Registration stats FAILED:', err.message);
@@ -317,7 +316,14 @@ const getDashboardStats = async (req, res) => {
 
         if (qualError) throw qualError;
 
+        // 3. Won Count: is_winner = true
+        const { count: wonCount, error: wonError } = await supabase
+            .from('competition_status')
+            .select('*', { count: 'exact', head: true })
+            .in('user_id', myStudentIds)
+            .eq('is_winner', true);
 
+        if (wonError) throw wonError;
 
         // 5. Calculate batch label
         let batchLabel = 'N/A';
@@ -337,6 +343,7 @@ const getDashboardStats = async (req, res) => {
             total_students: myStudentIds.length,
             comp_registered: participationCount || 0,
             comp_qualified: qualifiedCount || 0,
+            comp_won: wonCount || 0,
             od_requests: 0, // Explicitly zeroed out as Faculty has no OD role
             section_label: assigned_sections?.join(', ') || 'N/A',
             batch_label: batchLabel,

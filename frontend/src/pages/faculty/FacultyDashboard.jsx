@@ -179,7 +179,16 @@ const FacultyDashboard = () => {
                         let totalDetected = 0;
                         let competitionCount = 0;
 
-                        for (const comp of competitions) {
+                        // Only sync active competitions and those that closed within the last 14 days
+                        const cutoffDate = new Date();
+                        cutoffDate.setDate(cutoffDate.getDate() - 14);
+
+                        const compsToSync = competitions.filter(comp => {
+                            const deadline = new Date(comp.registration_deadline);
+                            return deadline >= cutoffDate;
+                        });
+
+                        for (const comp of compsToSync) {
                             const result = await syncCompetition(comp.id);
                             // result contains { results: { processed, detected, errors, skipped } }
                             if (result?.results) {

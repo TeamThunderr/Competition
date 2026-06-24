@@ -188,7 +188,7 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
         // 2. Fetch Students
         const facultySectionsParsed = (assignedVersion || []).map(s => {
             const parts = s.split('-');
-            return parts.length > 1 ? parts[parts.length - 1].trim() : s.trim();
+            return parts.length > 1 ? parts[parts.length - 1].trim().toUpperCase() : s.trim().toUpperCase();
         });
 
         const isClosed = competition.registration_deadline && new Date(competition.registration_deadline) < new Date();
@@ -281,13 +281,22 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
 
                             await supabase.from('registrations').upsert(registrationUpsertData, { onConflict: 'user_id, competition_id' });
 
-                            if (['SHORTLISTED', 'QUALIFIED'].includes(res.status)) {
+                            if (['SHORTLISTED', 'QUALIFIED', 'WON', 'WINNER'].includes(res.status)) {
+                                const isWon = ['WON', 'WINNER'].includes(res.status);
                                 await supabase.from('competition_status').upsert({
                                     user_id: emailRecord.user_id,
                                     competition_id: competition.id,
                                     is_shortlisted: true,
+                                    is_winner: isWon,
                                     updated_at: new Date()
                                 }, { onConflict: 'user_id, competition_id' });
+
+                                if (isWon) {
+                                    // Also update registrations table for legacy/student controller logic
+                                    await supabase.from('registrations').update({
+                                        won_status: 'WON'
+                                    }).eq('user_id', emailRecord.user_id).eq('competition_id', competition.id);
+                                }
                             }
                         } else {
                             stats.processed++;
