@@ -86,18 +86,14 @@ const Login = () => {
                 const providerRefreshToken = session.provider_refresh_token;
 
                 if (providerRefreshToken) {
-                    console.log("Found Provider Refresh Token, saving to backend...");
-                    try {
-                        // Use the 'api' wrapper to ensure correct BASE_URL (http://localhost:5000)
-                        await api.post('/api/auth/save-token', {
-                            email: session.user.email,
-                            refreshToken: providerRefreshToken
-                        });
-                        console.log("Token saved successfully.");
-                    } catch (tokErr) {
+                    console.log("Found Provider Refresh Token, saving to backend in background...");
+                    // Fire and forget so we don't block login speed
+                    api.post('/api/auth/save-token', {
+                        email: session.user.email,
+                        refreshToken: providerRefreshToken
+                    }).catch(tokErr => {
                         console.error("Failed to save google token:", tokErr);
-                        // Don't block login, just log error
-                    }
+                    });
                 }
                 // -------------------------------------------------
 
