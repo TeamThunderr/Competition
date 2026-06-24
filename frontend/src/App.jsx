@@ -11,6 +11,7 @@ import ODHistoryPage from './pages/student/ODHistoryPage';
 import Settings from './pages/student/Settings';
 import Profile from './pages/student/Profile';
 import StudentAnalytics from './pages/student/StudentAnalytics';
+import Onboarding from './pages/student/Onboarding';
 
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import StudentList from './pages/faculty/StudentList';
@@ -69,6 +70,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="od-letters" element={<ODLetter />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="onboarding" element={<Onboarding />} />
           <Route path="stats" element={<StudentAnalytics />} />
           <Route path="od-request/:competitionId" element={<ODRequestPage />} />
           <Route path="od-history" element={<ODHistoryPage />} />
