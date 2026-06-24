@@ -18,6 +18,11 @@
 *   **Faculty:** Simplified verification dashboard.
 *   **HODs:** High-level department analytics and OD approvals.
 
+## 🌟 Recent Updates (v0.1.0-alpha)
+* **Unified Layout Architecture:** Completely refactored the frontend to use centralized React Router `Layout` components (`AdminLayout`, `StudentLayout`, etc.) across all user roles, replacing fragmented per-page layout logic.
+* **Mobile Responsiveness Fixed:** Standardized mobile navigation with a sticky top-header and a functional sliding hamburger menu that works consistently on all devices and roles.
+* **HOD Module Completed:** Fully implemented and refactored all HOD pages including Section Details, Approvals, and Analytics.
+
 ## 🧪 Demo Scope & Limitations
 
 This demo focuses on validating:
@@ -38,7 +43,7 @@ This demo focuses on validating:
 | :--- | :--- | :--- |
 | **Student Dashboard** | ✅ Implemented | View competitions, upload manual proof. |
 | **Faculty Dashboard** | ✅ Implemented | Stats overview, student list, pending verifications. |
-| **HOD Dashboard** | 🟡 Partial | Basic Department stats mockup. |
+| **HOD Dashboard** | ✅ Implemented | Full department stats, OD approvals, and analytics. |
 | **Manual Registration** | ✅ Implemented | User uploads screenshot + details. |
 | **Competition Database** | ✅ Implemented | CRUD for Admin to add external events. |
 | **Gmail Automation** | 🟡 **In Code / Disconnected** | Logic exists in `gmailService.js`, but OAuth flow is missing. |
@@ -253,9 +258,9 @@ For the **initial demo and internal validation phase**, the system intentionally
 
 | Criteria | Rating | Verdict |
 | :--- | :--- | :--- |
-| **Code Structure** | ⭐⭐⭐ | Decent MVC, but some logic leaks. |
+| **Code Structure** | ⭐⭐⭐⭐ | Consistent React Router Layouts and centralized wrappers. |
 | **Security** | ⭐ | **Unsafe.** Do not deploy publicly. |
-| **Completeness** | ⭐⭐ | Core CRUD works, "Smart" features mocked. |
+| **Completeness** | ⭐⭐⭐ | Core CRUD works, "Smart" features mocked. |
 | **Beginner Friendly** | ⭐⭐⭐⭐ | Easy to read, standard JS. |
 
 **Is this Production Ready?**
