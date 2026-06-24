@@ -54,10 +54,10 @@ const ODHistoryPage = () => {
                     <div className="space-y-4">
                         {ods.map((od) => (
                             <div key={od.id} className="bg-white dark:bg-card rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">{od.competitions?.title || 'Unknown Event'}</h3>
+                                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                                    <div className="w-full">
+                                        <div className="flex flex-wrap items-center gap-3 mb-2">
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white break-words">{od.competitions?.title || 'Unknown Event'}</h3>
                                             <span className={`px-3 py-1 text-xs font-bold rounded-full border ${getStatusColor(od.status)}`}>
                                                 {od.status}
                                             </span>
@@ -123,7 +123,7 @@ const ODHistoryPage = () => {
                                     </div>
 
                                     {/* Action Buttons */}
-                                    <div className="flex flex-col gap-2">
+                                    <div className="flex flex-col gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                                         {od.status === 'APPROVED' && (
                                             <button
                                                 onClick={() => {
@@ -132,7 +132,7 @@ const ODHistoryPage = () => {
                                                     const user = userData?.user || userData;
                                                     generateODLetter(od, user);
                                                 }}
-                                                className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-lg text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"
+                                                className="flex justify-center items-center gap-2 px-4 py-2 w-full sm:w-auto bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-lg text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"
                                             >
                                                 <Download size={16} /> Download Letter
                                             </button>

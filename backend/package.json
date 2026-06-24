@@ -8,7 +8,6 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed:competitions": "node src/scripts/seed_competitions.js",
-    "test:email_mock": "node src/scripts/mock_email_verification.js",
     "start:prod": "pm2 start ecosystem.config.js --env production",
     "stop:prod": "pm2 stop competition-platform-api",
     "restart:prod": "pm2 restart competition-platform-api",
