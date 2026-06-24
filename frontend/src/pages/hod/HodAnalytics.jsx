@@ -163,7 +163,7 @@ const HodAnalytics = () => {
                 </div>
 
                 {/* Top Competitions (Horizontal Bar Chart) */}
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm">
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Top Competitions by Participation</h3>
                     <div className="w-full h-[300px] min-h-[300px]">
                         {/* Render chart only if data exists to prevent dimension errors */}
@@ -242,7 +242,7 @@ const HodAnalytics = () => {
                 </div>
 
                 {/* At Risk Students */}
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm border-l-4 border-l-red-400">
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm border-l-4 border-l-red-400">
                     <div className="flex justify-between items-start mb-4">
                         <div>
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white">At-Risk Students</h3>
@@ -276,7 +276,7 @@ const HodAnalytics = () => {
                             </div>
                         )}
                     </div>
-                    <div className="mt-4 pt-3 border-t border-border dark:border-slate-700 text-center">
+                    <div className="mt-4 pt-3 border-t border-border dark:border-zinc-800 text-center">
                         <button className="text-sm text-muted hover:text-foreground font-medium">View All Metrics</button>
                     </div>
                 </div>

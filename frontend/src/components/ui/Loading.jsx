@@ -37,7 +37,7 @@ export const LoadingPage = () => {
     return (
         <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
             <LoadingSpinner size="lg" />
-            <p className="text-gray-500 dark:text-slate-400 animate-pulse font-medium">Loading...</p>
+            <p className="text-gray-500 dark:text-zinc-400 animate-pulse font-medium">Loading...</p>
         </div>
     );
 };

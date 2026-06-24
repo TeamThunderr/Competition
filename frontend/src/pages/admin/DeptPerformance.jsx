@@ -35,7 +35,7 @@ const DeptPerformance = () => {
     const maxCount = Math.max(...stats.map(s => s.total_registrations), 1);
 
     return (
-        <div className="min-h-screen bg-background dark:bg-slate-900 flex transition-colors duration-200">
+        <div className="min-h-screen bg-background dark:bg-black flex transition-colors duration-200">
             <Sidebar />
             <div className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8 w-full">
                 <div className="w-[95%] mx-auto">
@@ -51,7 +51,7 @@ const DeptPerformance = () => {
                     ) : (
                         <>
                             {/* Chart Section */}
-                            <div className="bg-card dark:bg-slate-800 p-4 md:p-8 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm mb-8 overflow-x-auto transition-colors duration-200">
+                            <div className="bg-card dark:bg-zinc-900 p-4 md:p-8 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm mb-8 overflow-x-auto transition-colors duration-200">
                                 <h2 className="text-base font-bold text-foreground dark:text-white mb-8">Department Registrations</h2>
 
                                 <div className="space-y-8 w-full">
@@ -63,7 +63,7 @@ const DeptPerformance = () => {
                                             </div>
 
                                             {/* Bar Container */}
-                                            <div className="flex-1 h-10 bg-background dark:bg-slate-900/50 rounded-sm relative flex items-center">
+                                            <div className="flex-1 h-10 bg-background dark:bg-black/50 rounded-sm relative flex items-center">
                                                 <div
                                                     className="h-full bg-blue-500 rounded-l-sm transition-all duration-500"
                                                     style={{ width: `${(dept.total_registrations / maxCount) * 100}%` }}
@@ -92,12 +92,12 @@ const DeptPerformance = () => {
                             </div>
 
                             {/* Table Section */}
-                            <div className="bg-card dark:bg-slate-800 p-4 md:p-8 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden transition-colors duration-200">
+                            <div className="bg-card dark:bg-zinc-900 p-4 md:p-8 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm overflow-hidden transition-colors duration-200">
                                 <h2 className="text-base font-bold text-foreground dark:text-white mb-6">Detailed Department Stats</h2>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
                                         <thead>
-                                            <tr className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-slate-700">
+                                            <tr className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-zinc-800">
                                                 <th className="pb-3 pl-4">Department</th>
                                                 <th className="pb-3">Sections Active</th>
                                                 <th className="pb-3 text-center">Shortlisted</th>
@@ -108,7 +108,7 @@ const DeptPerformance = () => {
                                         <tbody>
                                             {stats.map(dept => (
                                                 <React.Fragment key={dept.department_id}>
-                                                    <tr className="border-b border-gray-50 dark:border-slate-700 last:border-0 hover:bg-background dark:hover:bg-slate-700/50 transition-colors">
+                                                    <tr className="border-b border-gray-50 dark:border-zinc-800 last:border-0 hover:bg-background dark:hover:bg-slate-700/50 transition-colors">
                                                         <td className="py-4 pl-4 font-medium text-foreground dark:text-gray-200">{dept.department_name}</td>
                                                         <td className="py-4">
                                                             {dept.sections && dept.sections.length > 0

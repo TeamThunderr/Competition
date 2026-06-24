@@ -10,7 +10,7 @@ const StudentProfileView = ({ student }) => {
     return (
         <div className="font-sans text-gray-900 dark:text-gray-100">
             {/* Profile Header Card */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm mb-8 transition-colors duration-200">
+            <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm mb-8 transition-colors duration-200">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-3">
@@ -58,40 +58,40 @@ const StudentProfileView = ({ student }) => {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm transition-colors duration-200">
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm transition-colors duration-200">
                     <div className="flex items-center gap-3 mb-2 text-blue-600 dark:text-blue-400">
                         <Clock size={20} />
                         <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Registered</h3>
                     </div>
                     <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.registered}</p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm transition-colors duration-200">
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm transition-colors duration-200">
                     <div className="flex items-center gap-3 mb-2 text-purple-600 dark:text-purple-400">
                         <CheckCircle size={20} />
                         <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Qualified</h3>
                     </div>
                     <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.qualified}</p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm transition-colors duration-200">
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm transition-colors duration-200">
                     <div className="flex items-center gap-3 mb-2 text-amber-500">
                         <Trophy size={20} />
                         <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Won</h3>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.won}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.won || 0}</p>
                 </div>
 
             </div>
 
             {/* Competition History */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden transition-colors duration-200">
-                <div className="p-6 border-b border-gray-50 dark:border-slate-700">
+            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm overflow-hidden transition-colors duration-200">
+                <div className="p-6 border-b border-gray-50 dark:border-zinc-800">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Competition History</h2>
                 </div>
 
                 {competitions.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-gray-50/50 dark:bg-slate-700/50">
+                            <thead className="bg-gray-50/50 dark:bg-zinc-800/50">
                                 <tr className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     <th className="px-6 py-4">Competition</th>
                                     <th className="px-6 py-4">Platform</th>

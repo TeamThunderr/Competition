@@ -102,8 +102,8 @@ const ActivityLogs = () => {
                         </div>
                     </div>
 
-                    <div className="bg-card dark:bg-slate-800 rounded-xl border border-border dark:border-slate-700 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-border dark:border-slate-700 flex justify-between items-center bg-muted/5 dark:bg-slate-900/50">
+                    <div className="bg-card dark:bg-zinc-900 rounded-xl border border-border dark:border-zinc-800 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-border dark:border-zinc-800 flex justify-between items-center bg-muted/5 dark:bg-black/50">
                             <div className="font-semibold text-foreground">Total Activities: {logs.length}</div>
                             {/* Placeholder for future filtering if needed */}
                         </div>

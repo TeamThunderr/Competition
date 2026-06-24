@@ -46,7 +46,7 @@ const CompetitionCard = (props) => {
                     )}
                     <button
                         onClick={() => onRegister(competition.id, 'REGISTERED')}
-                        className="flex-1 bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+                        className="flex-1 bg-white dark:bg-zinc-100 dark:text-black dark:border-transparent dark:hover:bg-zinc-200 border border-gray-300 text-gray-700 py-2.5 px-4 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm">
                         Upload Proof
                     </button>
                 </div>
@@ -56,9 +56,10 @@ const CompetitionCard = (props) => {
         // 2. Pending Verification (Manual Upload) - OR if just 'Registered' but not verified (Manual flow)
         if (!my_registration.verified) {
             return (
-                <div className="flex-1 bg-yellow-50 border border-yellow-200 text-yellow-700 py-2 px-4 rounded-lg text-sm font-medium text-center">
+                <span className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold tracking-wide border dark:bg-transparent dark:border-yellow-500/30 text-yellow-700 dark:text-yellow-400 bg-yellow-50">
+                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></div>
                     Verification Pending
-                </div>
+                </span>
             );
         }
 
@@ -90,9 +91,10 @@ const CompetitionCard = (props) => {
                             );
                         } else {
                             return (
-                                <div className="flex-1 bg-yellow-50 border border-yellow-200 text-yellow-700 py-2 px-4 rounded-lg text-sm font-medium text-center">
+                                <span className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold tracking-wide border dark:bg-transparent dark:border-yellow-500/30 text-yellow-700 dark:text-yellow-400 bg-yellow-50">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></div>
                                     Winning Verification Pending
-                                </div>
+                                </span>
                             );
                         }
                     }
@@ -101,9 +103,11 @@ const CompetitionCard = (props) => {
                         return (
                             <div className="flex flex-col gap-2 flex-1">
                                 {odBadge}
-                                <div className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium text-center border border-gray-200">
+                                <span className={`flex flex-1 items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold tracking-wide border
+                                    dark:bg-transparent dark:border-gray-500/30 text-gray-700 dark:text-gray-400 bg-gray-50`}
+                                >
                                     Participant
-                                </div>
+                                </span>
                             </div>
                         );
                     }
@@ -115,7 +119,7 @@ const CompetitionCard = (props) => {
                                 {odBadge ? odBadge : (
                                     <button
                                         onClick={() => onRequestOD(competition.id)}
-                                        className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm">
+                                        className="flex-1 bg-white dark:bg-zinc-900 dark:border-zinc-800 dark:text-white dark:hover:bg-zinc-800 border border-gray-200 text-gray-700 hover:bg-gray-50 py-2 px-4 rounded-xl text-sm font-semibold transition-colors shadow-sm">
                                         Request OD
                                     </button>
                                 )}
@@ -125,7 +129,7 @@ const CompetitionCard = (props) => {
                                     const handler = onWonStatusUpdate || competition.onWonStatusUpdate;
                                     handler?.(competition.id);
                                 }}
-                                className="flex-1 bg-amber-500 text-white py-2 px-4 rounded-lg text-sm font-bold hover:bg-amber-600 transition-colors shadow-sm">
+                                className="flex-1 bg-white dark:bg-zinc-900 dark:border-zinc-800 dark:text-white dark:hover:bg-zinc-800 border border-gray-200 text-gray-700 hover:bg-gray-50 py-2 px-4 rounded-xl text-sm font-semibold transition-colors shadow-sm">
                                 Update Result
                             </button>
                         </div>
@@ -135,9 +139,10 @@ const CompetitionCard = (props) => {
                 // If status is 'Qualified' (meaning they uploaded it) but verified is false (or not manual yet):
                 if (my_registration.status === 'Qualified' && !my_registration.qualification_verified) {
                     return (
-                        <div className="flex-1 bg-yellow-50 border border-yellow-200 text-yellow-700 py-2 px-4 rounded-lg text-sm font-medium text-center">
+                        <span className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold tracking-wide border dark:bg-transparent dark:border-yellow-500/30 text-yellow-700 dark:text-yellow-400 bg-yellow-50">
+                            <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></div>
                             Verification Pending
-                        </div>
+                        </span>
                     );
                 }
 
@@ -145,12 +150,15 @@ const CompetitionCard = (props) => {
                 // OR they are just Registered and want to upload Shortlist proof (Progression)
                 return (
                     <div className="flex gap-2 flex-1">
-                        <div className="flex-1 bg-green-50 text-green-700 py-2 px-2 rounded-lg text-sm font-medium text-center border border-green-200 flex items-center justify-center">
+                        <span className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold tracking-wide border
+                            dark:bg-transparent dark:border-green-500/30 text-green-700 dark:text-green-400 bg-green-50`}
+                        >
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
                             {my_status?.is_shortlisted ? 'Qualified' : 'Registered'}
-                        </div>
+                        </span>
                         <button
                             onClick={() => onRegister(competition.id, 'QUALIFIED')}
-                            className="flex-1 bg-purple-600 text-white py-2 px-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm text-center">
+                            className="flex-1 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200 bg-purple-600 hover:bg-purple-700 text-white py-2.5 px-2 rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm text-center">
                             Upload Proof
                         </button>
                     </div>
@@ -160,12 +168,15 @@ const CompetitionCard = (props) => {
             // If not shortlisted, show Registered status BUT allow uploading shortlist proof
             return (
                 <div className="flex gap-2 flex-1">
-                    <div className="flex-1 bg-green-50 text-green-700 py-2 px-2 rounded-lg text-sm font-medium text-center border border-green-200 flex items-center justify-center">
+                    <span className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold tracking-wide border
+                        dark:bg-transparent dark:border-green-500/30 text-green-700 dark:text-green-400 bg-green-50`}
+                    >
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
                         Registered
-                    </div>
+                    </span>
                     <button
                         onClick={() => onRegister(competition.id, 'QUALIFIED')}
-                        className="flex-1 bg-purple-600 text-white py-2 px-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm text-center">
+                        className="flex-1 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200 bg-purple-600 hover:bg-purple-700 text-white py-2.5 px-2 rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm text-center">
                         Upload Proof
                     </button>
                 </div>

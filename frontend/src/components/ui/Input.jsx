@@ -15,7 +15,7 @@ export const Input = forwardRef(({
             {label && (
                 <label
                     htmlFor={inputId}
-                    className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1"
                 >
                     {label}
                 </label>
@@ -29,11 +29,11 @@ export const Input = forwardRef(({
             block w-full rounded-lg border px-3 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500
             focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500
             disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-slate-800 dark:disabled:text-slate-400
-            bg-white dark:bg-slate-900
+            bg-white dark:bg-black
             transition-colors
             ${error
                             ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                            : 'border-gray-300 dark:border-slate-600'
+                            : 'border-gray-300 dark:border-zinc-800'
                         }
             ${className}
           `}

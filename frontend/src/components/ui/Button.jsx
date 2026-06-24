@@ -2,9 +2,9 @@ import React from 'react';
 
 const variants = {
     primary: 'bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500',
-    secondary: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-brand-500 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700',
+    secondary: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-brand-500 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-800 dark:hover:bg-slate-700',
     outline: 'bg-transparent text-brand-600 border border-brand-600 hover:bg-brand-50 focus:ring-brand-500 dark:text-brand-400 dark:border-brand-400 dark:hover:bg-brand-900/20',
-    ghost: 'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
+    ghost: 'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-500 dark:text-zinc-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
 };
 

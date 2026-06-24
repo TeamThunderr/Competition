@@ -3,7 +3,7 @@ import React from 'react';
 export const Card = ({ children, className = '', noPadding = false, ...props }) => {
     return (
         <div
-            className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 ${noPadding ? '' : 'p-6'} ${className}`}
+            className={`bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 ${noPadding ? '' : 'p-6'} ${className}`}
             {...props}
         >
             {children}
@@ -13,7 +13,7 @@ export const Card = ({ children, className = '', noPadding = false, ...props }) 
 
 export const CardHeader = ({ children, className = '', ...props }) => {
     return (
-        <div className={`px-6 py-4 border-b border-gray-200 dark:border-slate-700 ${className}`} {...props}>
+        <div className={`px-6 py-4 border-b border-gray-200 dark:border-zinc-800 ${className}`} {...props}>
             {children}
         </div>
     );

@@ -119,7 +119,7 @@ const StudentList = () => {
                         ) : (
                             <button
                                 onClick={() => setIsUploadMode(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium shadow-sm"
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200 rounded-lg transition-colors font-medium shadow-sm"
                             >
                                 <Upload size={18} />
                                 Upload Excel

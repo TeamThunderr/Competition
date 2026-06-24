@@ -244,7 +244,7 @@ const UploadCompetitions = () => {
                     )}
 
                     {activeTab === 'manual' && (
-                        <div className="bg-card dark:bg-slate-800 p-6 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm transition-colors duration-200">
+                        <div className="bg-card dark:bg-zinc-900 p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm transition-colors duration-200">
                             <div className="grid grid-cols-2 gap-6 mb-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Competition Name <span className="text-red-500">*</span></label>
@@ -254,7 +254,7 @@ const UploadCompetitions = () => {
                                         required
                                         value={formData.title}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-400"
+                                        className="w-full px-4 py-2 border border-border dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-black text-gray-900 dark:text-white placeholder-gray-400"
                                         placeholder="e.g. HackTheFuture 2025"
                                     />
                                 </div>
@@ -266,7 +266,7 @@ const UploadCompetitions = () => {
                                             required
                                             value={formData.platform}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                                            className="w-full px-4 py-2 border border-border dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none bg-white dark:bg-black text-gray-900 dark:text-white"
                                         >
                                             <option>Unstop</option>
                                             <option>Devfolio</option>
@@ -290,7 +290,7 @@ const UploadCompetitions = () => {
                                         required
                                         value={formData.organizer}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                                        className="w-full px-4 py-2 border border-border dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-black text-gray-900 dark:text-white"
                                         placeholder="e.g. Google, MLH"
                                     />
                                 </div>
@@ -301,7 +301,7 @@ const UploadCompetitions = () => {
                                         required
                                         value={formData.mode}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                                        className="w-full px-4 py-2 border border-border dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-black text-gray-900 dark:text-white"
                                     >
                                         <option>Online</option>
                                         <option>Offline</option>
@@ -317,7 +317,7 @@ const UploadCompetitions = () => {
                                     name="venue"
                                     value={formData.venue}
                                     onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                                    className="w-full px-4 py-2 border border-border dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-black text-gray-900 dark:text-white"
                                     placeholder="e.g. Main Auditorium (if offline)"
                                 />
                             </div>
@@ -331,7 +331,7 @@ const UploadCompetitions = () => {
                                             onClick={() => toggleDepartment(dept)}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${(formData.departments || []).includes(dept)
                                                 ? 'bg-blue-600 text-white border-blue-600'
-                                                : 'bg-white dark:bg-slate-900 text-gray-600 dark:text-gray-300 border-border dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800'
+                                                : 'bg-white dark:bg-black text-gray-600 dark:text-gray-300 border-border dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-slate-800'
                                                 }`}
                                         >
                                             {dept === 'All' ? 'All Departments' : dept}
@@ -370,13 +370,13 @@ const UploadCompetitions = () => {
                                     required
                                     value={formData.link}
                                     onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                                    className="w-full px-4 py-2 border border-border dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white dark:bg-black text-gray-900 dark:text-white"
                                     placeholder="https://"
                                 />
                             </div>
 
                             {/* Team Settings */}
-                            <div className="mb-6 bg-background dark:bg-slate-900/50 p-4 rounded-lg border border-gray-100 dark:border-slate-700">
+                            <div className="mb-6 bg-background dark:bg-black/50 p-4 rounded-lg border border-gray-100 dark:border-zinc-800">
                                 <div className="flex items-center gap-2 mb-4">
                                     <input
                                         type="checkbox"
@@ -399,7 +399,7 @@ const UploadCompetitions = () => {
                                                 min="1"
                                                 value={formData.min_team_size}
                                                 onChange={handleInputChange}
-                                                className="w-full px-3 py-2 border border-border dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                                                className="w-full px-3 py-2 border border-border dark:border-zinc-800 rounded-lg text-sm bg-white dark:bg-black text-gray-900 dark:text-white"
                                             />
                                         </div>
                                         <div>
@@ -410,7 +410,7 @@ const UploadCompetitions = () => {
                                                 min="1"
                                                 value={formData.max_team_size}
                                                 onChange={handleInputChange}
-                                                className="w-full px-3 py-2 border border-border dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                                                className="w-full px-3 py-2 border border-border dark:border-zinc-800 rounded-lg text-sm bg-white dark:bg-black text-gray-900 dark:text-white"
                                             />
                                         </div>
                                     </div>
@@ -424,13 +424,13 @@ const UploadCompetitions = () => {
                                     required
                                     value={formData.description}
                                     onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm h-32 resize-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                                    className="w-full px-4 py-2 border border-border dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm h-32 resize-none bg-white dark:bg-black text-gray-900 dark:text-white"
                                     placeholder="Event details..."
                                 ></textarea>
                             </div>
 
                             <div className="flex justify-end gap-3">
-                                <button className="px-6 py-2 bg-card dark:bg-slate-700 border border-border dark:border-slate-600 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-background dark:hover:bg-slate-600 transition-colors">
+                                <button className="px-6 py-2 bg-card dark:bg-zinc-800 border border-border dark:border-zinc-800 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-background dark:hover:bg-slate-600 transition-colors">
                                     Cancel
                                 </button>
                                 <button

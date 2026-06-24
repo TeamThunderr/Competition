@@ -52,19 +52,19 @@ const SharedSidebar = ({ menuItems, isOpen, onClose }) => {
                 className={`fixed top-0 left-0 z-40 h-[calc(100vh-2rem)] transition-all duration-300 ease-in-out m-4 rounded-2xl border border-border shadow-2xl flex flex-col
                 ${isCollapsed ? 'w-20' : 'w-64'}
                 ${isOpen ? 'translate-x-0' : '-translate-x-[calc(100%+2rem)]'} md:translate-x-0
-                bg-white dark:bg-[#1e1b4b]`}
+                bg-white dark:bg-sidebar`}
             >
 
                 {/* Toggle Button (Desktop only) */}
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="hidden md:flex absolute -right-3 top-10 bg-white dark:bg-indigo-600 border border-border dark:border-indigo-500 rounded-full p-1 shadow-md text-gray-500 dark:text-white hover:scale-110 transition-transform z-50"
+                    className="hidden md:flex absolute -right-3 top-10 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-full p-1 shadow-md text-gray-500 dark:text-zinc-400 hover:scale-110 transition-transform z-50"
                 >
                     {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
                 </button>
 
                 {/* Logo Section */}
-                <div className={`h-32 flex items-center justify-center border-b border-gray-100 dark:border-indigo-900/30 transition-all duration-300 ${isCollapsed ? 'p-2' : 'p-4'}`}>
+                <div className={`h-32 flex items-center justify-center border-b border-gray-100 dark:border-zinc-800 transition-all duration-300 ${isCollapsed ? 'p-2' : 'p-4'}`}>
                     {!isCollapsed ? (
                         <div className="flex items-center gap-2 overflow-hidden w-full justify-center">
                             <img
@@ -104,11 +104,11 @@ const SharedSidebar = ({ menuItems, isOpen, onClose }) => {
                                 title={isCollapsed ? item.label : ''}
                                 className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'space-x-3 px-4'} py-3 rounded-xl transition-all duration-200 font-medium group relative
                                 ${isActive
-                                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-600 dark:text-white shadow-sm'
-                                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-indigo-200 dark:hover:bg-indigo-900/50 dark:hover:text-white'
+                                        ? 'bg-gray-100 text-gray-900 dark:bg-zinc-900 dark:border-zinc-800 dark:text-white border border-transparent shadow-sm'
+                                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-300'
                                     }`}
                             >
-                                <item.icon size={22} className={`shrink-0 transition-colors duration-200 ${isActive ? 'text-indigo-600 dark:text-white' : 'text-gray-400 dark:text-indigo-300 group-hover:text-gray-600 dark:group-hover:text-white'}`} />
+                                <item.icon size={22} className={`shrink-0 transition-colors duration-200 ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-zinc-500 group-hover:text-gray-600 dark:group-hover:text-zinc-300'}`} />
 
                                 <span className={`whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>
                                     {item.label}
@@ -126,14 +126,14 @@ const SharedSidebar = ({ menuItems, isOpen, onClose }) => {
                 </nav>
 
                 {/* Footer */}
-                <div className={`p-4 border-t border-gray-100 dark:border-indigo-900/30 space-y-2`}>
+                <div className={`p-4 border-t border-gray-100 dark:border-zinc-800 space-y-2`}>
                     <button
-                        className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'space-x-3 px-4'} py-3 rounded-xl transition-all duration-200 font-medium
-                        text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-indigo-200 dark:hover:bg-indigo-900/50 dark:hover:text-white`}
                         onClick={toggleTheme}
-                        title={isCollapsed ? (theme === 'dark' ? 'Light Mode' : 'Dark Mode') : ''}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-gray-600 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-zinc-300 transition-colors group"
                     >
-                        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                        <div className="text-gray-400 dark:text-zinc-500 group-hover:text-gray-600 dark:group-hover:text-zinc-300">
+                            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                        </div>
                         <span className={`whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>
                             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                         </span>
@@ -141,7 +141,7 @@ const SharedSidebar = ({ menuItems, isOpen, onClose }) => {
 
                     <button
                         className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'space-x-3 px-4'} py-3 rounded-xl transition-all duration-200 font-medium
-                        text-gray-500 hover:bg-red-50 hover:text-red-600 dark:text-indigo-200 dark:hover:bg-red-900/20 dark:hover:text-red-400`}
+                        text-gray-500 hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-900/20 dark:hover:text-red-400`}
                         onClick={handleLogout}
                         title={isCollapsed ? 'Sign Out' : ''}
                     >

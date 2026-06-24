@@ -68,7 +68,7 @@ const StudentDetails = () => {
     if (!student) return null;
 
     return (
-        <div className="flex bg-gray-50 dark:bg-slate-900 min-h-screen font-sans text-gray-900 dark:text-gray-100 transition-colors duration-200">
+        <div className="flex bg-gray-50 dark:bg-black min-h-screen font-sans text-gray-900 dark:text-gray-100 transition-colors duration-200">
             <Sidebar />
 
             <main className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8 w-full min-w-0">

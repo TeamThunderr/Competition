@@ -68,9 +68,9 @@ const StudentDashboard = () => {
 
         if (activeOD) {
             return (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 rounded-xl flex flex-col gap-3">
+                <div className="bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-200 dark:border-emerald-500/20 p-4 rounded-xl flex flex-col gap-3">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-emerald-100 dark:bg-emerald-800 rounded-full text-emerald-600 dark:text-emerald-300">
+                        <div className="p-3 bg-emerald-100 dark:bg-emerald-500/10 rounded-full text-emerald-600 dark:text-emerald-400">
                             <Trophy size={24} />
                         </div>
                         <div>
@@ -99,8 +99,8 @@ const StudentDashboard = () => {
         }
         if (pendingOD) {
             return (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-xl flex items-center gap-4">
-                    <div className="p-3 bg-amber-100 dark:bg-amber-800 rounded-full text-amber-600 dark:text-amber-300">
+                <div className="bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 p-4 rounded-xl flex items-center gap-4">
+                    <div className="p-3 bg-amber-100 dark:bg-amber-500/10 rounded-full text-amber-600 dark:text-amber-400">
                         <Clock size={24} />
                     </div>
                     <div>
@@ -113,8 +113,8 @@ const StudentDashboard = () => {
         }
 
         return (
-            <div className="bg-gray-50 dark:bg-gray-800/50 border border-border p-4 rounded-xl flex items-center gap-4 opacity-75">
-                <div className="p-3 bg-gray-200 dark:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400">
+            <div className="bg-gray-50 dark:bg-zinc-900 border border-border p-4 rounded-xl flex items-center gap-4 opacity-75">
+                <div className="p-3 bg-gray-200 dark:bg-zinc-800 rounded-full text-gray-500 dark:text-zinc-400">
                     <Clock size={24} />
                 </div>
                 <div>
@@ -345,7 +345,7 @@ const StudentDashboard = () => {
                                 </div>
                             ) : (
                                 <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden min-h-[300px] flex flex-col items-center justify-center p-8">
-                                    <div className="w-16 h-16 bg-muted/10 dark:bg-slate-700/50 rounded-full flex items-center justify-center mb-3">
+                                    <div className="w-16 h-16 bg-muted/10 dark:bg-zinc-800/50 rounded-full flex items-center justify-center mb-3">
                                         <Trophy className="text-brand-500" size={32} />
                                     </div>
                                     <h3 className="text-foreground font-medium">No active competitions</h3>

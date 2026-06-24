@@ -56,7 +56,7 @@ const StudentSearch = () => {
                         <p className="text-gray-500 dark:text-gray-400 mt-1">Global directory lookup. View history and activity for any student.</p>
                     </div>
 
-                    <div className="bg-card dark:bg-slate-800 p-6 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm min-h-[600px] transition-colors duration-200">
+                    <div className="bg-card dark:bg-zinc-900 p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm min-h-[600px] transition-colors duration-200">
                         {/* Search Bar */}
                         <div className="relative max-w-2xl mb-8 mx-auto">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -66,7 +66,7 @@ const StudentSearch = () => {
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="block w-full pl-10 pr-3 py-3 border border-border dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                                className="block w-full pl-10 pr-3 py-3 border border-border dark:border-zinc-800 rounded-lg leading-5 bg-white dark:bg-black text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
                                 placeholder="Search by Name, Roll Number or Email..."
                             />
                         </div>
@@ -78,7 +78,7 @@ const StudentSearch = () => {
                                 </div>
                             ) : students.length > 0 ? (
                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-                                    <thead className="bg-gray-50 dark:bg-slate-700/50">
+                                    <thead className="bg-gray-50 dark:bg-zinc-800/50">
                                         <tr>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reg No</th>
@@ -86,7 +86,7 @@ const StudentSearch = () => {
                                             <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Section</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
+                                    <tbody className="bg-white dark:bg-zinc-900 divide-y divide-gray-200 dark:divide-slate-700">
                                         {students.map((student) => (
                                             <tr
                                                 key={student.id}

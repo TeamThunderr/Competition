@@ -197,7 +197,7 @@ const AdminDashboard = () => {
                     <div className="mb-6 flex gap-3">
                         <Link
                             to="/admin/upload"
-                            className="bg-brand-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-brand-700 transition-colors shadow-sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200 px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-sm"
                         >
                             <Upload size={20} />
                             Upload Competition

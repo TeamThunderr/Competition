@@ -149,9 +149,9 @@ const CustomDatePicker = ({
                 onClick={() => setIsOpen(!isOpen)}
             >
                 <div className={`
-                    w-full px-4 py-2 pl-10 border rounded-lg text-sm bg-white dark:bg-slate-900 
+                    w-full px-4 py-2 pl-10 border rounded-lg text-sm bg-white dark:bg-black 
                     transition-all duration-200
-                    ${isOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-200 dark:border-slate-600 hover:border-blue-400'}
+                    ${isOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-200 dark:border-zinc-800 hover:border-blue-400'}
                 `}>
                     <span className={selectedDate ? 'text-gray-900 dark:text-white' : 'text-gray-400'}>
                         {selectedDate ? selectedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : placeholder}
@@ -168,7 +168,7 @@ const CustomDatePicker = ({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute z-50 mt-2 p-4 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 w-72"
+                        className="absolute z-50 mt-2 p-4 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-gray-100 dark:border-zinc-800 w-72"
                     >
                         {/* Header */}
                         <div className="flex justify-between items-center mb-4">
