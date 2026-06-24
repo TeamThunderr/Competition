@@ -9,16 +9,13 @@ const { applyPagination, paginatedResponse } = require('../../utils/paginate.uti
 const getAllCompetitions = async (req, res) => {
     try {
         const userId = req.userId;
-        const pagination = req.pagination || { page: 1, limit: 20, offset: 0 };
-        console.log("Student Controller - Fetching competitions for user:", userId);
+        console.log("Student Controller - Fetching all competitions for user:", userId);
 
-        // Build paginated competitions query with exact count
-        const baseQuery = supabase
+        // Build competitions query with exact count
+        const { data: competitions, error: compError, count } = await supabase
             .from('competitions')
             .select('*, registrations(count)', { count: 'exact' })
             .order('registration_deadline', { ascending: true });
-
-        const { data: competitions, error: compError, count } = await applyPagination(baseQuery, pagination);
 
         if (compError) {
             console.log("Student Controller - DB Error:", compError);
@@ -90,7 +87,7 @@ const getAllCompetitions = async (req, res) => {
             };
         });
 
-        res.status(200).json(paginatedResponse(enrichedCompetitions, pagination, count));
+        res.status(200).json(enrichedCompetitions);
     } catch (err) {
         console.error('Error fetching competitions (FULL):', JSON.stringify(err, null, 2));
         console.error('Error Stack:', err.stack);

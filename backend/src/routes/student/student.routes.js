@@ -28,7 +28,7 @@ router.get('/search-students', studentController.searchStudents);
 router.post('/validate-teammate', studentController.validateTeammate);
 
 // Competitions (paginated)
-router.get('/competitions', paginate, competitionController.getAllCompetitions);
+router.get('/competitions', competitionController.getAllCompetitions);
 router.get('/competition/:id', competitionController.getCompetitionDetails);
 
 // Registration / Verification Flow
