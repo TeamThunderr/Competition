@@ -1,1 +1,0 @@
-2025-12-30T05:44:05.438Z - Error: {"code":"42703","details":null,"hint":null,"message":"column users.year does not exist"} 
