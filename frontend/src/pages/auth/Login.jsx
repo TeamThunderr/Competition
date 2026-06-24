@@ -65,6 +65,11 @@ const Login = () => {
             if (session?.user?.email) {
                 console.log("Supabase session found:", session.user.email);
                 
+                // Clear the hash fragment from the URL so it doesn't linger
+                if (window.location.hash) {
+                    window.history.replaceState(null, '', window.location.pathname);
+                }
+                
                 // Set loading true immediately while processing backend calls
                 setLoading(true);
 
