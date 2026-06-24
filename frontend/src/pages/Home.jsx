@@ -1,9 +1,20 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trophy, Users, ShieldCheck, ArrowRight, Sparkles, Zap, Award } from 'lucide-react';
 import LoginForm from '../components/auth/LoginForm';
+import { useEffect } from 'react';
 
 const Home = () => {
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        // If Supabase falls back to redirecting to the root URL (due to missing /login in allowed redirect URLs)
+        // we forward the hash fragment to the /login page where the authentication logic actually lives.
+        if (window.location.hash && window.location.hash.includes('access_token')) {
+            navigate('/login' + window.location.hash);
+        }
+    }, [navigate]);
+
     return (
         <div className="w-screen min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-white overflow-x-hidden selection:bg-indigo-500 selection:text-white font-sans transition-colors duration-300">
             {/* Ambient Background Lights */}
