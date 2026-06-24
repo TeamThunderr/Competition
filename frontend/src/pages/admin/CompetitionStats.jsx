@@ -119,21 +119,18 @@ const CompetitionStats = () => {
 
     if (error || !stats || !competition) {
         return (
-            <div className="min-h-screen bg-background flex transition-colors duration-200">
-                <Sidebar />
-                <div className="flex-1 md:ml-sidebar p-8 flex flex-col items-center justify-center">
+            <>
+                <div className="flex flex-col items-center justify-center h-full py-20">
                     <div className="text-red-500 dark:text-red-400 mb-4 font-medium">{error || "Data not found"}</div>
                     <Link to="/admin/repository" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline transition-colors">Return to Repository</Link>
                 </div>
-            </div>
+            </>
         );
     }
 
     return (
-        <div className="min-h-screen bg-background flex transition-colors duration-200">
-            <Sidebar />
-            <div className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8 font-sans">
-                <div className="w-[95%] mx-auto">
+        <>
+                <div className="w-[95%] mx-auto font-sans">
                     {/* Header */}
                     <div className="mb-8 relative text-center">
                         <Link to="/admin/repository" className="absolute left-0 top-0 inline-flex items-center text-muted hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
@@ -427,8 +424,7 @@ const CompetitionStats = () => {
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+        </>
     );
 };
 export default CompetitionStats;

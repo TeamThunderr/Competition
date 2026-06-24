@@ -87,15 +87,13 @@ const Settings = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background flex transition-colors duration-200 relative">
+        <>
             {toast && (
                 <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50">
                     {toast}
                 </div>
             )}
-            <StudentSidebar />
-            <div className="flex-1 md:ml-sidebar p-8">
-                <div className="max-w-4xl mx-auto">
+            <div className="max-w-4xl mx-auto">
                     <div className="mb-8">
                         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
                         <p className="text-gray-500 mt-1">Manage your profile and application preferences.</p>
@@ -261,9 +259,8 @@ const Settings = () => {
                             </div>
                         </div>
                     </div>
-                </div>
             </div>
-        </div>
+        </>
     );
 };
 

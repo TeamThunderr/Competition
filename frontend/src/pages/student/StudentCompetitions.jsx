@@ -231,11 +231,8 @@ const StudentCompetitions = () => {
     };
 
     return (
-        <div className="flex bg-background min-h-screen font-sans text-foreground">
-            <StudentSidebar />
-            <div className="flex-1 ml-0 md:ml-sidebar p-4 md:p-8">
-
-                {/* Header Section with Tabs and Sync Status */}
+        <>
+            {/* Header Section with Tabs and Sync Status */}
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     {/* Tab Navigation */}
                     <div className="flex space-x-1 bg-muted/20 p-1 rounded-xl w-fit">
@@ -279,8 +276,6 @@ const StudentCompetitions = () => {
                     cardActions={cardActions}
                     appliedCompetitions={appliedCompetitions}
                 />
-            </div>
-
             <UploadProofModal
                 isOpen={isUploadModalOpen}
                 onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); setSelectedProofType(null); }}
@@ -310,7 +305,7 @@ const StudentCompetitions = () => {
                 type={alertConfig.type}
                 autoClose={true}
             />
-        </div>
+        </>
     );
 };
 

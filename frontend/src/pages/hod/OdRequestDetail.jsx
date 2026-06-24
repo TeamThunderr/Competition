@@ -112,7 +112,7 @@ const OdRequestDetail = () => {
     if (!request) return null;
 
     return (
-        <HodLayout>
+        <>
             <div className="max-w-4xl mx-auto">
                 {/* Header with Back Button */}
                 <div className="mb-8">
@@ -395,7 +395,7 @@ const OdRequestDetail = () => {
                 confirmText={confirmModal.confirmText}
                 loading={actionLoading}
             />
-        </HodLayout >
+        </>
     );
 };
 

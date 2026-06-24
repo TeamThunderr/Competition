@@ -100,10 +100,7 @@ const StudentList = () => {
     };
 
     return (
-        <div className="flex bg-background min-h-screen font-sans text-foreground">
-            <Sidebar />
-
-            <main className="flex-1 md:ml-sidebar p-8">
+        <>
                 {/* Page Header */}
                 <div className="flex justify-between items-center mb-8">
                     <div>
@@ -208,8 +205,7 @@ const StudentList = () => {
                     emptyMessage="No students found."
                     role="FACULTY"
                 />
-            </main>
-        </div>
+        </>
     );
 };
 

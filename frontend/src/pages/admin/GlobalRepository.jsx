@@ -169,9 +169,7 @@ const GlobalRepository = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background flex transition-colors duration-200">
-            <Sidebar />
-            <div className="flex-1 md:ml-sidebar p-4 md:p-6 pt-16 md:pt-6 min-w-0">
+        <>
                 <div className="w-[95%] mx-auto">
                     <div className="mb-8 text-center">
                         <h1 className="text-2xl font-bold text-foreground">Global Repository</h1>
@@ -336,8 +334,7 @@ const GlobalRepository = () => {
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+        </>
     );
 };
 

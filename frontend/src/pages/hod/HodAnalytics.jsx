@@ -86,7 +86,7 @@ const HodAnalytics = () => {
     }
 
     return (
-        <HodLayout>
+        <>
             {/* Header & Tabs */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
@@ -315,7 +315,7 @@ const HodAnalytics = () => {
                     </table>
                 </div>
             </div>
-        </HodLayout>
+        </>
     );
 };
 

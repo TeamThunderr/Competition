@@ -60,7 +60,7 @@ const CompetitionSectionDetails = () => {
     if (!students) return null;
 
     return (
-        <HodLayout>
+        <>
             <div className="mb-6">
                 <button
                     onClick={() => navigate(-1)}
@@ -79,7 +79,7 @@ const CompetitionSectionDetails = () => {
                 // title and onClose are handled by the parent page layout now
                 />
             </div>
-        </HodLayout>
+        </>
     );
 };
 

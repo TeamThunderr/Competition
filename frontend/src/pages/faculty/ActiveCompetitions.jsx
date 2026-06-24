@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from './Sidebar';
+
 import CompetitionListView from '../common/CompetitionListView';
 import { api } from '../../services/api';
 
@@ -26,7 +26,7 @@ const ActiveCompetitions = () => {
 
     return (
         <CompetitionListView
-            Sidebar={Sidebar}
+
             competitions={competitions}
             title="All Competitions"
             subtitle="View history of all competitions."

@@ -475,9 +475,7 @@ const ODRequestPage = () => {
     };
 
     return (
-        <div className="flex bg-background min-h-screen text-foreground font-sans">
-            <Sidebar />
-            <div className="flex-1 flex flex-col min-w-0 md:ml-sidebar p-8">
+        <>
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-8">
                     <button onClick={() => navigate(-1)} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition">
@@ -708,8 +706,6 @@ const ODRequestPage = () => {
                         )}
                     </div>
                 </div>
-            </div>
-
             {/* Global Alert Modal */}
             <ConfirmModal
                 isOpen={alertModal.isOpen}
@@ -721,7 +717,7 @@ const ODRequestPage = () => {
                 confirmText={alertModal.confirmText || "Okay"}
                 cancelText={alertModal.cancelText || "Close"}
             />
-        </div>
+        </>
     );
 };
 

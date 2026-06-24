@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import HodLayout from './HodLayout';
+
 import CompetitionListView from '../common/CompetitionListView';
 import { api } from '../../services/api';
 
@@ -24,7 +24,7 @@ const HodCompetitions = () => {
     }, []);
 
     return (
-        <HodLayout>
+        <>
             <CompetitionListView
                 /* No Sidebar passed, so it uses the 'content-only' mode */
                 competitions={competitions}
@@ -34,7 +34,7 @@ const HodCompetitions = () => {
                 showRegister={false}
                 role="HOD"
             />
-        </HodLayout>
+        </>
     );
 };
 

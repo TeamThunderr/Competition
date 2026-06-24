@@ -41,6 +41,10 @@ import CompetitionStats from './pages/admin/CompetitionStats';
 
 import DeptPerformance from './pages/admin/DeptPerformance';
 import CompetitionDetails from './pages/common/CompetitionDetails';
+import StudentLayout from './pages/student/StudentLayout';
+import FacultyLayout from './pages/faculty/FacultyLayout';
+import HodLayout from './pages/hod/HodLayout';
+import AdminLayout from './pages/admin/AdminLayout';
 import './App.css';
 
 function App() {
@@ -54,52 +58,56 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
 
-
-        {/* Role Based Routes - Can protect these later with Middleware */}
-        <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
-        <Route path="/student/dashboard" element={<StudentDashboard />} />
-        <Route path="/student/competitions" element={<StudentCompetitions />} />
-        <Route path="/student/profile" element={<Profile />} />
-        <Route path="/student/od-letters" element={<ODLetter />} />
-        <Route path="/student/settings" element={<Settings />} />
-        <Route path="/student/stats" element={<StudentAnalytics />} />
-        <Route path="/student/od-request/:competitionId" element={<ODRequestPage />} />
-        <Route path="/student/od-history" element={<ODHistoryPage />} />
-
-        <Route path="/hod/od-requests/:id" element={<OdRequestDetail />} /> {/* New Route */}
-
-        <Route path="/faculty/verification" element={<ManualVerification />} />
-
-        <Route path="/faculty" element={<FacultyDashboard />} />
-        <Route path="/faculty/students" element={<StudentList />} />
-        <Route path="/faculty/students/:id" element={<StudentDetail />} />
-        <Route path="/faculty/verify" element={<FacultyVerify />} />
-        <Route path="/faculty/verify-teams" element={<FacultyTeamVerify />} />
-        <Route path="/faculty/competitions" element={<ActiveCompetitions />} />
-
-
-
-        {/* HOD Routes */}
-        <Route path="/hod" element={<HodDashboard />} />
-        <Route path="/hod/approvals" element={<OdApprovals />} />
-        <Route path="/hod/analytics" element={<HodAnalytics />} />
-        <Route path="/hod/competitions" element={<HodCompetitions />} />
-        <Route path="/hod/students/:id" element={<HodStudentDetail />} />
-        <Route path="/hod/faculty" element={<HodFaculty />} />
-        <Route path="/hod/competitions/:id/section/:sectionName" element={<CompetitionSectionDetails />} />
-
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/search" element={<StudentSearch />} />
-        <Route path="/admin/upload" element={<UploadCompetitions />} />
-        <Route path="/admin/repository" element={<GlobalRepository />} />
-        <Route path="/admin/logs" element={<ActivityLogs />} />
-        <Route path="/admin/repository/:id" element={<CompetitionStats />} />
-        <Route path="/admin/performance" element={<DeptPerformance />} />
-        <Route path="/admin/student/:id" element={<StudentDetails />} />
-
         {/* Common Routes */}
         <Route path="/competitions/:id" element={<CompetitionDetails />} />
+
+        {/* Student Routes */}
+        <Route path="/student" element={<StudentLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<StudentDashboard />} />
+          <Route path="competitions" element={<StudentCompetitions />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="od-letters" element={<ODLetter />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="stats" element={<StudentAnalytics />} />
+          <Route path="od-request/:competitionId" element={<ODRequestPage />} />
+          <Route path="od-history" element={<ODHistoryPage />} />
+        </Route>
+
+        {/* Faculty Routes */}
+        <Route path="/faculty" element={<FacultyLayout />}>
+          <Route index element={<FacultyDashboard />} />
+          <Route path="verification" element={<ManualVerification />} />
+          <Route path="students" element={<StudentList />} />
+          <Route path="students/:id" element={<StudentDetail />} />
+          <Route path="verify" element={<FacultyVerify />} />
+          <Route path="verify-teams" element={<FacultyTeamVerify />} />
+          <Route path="competitions" element={<ActiveCompetitions />} />
+        </Route>
+
+        {/* HOD Routes */}
+        <Route path="/hod" element={<HodLayout />}>
+          <Route index element={<HodDashboard />} />
+          <Route path="od-requests/:id" element={<OdRequestDetail />} />
+          <Route path="approvals" element={<OdApprovals />} />
+          <Route path="analytics" element={<HodAnalytics />} />
+          <Route path="competitions" element={<HodCompetitions />} />
+          <Route path="students/:id" element={<HodStudentDetail />} />
+          <Route path="faculty" element={<HodFaculty />} />
+          <Route path="competitions/:id/section/:sectionName" element={<CompetitionSectionDetails />} />
+        </Route>
+
+        {/* Admin Routes */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="search" element={<StudentSearch />} />
+          <Route path="upload" element={<UploadCompetitions />} />
+          <Route path="repository" element={<GlobalRepository />} />
+          <Route path="logs" element={<ActivityLogs />} />
+          <Route path="repository/:id" element={<CompetitionStats />} />
+          <Route path="performance" element={<DeptPerformance />} />
+          <Route path="student/:id" element={<StudentDetails />} />
+        </Route>
       </Routes>
     </ToastProvider>
   );

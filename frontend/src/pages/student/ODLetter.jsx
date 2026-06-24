@@ -109,10 +109,8 @@ const ODLetter = () => {
     }
 
     return (
-        <div className="min-h-screen bg-background flex transition-colors duration-200">
-            <StudentSidebar />
-            <div className="flex-1 md:ml-sidebar p-8">
-                <div className="max-w-6xl mx-auto space-y-8">
+        <>
+            <div className="max-w-6xl mx-auto space-y-8">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">On-Duty (OD) Management</h1>
                         <p className="text-gray-500 mt-1">Track your OD status and request permissions for upcoming competitions.</p>
@@ -275,8 +273,7 @@ const ODLetter = () => {
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+        </>
     );
 };
 

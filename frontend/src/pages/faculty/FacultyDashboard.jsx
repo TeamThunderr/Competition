@@ -56,22 +56,7 @@ const FacultyDashboard = () => {
     ];
 
     return (
-        <div className="flex bg-background min-h-screen text-foreground">
-            <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-
-            <div className="flex-1 flex flex-col min-w-0 md:ml-sidebar">
-                {/* Mobile Header */}
-                <div className="md:hidden bg-card border-b border-border p-4 flex items-center gap-4 sticky top-0 z-20">
-                    <button
-                        onClick={() => setIsSidebarOpen(true)}
-                        className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                    >
-                        <Menu size={24} />
-                    </button>
-                    <span className="font-bold text-lg">Mentor Dashboard</span>
-                </div>
-
-                <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+        <>
                     {/* Header */}
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-foreground hidden md:block">Section Mentor Dashboard</h1>
@@ -159,9 +144,6 @@ const FacultyDashboard = () => {
                             </div>
                         </>
                     )}
-                </main>
-
-            </div>
 
             <ConfirmModal
                 isOpen={isSyncModalOpen}
@@ -227,7 +209,7 @@ const FacultyDashboard = () => {
                     }
                 }}
             />
-        </div>
+        </>
     );
 };
 

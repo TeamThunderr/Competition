@@ -52,10 +52,8 @@ const Profile = () => {
     if (!userData) return <div className="text-center p-8">Failed to load profile.</div>;
 
     return (
-        <div className="min-h-screen bg-background flex transition-colors duration-200">
-            <StudentSidebar />
-            <div className="flex-1 md:ml-sidebar p-8">
-                <div className="max-w-4xl mx-auto">
+        <>
+            <div className="max-w-4xl mx-auto">
                     <div className="mb-8">
                         <h1 className="text-2xl font-bold text-foreground">My Profile</h1>
                         <p className="text-muted mt-1">View your personal information and academic details.</p>
@@ -245,8 +243,7 @@ const Profile = () => {
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+        </>
     );
 };
 

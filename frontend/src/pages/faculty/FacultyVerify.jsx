@@ -106,10 +106,7 @@ const FacultyVerify = () => {
             : winning;
 
     return (
-        <div className="flex bg-background min-h-screen font-sans text-foreground">
-            <Sidebar />
-
-            <main className="flex-1 md:ml-sidebar p-8">
+        <>
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-foreground">Pending Actions</h1>
                     <p className="text-muted mt-2">Verify manual registration proofs uploaded by students.</p>
@@ -293,8 +290,6 @@ const FacultyVerify = () => {
                         ))}
                     </div>
                 )}
-            </main>
-
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
@@ -306,8 +301,7 @@ const FacultyVerify = () => {
                 confirmText={confirmModal.type === 'danger' ? 'Reject' : 'Approve'}
                 cancelText="Cancel"
             />
-
-        </div>
+        </>
     );
 };
 

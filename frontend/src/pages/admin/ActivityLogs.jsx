@@ -88,9 +88,7 @@ const ActivityLogs = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background flex transition-colors duration-200">
-            <Sidebar />
-            <div className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8">
+        <>
                 <div className="w-[95%] mx-auto">
                     {/* Header */}
                     <div className="mb-8 relative text-center">
@@ -185,8 +183,6 @@ const ActivityLogs = () => {
                         )}
                     </div>
                 </div>
-            </div>
-
             {/* Edit Modal */}
             <EditCompetitionModal
                 isOpen={isEditModalOpen}
@@ -194,7 +190,7 @@ const ActivityLogs = () => {
                 competition={selectedRepo}
                 onUpdate={handleUpdate}
             />
-        </div>
+        </>
     );
 };
 

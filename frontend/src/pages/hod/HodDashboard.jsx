@@ -197,7 +197,7 @@ const HodDashboard = () => {
     const PIE_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
     return (
-        <HodLayout>
+        <>
             {/* Header with Download Button */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
@@ -456,7 +456,7 @@ const HodDashboard = () => {
                     </div>
                 </div>
             </div >
-        </HodLayout>
+        </>
     );
 };
 

@@ -43,7 +43,7 @@ const HodStudentDetail = () => {
 
     if (error) {
         return (
-            <HodLayout>
+            <>
                 <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-2 dark:bg-red-900/10 dark:border-red-800 dark:text-red-400">
                     <AlertCircle size={20} />
                     {error}
@@ -54,14 +54,14 @@ const HodStudentDetail = () => {
                 >
                     <ArrowLeft size={20} /> Back to Dashboard
                 </button>
-            </HodLayout>
+            </>
         );
     }
 
     if (!student) return null;
 
     return (
-        <HodLayout>
+        <>
             {/* Header with Back Button */}
             <div className="mb-8">
                 <button
@@ -76,7 +76,7 @@ const HodStudentDetail = () => {
 
             {/* Shared Profile View */}
             <StudentProfileView student={student} />
-        </HodLayout>
+        </>
     );
 };
 

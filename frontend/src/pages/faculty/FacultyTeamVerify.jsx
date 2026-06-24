@@ -56,10 +56,7 @@ const FacultyTeamVerify = () => {
     };
 
     return (
-        <div className="flex bg-gray-50 min-h-screen font-sans text-gray-900">
-            <Sidebar />
-
-            <main className="flex-1 ml-64 p-8">
+        <>
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">Team Verifications</h1>
                     <p className="text-gray-500 mt-2">Verify proof documents uploaded by Team Leaders.</p>
@@ -178,8 +175,7 @@ const FacultyTeamVerify = () => {
                         ))}
                     </div>
                 )}
-            </main>
-        </div>
+        </>
     );
 };
 

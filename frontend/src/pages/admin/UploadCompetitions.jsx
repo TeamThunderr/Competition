@@ -183,9 +183,7 @@ const UploadCompetitions = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background flex">
-            <Sidebar />
-            <div className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8">
+        <>
                 <div className="w-[95%] mx-auto">
                     <div className="mb-8 text-center">
                         <h1 className="text-2xl font-bold text-foreground">Upload Competitions</h1>
@@ -445,8 +443,7 @@ const UploadCompetitions = () => {
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+        </>
     );
 };
 

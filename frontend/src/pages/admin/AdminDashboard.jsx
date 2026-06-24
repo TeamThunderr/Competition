@@ -146,13 +146,8 @@ const AdminDashboard = () => {
     }
 
     return (
-        <div className="min-h-screen bg-background flex">
-            {/* Sidebar */}
-            <Sidebar />
-
-            {/* Main Content */}
-            <div className="flex-1 md:ml-sidebar p-4 md:p-6 pt-16 md:pt-8 min-w-0">
-                <div className="w-[95%] mx-auto">
+        <>
+                <div className="w-[95%] mx-auto pt-16 md:pt-8 min-w-0">
                     {/* Header */}
                     <div className="mb-8 text-center">
                         <h1 className="text-2xl font-bold text-foreground">CHENNAI INSTITUTE OF TECHNOLOGY (CIT)</h1>
@@ -289,7 +284,6 @@ const AdminDashboard = () => {
                         )}
                     </div>
                 </div>
-            </div>
 
             {/* Edit Competition Modal */}
             {editModalOpen && selectedCompetition && (
@@ -336,7 +330,7 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 };
 

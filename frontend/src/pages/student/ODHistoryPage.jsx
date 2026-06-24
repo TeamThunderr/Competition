@@ -34,9 +34,7 @@ const ODHistoryPage = () => {
     };
 
     return (
-        <div className="flex bg-background min-h-screen text-foreground font-sans">
-            <Sidebar />
-            <div className="flex-1 flex flex-col min-w-0 md:ml-sidebar p-8">
+        <>
                 <div className="mb-8">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My OD History</h1>
                     <p className="text-gray-500 dark:text-gray-400">Track status and view approved ON DUTY requests.</p>
@@ -145,8 +143,7 @@ const ODHistoryPage = () => {
                         ))}
                     </div>
                 )}
-            </div>
-        </div>
+        </>
     );
 };
 

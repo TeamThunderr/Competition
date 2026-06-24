@@ -112,7 +112,7 @@ const OdApprovals = () => {
     }, []);
 
     return (
-        <HodLayout>
+        <>
             {/* Header */}
             <div className="flex flex-col md:flex-row md:justify-between items-start mb-8 gap-4">
                 <div>
@@ -239,7 +239,7 @@ const OdApprovals = () => {
                 loading={loading}
             />
 
-        </HodLayout>
+        </>
     );
 };
 

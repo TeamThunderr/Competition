@@ -271,23 +271,8 @@ const StudentDashboard = () => {
     };
 
     return (
-        <div className="flex bg-background min-h-screen text-foreground font-sans">
-            <StudentSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-
-            <div className="flex-1 flex flex-col min-w-0 md:ml-sidebar">
-                {/* Mobile Header */}
-                <div className="md:hidden bg-card border-b border-border p-4 flex items-center gap-4 sticky top-0 z-20">
-                    <button
-                        onClick={() => setIsSidebarOpen(true)}
-                        className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                    >
-                        <Menu size={24} />
-                    </button>
-                    <span className="font-bold text-lg">Student Dashboard</span>
-                </div>
-
-                <div className="flex-1 p-4 md:p-8 overflow-y-auto">
-                    {/* Header */}
+        <>
+            {/* Header */}
                     <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
                         <div>
                             <h1 className="text-2xl font-bold text-foreground">Welcome back !</h1>
@@ -375,8 +360,6 @@ const StudentDashboard = () => {
                             )}
                         </div>
                     </div>
-                </div>
-            </div>
             <UploadProofModal
                 isOpen={isUploadModalOpen}
                 onClose={() => { setIsUploadModalOpen(false); setSelectedTeamId(null); setSelectedProofType(null); }}
@@ -408,8 +391,7 @@ const StudentDashboard = () => {
                 confirmText="Okay"
                 cancelText="Close"
             />
-
-        </div>
+        </>
     );
 };
 
