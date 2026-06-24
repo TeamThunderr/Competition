@@ -28,14 +28,15 @@ const Login = () => {
             localStorage.setItem('role', data.role);
 
             // Redirect based on role
-            if (data.role === 'STUDENT') {
-                const onboardingCompleted = localStorage.getItem('onboarding_completed');
-                if (!onboardingCompleted) {
-                    navigate('/student/onboarding');
-                } else {
-                    navigate('/student');
-                }
-            }
+            // if (data.role === 'STUDENT') {
+            //     const onboardingCompleted = localStorage.getItem('onboarding_completed');
+            //     if (!onboardingCompleted) {
+            //         navigate('/student/onboarding');
+            //     } else {
+            //         navigate('/student');
+            //     }
+            // }
+            if (data.role === 'STUDENT') navigate('/student');
             else if (data.role === 'FACULTY') navigate('/faculty');
             else if (data.role === 'HOD') navigate('/hod');
             else if (data.role === 'ADMIN') navigate('/admin');
@@ -110,14 +111,15 @@ const Login = () => {
                     localStorage.setItem('user', JSON.stringify(data.user));
                     localStorage.setItem('role', data.role);
 
-                    if (data.role === 'STUDENT') {
-                        const onboardingCompleted = localStorage.getItem('onboarding_completed');
-                        if (!onboardingCompleted) {
-                            navigate('/student/onboarding');
-                        } else {
-                            navigate('/student');
-                        }
-                    }
+                    // if (data.role === 'STUDENT') {
+                    //     const onboardingCompleted = localStorage.getItem('onboarding_completed');
+                    //     if (!onboardingCompleted) {
+                    //         navigate('/student/onboarding');
+                    //     } else {
+                    //         navigate('/student');
+                    //     }
+                    // }
+                    if (data.role === 'STUDENT') navigate('/student');
                     else if (data.role === 'FACULTY') navigate('/faculty');
                     else if (data.role === 'HOD') navigate('/hod');
                     else if (data.role === 'ADMIN') navigate('/admin');
