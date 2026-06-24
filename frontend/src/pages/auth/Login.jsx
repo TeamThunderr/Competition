@@ -5,7 +5,6 @@ import { Mail, ArrowRight, Loader2, ChevronLeft } from 'lucide-react';
 import { loginUser } from '../../services/authService';
 import { signInWithGoogle, supabase, signOut } from '../../services/supabaseClient';
 import { api } from '../../services/api';
-import logo from '../../assets/cit.png';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -138,7 +137,7 @@ const Login = () => {
                             transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
                             className="inline-flex justify-center items-center w-20 h-20 rounded-2xl bg-white dark:bg-white/10 shadow-sm border border-gray-100 dark:border-white/5 mb-6"
                         >
-                            <img src={logo} alt="CIT Logo" className="w-12 h-12 object-contain" />
+                            <img src="/cit.png" alt="CIT Logo" className="w-12 h-12 object-contain" />
                         </motion.div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2 tracking-tight">
                             Welcome Back
