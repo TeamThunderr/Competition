@@ -5,7 +5,7 @@ import { Mail, ArrowRight, Loader2, ChevronLeft } from 'lucide-react';
 import { loginUser } from '../../services/authService';
 import { signInWithGoogle, supabase, signOut } from '../../services/supabaseClient';
 import { api } from '../../services/api';
-import logo from '../../assets/logo.png';
+import logo from '../../assets/cit.png';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -94,7 +94,7 @@ const Login = () => {
     }, [navigate]);
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-[#030712] transition-colors duration-500 font-sans">
+        <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-black transition-colors duration-500 font-sans">
             
             {/* Ambient Aurora Background */}
             <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -108,7 +108,7 @@ const Login = () => {
                         scale: [1, 1.2, 0.9, 1] 
                     }}
                     transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-indigo-400/30 dark:bg-indigo-600/20 blur-[120px]"
+                    className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-indigo-400/30 dark:bg-white/5 blur-[120px]"
                 />
                 <motion.div 
                     animate={{ 
@@ -117,7 +117,7 @@ const Login = () => {
                         scale: [1, 0.9, 1.2, 1] 
                     }}
                     transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-purple-400/30 dark:bg-purple-600/20 blur-[120px]"
+                    className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-purple-400/30 dark:bg-white/5 blur-[120px]"
                 />
             </div>
 
@@ -159,7 +159,7 @@ const Login = () => {
                     )}
 
                     {/* Authentication Flow */}
-                    <div className="relative overflow-hidden min-h-[160px]">
+                    <div className="relative overflow-hidden min-h-[220px]">
                         <AnimatePresence mode="wait">
                             {!showEmail ? (
                                 /* Primary View: Google Auth */
