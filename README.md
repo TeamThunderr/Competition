@@ -1,270 +1,116 @@
 # 🎓 College Competition Intelligence Platform
 
-> **Status:** 🚧 Prototype / Demo-Ready  
-> **Current Version:** v0.1.0-alpha  
-> **Security Level:** ⚠️ **NOT PRODUCTION READY** (See Security Section)
+A centralized intelligence platform designed to track, manage, and verify student participation in external hackathons and competitions. This platform replaces chaotic spreadsheets and manual tracking with a streamlined, role-based dashboard system for Students, Faculty, HODs, and College Administrators.
+
+---
 
 ## 1️⃣ Project Overview
 
-**The Problem:** tracking student participation in external hackathons and competitions is currently a manual, chaotic mess of spreadsheets, screenshots, and unverified claims. Colleges struggle to maintain real-time data on student achievements.
+**The Problem:** Tracking student participation in external events is currently a manual process. Colleges struggle to maintain real-time data on student achievements, and managing On-Duty (OD) requests is cumbersome.
 
-**The Solution:** A centralized intelligence platform that:
-1.  **Tracks Registrations:** intended to automatically detect competition registrations from student emails (Gmail).
-2.  **Verifies Achievements:** Provides a manual fallback for students to upload proofs (screenshots) for Faculty verification.
-3.  **Manages Workflows:** Handles On-Duty (OD) requests and approval chains (Faculty → HOD).
-
-**Target Audience:**
-*   **Students:** One-click tracking of their competition portfolio.
-*   **Faculty:** Simplified verification dashboard.
-*   **HODs:** High-level department analytics and OD approvals.
-
-## 🌟 Recent Updates (v0.1.0-alpha)
-* **Unified Layout Architecture:** Completely refactored the frontend to use centralized React Router `Layout` components (`AdminLayout`, `StudentLayout`, etc.) across all user roles, replacing fragmented per-page layout logic.
-* **Mobile Responsiveness Fixed:** Standardized mobile navigation with a sticky top-header and a functional sliding hamburger menu that works consistently on all devices and roles.
-* **HOD Module Completed:** Fully implemented and refactored all HOD pages including Section Details, Approvals, and Analytics.
-
-## 🧪 Demo Scope & Limitations
-
-This demo focuses on validating:
-*   **Gmail-based detection feasibility**
-*   **Faculty verification workflow**
-*   **Department-level visibility**
-
-**Out of scope for demo:**
-*   Strict authentication enforcement
-*   Advanced access control
-*   Production-grade security hardening
+**The Solution:** This centralized platform provides a seamless workflow:
+1.  **Students:** Track their competition portfolio, apply for ODs, and upload proof of participation/achievements.
+2.  **Faculty:** A simplified dashboard to verify student claims and oversee their mentored students.
+3.  **HODs (Head of Department):** High-level department analytics, section-wise performance tracking, and final OD approvals.
+4.  **Admins:** Manage the global repository of competitions, track college-wide performance, and maintain the student database.
 
 ---
 
-## 2️⃣ Features Audit
+## 2️⃣ Key Features by Role
 
-| Feature | Status | Notes |
-| :--- | :--- | :--- |
-| **Student Dashboard** | ✅ Implemented | View competitions, upload manual proof. |
-| **Faculty Dashboard** | ✅ Implemented | Stats overview, student list, pending verifications. |
-| **HOD Dashboard** | ✅ Implemented | Full department stats, OD approvals, and analytics. |
-| **Manual Registration** | ✅ Implemented | User uploads screenshot + details. |
-| **Competition Database** | ✅ Implemented | CRUD for Admin to add external events. |
-| **Gmail Automation** | 🟡 **In Code / Disconnected** | Logic exists in `gmailService.js`, but OAuth flow is missing. |
-| **Authentication** | ⚠️ **Demo Strategy** | "Public Access Mode" enabled for rapid internal validation. |
-| **Docker Support** | ❌ **Missing** | No Dockerfiles present despite planned tooling. |
+### 🧑‍🎓 Student Module
+*   **Competition Discovery:** View active and upcoming competitions added by the college.
+*   **Portfolio Tracking:** Log participation in external hackathons and events.
+*   **OD Management:** Request On-Duty letters directly through the platform and track approval status.
+*   **Analytics:** View personal participation stats and achievements.
 
----
+### 👨‍🏫 Faculty / Mentor Module
+*   **Verification Queue:** Review and verify student participation proofs (certificates/screenshots).
+*   **Student Roster:** View details and competition history of all assigned students.
+*   **OD Review:** Initial review and forwarding of OD requests to the HOD.
 
-## 📧 Gmail-Based Registration Detection (Core Feature)
+### 🏛️ HOD (Head of Department) Module
+*   **Department Analytics:** View real-time participation statistics across different sections and batches.
+*   **OD Approvals:** Final authority to approve or reject pending OD requests.
+*   **Faculty & Student Directory:** Oversee all department members and their activities.
 
-The platform's primary intelligence feature scans **student competition registration emails** using keyword-based detection.
-
-### Why This Is Safe
-*   Only **college-issued Google Workspace accounts** are supported
-*   Personal Gmail accounts are NOT allowed
-*   Access is scoped to:
-    *   Read-only email metadata
-    *   Specific keyword matching (competition names, "registered", "confirmation")
-
-### Access Model
-*   Students explicitly log in using their college Google account
-*   The system does NOT read unrelated personal emails
-*   No emails are stored permanently — only extracted registration metadata
-
-### Detection Logic (Current Version)
-*   **Keyword matching using:**
-    *   Competition names
-    *   Registration confirmation terms
-    *   Organizer domains
-*   **Regex-based parsing** for robustness
-*   **Designed to minimize false positives**
-
-> Future versions may introduce ML-based classification, but the current system prioritizes explainability and accuracy.
-
-### Fallback Strategy
-*   Manual screenshot upload is always available
-*   Faculty verification is mandatory before records become official
+### ⚙️ Admin Module
+*   **Global Repository:** Centralized database of all competitions.
+*   **Event Management:** Upload and broadcast new competitions to the student body.
+*   **College-Wide Insights:** Generate reports and view activity logs across all departments.
 
 ---
 
-## 3️⃣ System Architecture
+## 3️⃣ System Architecture & Tech Stack
 
-### High-Level Flow
-```mermaid
-graph LR
-    User[User (React)] -->|HTTP + Header Spoofing| API[Node Express API]
-    API -->|Anon Key| DB[(Supabase Postgres)]
-    
-    subgraph "Planned / Disconnected"
-        Gmail[Gmail API] -.->|OAuth?| API
-    end
-```
+The application is built using a modern, scalable JavaScript stack:
 
-1.  **Frontend (UI):** React + Vite handles the user interface and interactions.
-2.  **Authentication:** **Public Mode (Demo Phase).** The system currently operates in a simplified "Public Mode" where frontend requests include a simple identifier (`x-user-id`). This is intentional for the demo phase to allow rapid testing without complex IAM setup.
-3.  **Database:** Supabase (PostgreSQL) stores Users, Competitions, and Registrations.
-4.  **Backend Services:** Node.js services handle complex logic (e.g., parsing Gmail snippets, aggregating stats) that can't easily be done in SQL.
+### Frontend
+*   **Framework:** React 19 + Vite
+*   **Styling:** Tailwind CSS (with responsive, mobile-first design)
+*   **Icons & UI:** Lucide React, Framer Motion
+*   **Routing:** React Router v7
+
+### Backend
+*   **Runtime:** Node.js with Express.js
+*   **Database:** Supabase (PostgreSQL)
+*   **Architecture:** Modular MVC pattern with separate routes, controllers, and services.
 
 ---
 
-## 4️⃣ Tech Stack & Justification
+## 4️⃣ Environment Setup & Installation
 
-| Tech | Choice | Why & Trade-offs |
-| :--- | :--- | :--- |
-| **Frontend** | **React + Vite** | Standard industry choice. Fast dev cycle. **Trade-off:** Client-side heavy. |
-| **Styling** | **Tailwind CSS** | Rapid UI development. **Trade-off:** HTML can get messy. |
-| **Backend** | **Node.js + Express** | Simple, JSON-native, huge ecosystem. **Trade-off:** Manual architecture required. |
-| **Database** | **Supabase (PostgreSQL)** | Combines SQL power with easy API/Auth. **Trade-off:** Vendor lock-in if using Supabase-specific features. |
-| **Parsing** | **Google APIs** | Standard for Gmail integration. **Trade-off:** Complex OAuth setup required. |
-
----
-
-## 5️⃣ Folder Structure Explained
-
-The project is split into a monorepo-style structure:
-
-### `📂 backend`
-*   `src/controllers`: **Input/Output layer**. currently contains placeholders (e.g., `auth.controller.js`).
-*   `src/services`: **Business Logic**. Contains the *real* code.
-    *   `src/services/gmailService.js`: The "Brain" for parsing emails.
-*   `src/middleware`: **Traffic Control**. Contains `authMiddleware.js` (The source of the security vulnerability).
-*   `Database`: **SQL Scripts**. `SCHEMA.SQL` defines the tables.
-
-### `📂 frontend`
-*   `src/pages`: One folder per role (`student`, `faculty`, `hod`).
-*   `src/components`: Reusable UI blocks.
-*   `src/services`: API wrappers. `usersService.js` manually attaches the unsafe `x-user-id`.
-
----
-
-## 6️⃣ Database Design Summary
-
-Key tables in `SCHEMA.SQL`:
-
-*   **`users`**: Stores profile + `role` (ENUM: STUDENT, FACULTY, HOD, ADMIN).
-*   **`competitions`**: Central catalog of events.
-*   **`registrations`**: Link table between `users` and `competitions`. Contains `proof_url` and `verified` status.
-*   **`detected_hackathons`**: (From `SCHEMA_UPDATE_GMAIL.SQL`) Staging table for AI/Regex detected events before they are confirmed.
-
-**Why this works:** It uses standard Relational Normalization. Users are distinct from their registrations, allowing one user to have many competitions.
-
----
-
-## 7️⃣ Environment Setup
-
-### ⚠️ Prerequisites
+### Prerequisites
 *   Node.js (v18+)
-*   Supabase Account
+*   A Supabase Account & Project
 
 ### Step 1: Database Setup
 1.  Create a new Supabase Project.
-2.  Go to **SQL Editor**.
-3.  Copy/Paste contents of `backend/Database/SCHEMA.SQL` and run it.
-4.  (Optional) Run `backend/Database/SCHEMA_UPDATE_GMAIL.SQL`.
+2.  Go to the **SQL Editor** in your Supabase dashboard.
+3.  Copy the contents of `backend/Database/SCHEMA.SQL` and run it to generate the necessary tables.
 
 ### Step 2: Backend Setup
+Open a terminal and navigate to the `backend` directory:
 ```bash
 cd backend
 npm install
-cp .env.example .env
 ```
-*   **Edit `.env`**:
-    *   `port`: 5000
-    *   `SUPABASE_URL`: Your Project URL.
-    *   `SUPABASE_ANON_KEY`: Your **Service Role Key** (Recommended for Backend) or Anon Key (If RLS specific).
+Create a `.env` file in the `backend` folder based on `.env.example`:
+```env
+PORT=5000
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+```
+Start the backend server:
+```bash
+npm run dev
+```
 
 ### Step 3: Frontend Setup
+Open a new terminal and navigate to the `frontend` directory:
 ```bash
 cd frontend
 npm install
-cp .env.example .env
 ```
-*   **Edit `.env`**:
-    *   `VITE_SUPABASE_URL`: Your Project URL.
-    *   `VITE_SUPABASE_ANON_KEY`: Your **Anon** Key.
+Create a `.env` file in the `frontend` folder:
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+Start the frontend development server:
+```bash
+npm run dev
+```
 
-### Step 4: Run
-*   Backend: `npm start` (Runs on port 5000)
-*   Frontend: `npm run dev` (Runs on port 5173)
-
----
-
-## 8️⃣ Known Limitations & Risks ⚠️
-
-### � Authentication Strategy (Demo Phase)
-
-For the **initial demo and internal validation phase**, the system intentionally operates in **Public Access Mode**. 
-
-**Why Public Mode?**
-*   Rapid iteration during early development
-*   No exposure to external users
-*   Access limited to college-controlled environments
-
-**Important Notes:**
-*   This mode is **NOT intended for production**.
-*   Role-based authentication using Supabase JWT will be enabled before campus-wide rollout.
-*   All demo data is non-sensitive and seeded for testing purposes.
-
-### 🔌 2. Gmail Integration Status
-**Status:** Logic implementation (Services) is complete. OAuth Connection is pending.
-**Note:** The system uses a safe, read-only scope. See Core Feature section above for privacy details.
-
-### 🏗️ 3. No Docker / DevOps
-**The Issue:** The prompt mentioned Docker, but no `Dockerfile` or `docker-compose.yml` exists.
-**Result:** "Works on my machine" syndrome is highly likely.
-
-### 🔑 4. Environment Key Misuse
-**The Issue:** Backend uses `SUPABASE_ANON_KEY`.
-**The Risk:** If you enable RLS on Supabase, the backend will lose access to write data (like detected hackathons) unless specific policies allow "Anon" to write. The backend should ideally use `SUPABASE_SERVICE_ROLE_KEY`.
+### Step 4: Access the Application
+Once both servers are running, open your browser and navigate to `http://localhost:5173`. 
+*(Note: The backend API runs on `http://localhost:5000`)*
 
 ---
 
-## 9️⃣ What’s Missing / Needs Improvement 🔍
+## 5️⃣ Contribution Guidelines
 
-1.  **Validation:** No `Joi` or `Zod` validation on inputs. You can send empty strings or garbage JSON to the API.
-2.  **Error Handling:** Basic `try/catch` blocks. No centralized error handler.
-3.  **Authentication:** `auth.controller.js` is literally a placeholder returning "Login successful".
-4.  **Testing:** No unit tests (`Jest`) or integration tests.
-5.  **Pagination:** APIs return `select('*')`. If you have 10,000 students, the dashboard **will crash**.
-
----
-
-## 🔟 Improvement Roadmap 🚀
-
-### Short-Term (Immediate Fixes)
-- [ ] **Fix Auth:** Replace `x-user-id` with proper `Authorization: Bearer <token>` verification.
-- [ ] **Dockerize:** Add `Dockerfile` for backend and frontend.
-- [ ] **Validation:** Add `Joi` middleware to routes.
-
-### Medium-Term (Feature Complete)
-- [ ] **Connect Gmail:** Implement Google OAuth on frontend, pass tokens to backend `gmailService`.
-- [ ] **Email Notifications:** Send emails when HOD approves OD.
-- [ ] **Pagination:** Implement `page` and `limit` on all API lists.
-
-### Long-Term (Production Vision)
-- [ ] **Redis Caching:** For the Faculty Dashboard stats.
-- [ ] **Background Jobs:** Move Gmail scanning to a BullMQ queue (don't make the user wait).
-- [ ] **Testing:** 80% Code Coverage.
-
----
-
-## 1️⃣1️⃣ Contribution Guidelines
-
-1.  **Branching:** Use `feature/feature-name`.
-2.  **Commits:** Use conventional commits (e.g., `feat: add student stats`).
-3.  **Linting:** Please run `eslint` before pushing. (Note: ESLint config is present in frontend).
-4.  **Formatting:** Code should be readable.
-
----
-
-## 1️⃣2️⃣ Final Evaluation Summary
-
-| Criteria | Rating | Verdict |
-| :--- | :--- | :--- |
-| **Code Structure** | ⭐⭐⭐⭐ | Consistent React Router Layouts and centralized wrappers. |
-| **Security** | ⭐ | **Unsafe.** Do not deploy publicly. |
-| **Completeness** | ⭐⭐⭐ | Core CRUD works, "Smart" features mocked. |
-| **Beginner Friendly** | ⭐⭐⭐⭐ | Easy to read, standard JS. |
-
-**Is this Production Ready?**
-**NO.** The security gaps (Auth bypass) and scalability issues (no pagination) make it unsuitable for real-world deployment with sensitive student data.
-
-**Is this Hackathon Ready?**
-**YES** (with caveats). It demos well. If you are presenting to judges, it looks functional. Just don't let a penetration tester look at the headers.
+1.  **Branching:** Create a new branch for your feature (`feature/your-feature-name`).
+2.  **Commits:** Use clear, descriptive commit messages.
+3.  **Code Style:** Ensure your code follows the existing formatting and run `npm run lint` before submitting.
+4.  **Pull Requests:** Submit a PR with a summary of your changes for review.
