@@ -1,113 +1,79 @@
-import React, { useState, useEffect } from 'react';
-import { Rocket, BookOpen, BarChart3, Settings, Code, Brain, Target, Shield } from 'lucide-react';
+import React from 'react';
+import { motion } from 'framer-motion';
 
 /**
- * RoleBasedLoader Component
+ * Classy, Minimalist Loader Component
  * 
- * Displays a unique, animated loader and motivational quote for each user role.
- * 
- * @param {String} role - 'STUDENT', 'FACULTY', 'HOD', 'ADMIN'
+ * Displays a premium, pulsing animation using the CIT logo.
  */
-const RoleBasedLoader = ({ role = 'STUDENT' }) => {
-    const [quote, setQuote] = useState('');
-
-    const config = {
-        'STUDENT': {
-            icon: Rocket,
-            secondaryIcon: Code,
-            color: 'text-blue-600 dark:text-blue-400',
-            bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-            borderColor: 'border-blue-200 dark:border-blue-800',
-            animation: 'animate-bounce',
-            quotes: [
-                "Dream it. Build it. Win it.",
-                "Code is the poetry of a better world.",
-                "Every bug is just a step towards the solution.",
-                "Stay hungry. Stay foolish.",
-                "Your potential is limitless."
-            ]
-        },
-        'FACULTY': {
-            icon: BookOpen,
-            secondaryIcon: Brain,
-            color: 'text-purple-600 dark:text-purple-400',
-            bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-            borderColor: 'border-purple-200 dark:border-purple-800',
-            animation: 'animate-pulse',
-            quotes: [
-                "Shaping the minds of tomorrow.",
-                "Guidance is the greatest gift.",
-                "Inspiring excellence, one student at a time.",
-                "Knowledge grows when shared."
-            ]
-        },
-        'HOD': {
-            icon: BarChart3,
-            secondaryIcon: Target,
-            color: 'text-indigo-600 dark:text-indigo-400',
-            bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
-            borderColor: 'border-indigo-200 dark:border-indigo-800',
-            animation: 'animate-spin-slow', // Custom spin for radar feel
-            quotes: [
-                "Vision without action is just a dream.",
-                "Leading with data, driving with purpose.",
-                "Excellence is not an act, but a habit.",
-                "Strategize. Optimize. Revolutionize."
-            ]
-        },
-        'ADMIN': {
-            icon: Settings,
-            secondaryIcon: Shield,
-            color: 'text-gray-800 dark:text-gray-200',
-            bgColor: 'bg-gray-100 dark:bg-gray-800',
-            borderColor: 'border-gray-300 dark:border-gray-700',
-            animation: 'animate-spin',
-            quotes: [
-                "Keeping the systems secure and stable.",
-                "Powering the platform behind the scenes.",
-                "With great power comes great responsibility.",
-                "System Operational."
-            ]
-        }
-    };
-
-    const currentConfig = config[role] || config['STUDENT'];
-    const Icon = currentConfig.icon;
-    const SecondaryIcon = currentConfig.secondaryIcon;
-
-    useEffect(() => {
-        // Pick a random quote on mount
-        const randomQuote = currentConfig.quotes[Math.floor(Math.random() * currentConfig.quotes.length)];
-        setQuote(randomQuote);
-    }, [role]);
-
+const RoleBasedLoader = () => {
     return (
-        <div className="flex flex-col items-center justify-center h-64 w-full">
-            <div className="relative mb-8">
-                {/* Outer Ring */}
-                <div className={`absolute inset-0 rounded-full border-4 ${currentConfig.borderColor} border-t-transparent animate-spin w-20 h-20`}></div>
+        <div className="flex flex-col items-center justify-center min-h-[300px] w-full">
+            <div className="relative flex items-center justify-center">
+                {/* Outer Breathing Ring 1 */}
+                <motion.div
+                    animate={{
+                        scale: [1, 1.5, 1],
+                        opacity: [0.3, 0.8, 0.3],
+                    }}
+                    transition={{
+                        duration: 2.5,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                    }}
+                    className="absolute w-24 h-24 rounded-full border border-gray-200 dark:border-white/10"
+                />
+                
+                {/* Outer Breathing Ring 2 */}
+                <motion.div
+                    animate={{
+                        scale: [1, 2.2, 1],
+                        opacity: [0, 0.3, 0],
+                    }}
+                    transition={{
+                        duration: 2.5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: 0.3
+                    }}
+                    className="absolute w-24 h-24 rounded-full border border-gray-200 dark:border-white/5"
+                />
 
-                {/* Center Icon */}
-                <div className={`relative w-20 h-20 rounded-full ${currentConfig.bgColor} flex items-center justify-center shadow-sm`}>
-                    <Icon size={32} className={`${currentConfig.color} ${role === 'STUDENT' ? 'animate-bounce' : role === 'FACULTY' ? 'animate-pulse' : ''}`} />
-                </div>
-
-                {/* Orbiting Icon (Decorative) */}
-                <div className="absolute -top-2 -right-2">
-                    <div className={`w-8 h-8 rounded-full bg-white dark:bg-card border dark:border-border shadow-sm flex items-center justify-center animate-bounce delay-100`}>
-                        <SecondaryIcon size={14} className={currentConfig.color} />
-                    </div>
-                </div>
+                {/* Core Glow */}
+                <motion.div
+                    animate={{
+                        opacity: [0.5, 1, 0.5],
+                    }}
+                    transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                    }}
+                    className="absolute w-16 h-16 rounded-full bg-indigo-50 dark:bg-white/5 blur-xl"
+                />
+                
+                {/* Core Element (CIT Logo) */}
+                <motion.div 
+                    animate={{ scale: [0.98, 1.05, 0.98] }}
+                    transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                    }}
+                    className="relative w-16 h-16 bg-white dark:bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg border border-gray-100 dark:border-white/20 z-10"
+                >
+                    <img src="/cit.png" alt="Loading..." className="w-8 h-8 object-contain" />
+                </motion.div>
             </div>
 
-            <div className="text-center space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <h3 className={`text-lg font-bold ${currentConfig.color} tracking-tight`}>
-                    Loading {role === 'HOD' ? 'Department Data' : role === 'FACULTY' ? 'Details' : 'Competitions'}...
-                </h3>
-                <p className="text-muted font-medium italic max-w-xs mx-auto">
-                    "{quote}"
-                </p>
-            </div>
+            {/* Minimal Text */}
+            <motion.p 
+                animate={{ opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                className="mt-8 text-xs font-semibold tracking-[0.2em] uppercase text-gray-500 dark:text-gray-400"
+            >
+                Loading
+            </motion.p>
         </div>
     );
 };
