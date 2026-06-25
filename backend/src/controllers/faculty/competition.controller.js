@@ -8,6 +8,11 @@ const getAllCompetitions = async (req, res) => {
     try {
         const { id: facultyId, department_id, assigned_sections } = req.user;
 
+        if (!department_id) {
+            console.log('[FacultyComp] No department assigned to faculty');
+            return res.status(200).json([]);
+        }
+
         // 1. Get Faculty's Student IDs
         const { data: students, error: studentError } = await supabase
             .from('users')
@@ -86,6 +91,15 @@ const getCompetitionStudents = async (req, res) => {
     try {
         const { id: competitionId } = req.params;
         const { assigned_sections, department_id } = req.user;
+
+        if (!department_id) {
+            return res.status(200).json({
+                total: [],
+                registered: [],
+                shortlisted: [],
+                unregistered: []
+            });
+        }
 
         // 1. Fetch ALL Students in Faculty's Sections
         let allStudents = [];
@@ -251,6 +265,10 @@ const exportCompetitionStudents = async (req, res) => {
 
         if (!['registered', 'unregistered'].includes(type)) {
             return res.status(400).json({ error: 'Invalid export type. Must be "registered" or "unregistered".' });
+        }
+
+        if (!department_id) {
+            return res.status(200).send(''); // Empty CSV
         }
 
         // 1. Fetch Competition Details (for filename/header)

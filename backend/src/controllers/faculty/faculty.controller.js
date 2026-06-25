@@ -595,6 +595,11 @@ const getStudentDetails = async (req, res) => {
 
 const getMyStudentIds = async (facultyId, deptId, assignedSections) => {
     try {
+        if (!deptId) {
+            console.log(`[Faculty] getMyStudentIds: Dept is null, returning 0 students.`);
+            return [];
+        }
+
         let allStudents = [];
         let page = 0;
         const pageSize = 1000;
