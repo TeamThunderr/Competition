@@ -22,6 +22,7 @@ const Login = () => {
             const data = await loginUser(email);
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('role', data.role);
+            if (data.token) localStorage.setItem('token', data.token);
 
             if (data.role === 'STUDENT') navigate('/student');
             else if (data.role === 'FACULTY') navigate('/faculty');
@@ -72,6 +73,7 @@ const Login = () => {
                     const data = await loginUser(session.user.email);
                     localStorage.setItem('user', JSON.stringify(data.user));
                     localStorage.setItem('role', data.role);
+                    if (data.token) localStorage.setItem('token', data.token);
 
                     if (data.role === 'STUDENT') navigate('/student');
                     else if (data.role === 'FACULTY') navigate('/faculty');
@@ -97,7 +99,7 @@ const Login = () => {
             
             {/* Ambient Aurora Background */}
             <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+                <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay"></div>
                 
                 {/* Moving Blobs */}
                 <motion.div 
