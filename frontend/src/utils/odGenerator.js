@@ -1,6 +1,7 @@
-import jsPDF from 'jspdf';
+// import jsPDF from 'jspdf';
 
 export const generateODLetter = (odData, studentProfile) => {
+    const jsPDF = window.jspdf.jsPDF;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
