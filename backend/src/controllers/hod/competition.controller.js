@@ -60,7 +60,7 @@ const groupStudentsBySection = (students) => {
 
     // Group by Year -> Section (Only 2nd and 3rd Year)
     const groups = { "2nd Year": {}, "3rd Year": {} };
-    const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
+    const { getAcademicYearLabel } = require('../../utils/academicYear.util');
 
     students.forEach(s => {
         let admissionYear = s.admission_year;
@@ -76,15 +76,10 @@ const groupStudentsBySection = (students) => {
             }
         }
 
-        const diff = admissionYear ? currentYear - admissionYear : -1;
-        let academicYear = null;
-
-        // Only categorize as 2nd Year or 3rd Year
-        if (diff === 1) academicYear = '2nd Year';
-        else if (diff === 2) academicYear = '3rd Year';
+        const academicYear = getAcademicYearLabel(admissionYear);
 
         // Skip students who don't fall into 2nd or 3rd year
-        if (!academicYear) return;
+        if (academicYear !== '2nd Year' && academicYear !== '3rd Year') return;
 
         const sec = s.section || 'Unknown';
         if (!groups[academicYear][sec]) groups[academicYear][sec] = [];

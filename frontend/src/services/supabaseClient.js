@@ -19,7 +19,8 @@ export const signInWithGoogle = async () => {
                 redirectTo: `${window.location.origin}/login`,
                 scopes: 'https://www.googleapis.com/auth/gmail.readonly',
                 queryParams: {
-                    access_type: 'offline'
+                    access_type: 'offline',
+                    prompt: 'select_account'
                 }
             }
         });

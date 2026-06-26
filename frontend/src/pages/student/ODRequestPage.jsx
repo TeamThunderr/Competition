@@ -7,6 +7,7 @@ import { supabase } from '../../services/supabaseClient';
 import { api } from '../../services/api';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import CustomDatePicker from '../../components/common/CustomDatePicker';
+import { getAcademicYearLabel } from '../../utils/academicYear';
 
 const ODRequestPage = () => {
     const { competitionId } = useParams();
@@ -137,17 +138,7 @@ const ODRequestPage = () => {
                     console.log("DEBUG: Final Profile Fetch - Profile:", profile, "Error:", error);
 
                     if (profile) {
-                        const currentYear = new Date().getFullYear();
-                        const currentMonth = new Date().getMonth(); // 0-11
-                        // If before June (approx), we are ending the academic year. So 2026-2024 = 2nd Year.
-                        // If after June, we are starting new. 2026-2024 + 1 = 3rd Year.
-                        const calculatedYearVal = (currentMonth < 6)
-                            ? (currentYear - (profile.admission_year || currentYear))
-                            : (currentYear - (profile.admission_year || currentYear) + 1);
-
-                        // Clamp between 1 and 4, fallback to 2nd if weird
-                        const finalYear = Math.min(Math.max(calculatedYearVal, 1), 4);
-                        const yearString = finalYear === 1 ? '1st Year' : finalYear === 2 ? '2nd Year' : finalYear === 3 ? '3rd Year' : '4th Year';
+                        const yearString = getAcademicYearLabel(profile.admission_year);
 
                         const newFormData = {
                             leader_name: profile.full_name || '',

@@ -5,6 +5,7 @@
 const { sendResponse } = require('../../utils/responseHelper');
 const supabase = require('../../config/supabaseClient');
 const statsService = require('../../services/admin/stats.service');
+const { getAcademicYearLabel } = require('../../utils/academicYear.util');
 
 const getDepartmentStats = async (req, res) => {
     try {
@@ -139,7 +140,6 @@ const getDepartmentStats = async (req, res) => {
 
         // Process Analytics
         const sectionMap = {};
-        const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
 
         // Fetch Faculty for Class Advisor Mapping
         const { data: facultyData } = await supabase
@@ -152,10 +152,12 @@ const getDepartmentStats = async (req, res) => {
             const sec = u.section || 'Unassigned';
 
             // Determine Academic Year
-            const diff = u.admission_year ? currentYear - u.admission_year : -1;
-            const academicYearLabel = diff === 1 ? '2nd Year' :
-                diff === 2 ? '3rd Year' :
-                    diff === 3 ? '4th Year' : 'Other';
+            const academicYearLabel = getAcademicYearLabel(u.admission_year);
+
+            // ONLY ALLOW 2nd AND 3rd YEAR STUDENTS
+            if (academicYearLabel !== '2nd Year' && academicYearLabel !== '3rd Year') {
+                return; // Skip this student
+            }
 
             // Composite Key to separate A (2nd Year) from A (3rd Year)
             const mapKey = `${sec}-${academicYearLabel}`;
@@ -263,11 +265,8 @@ const getDepartmentUsers = async (req, res) => {
         // Calculate admission year if year filter is present
         let targetAdmissionYear = null;
         if (year) {
-            const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
-            // 2nd Year = current - 1, 3rd = current - 2, etc.
-            // Actually, usually:
-            // 1st Year: Admitted Current Year (e.g. 2024) (diff 0)
-            // 2nd Year: Admitted Previous Year (e.g. 2023) (diff 1)
+            const { getCurrentAcademicYear } = require('../../utils/academicYear.util');
+            const currentYear = getCurrentAcademicYear();
             const yearNum = parseInt(year); // Extract number from '2nd', '3rd'
             if (!isNaN(yearNum)) {
                 targetAdmissionYear = currentYear - (yearNum - 1);
@@ -320,7 +319,13 @@ const getDepartmentUsers = async (req, res) => {
             }
         }
 
-        const users = allUsers;
+        const { getAcademicYearLabel } = require('../../utils/academicYear.util');
+        
+        const users = allUsers.filter(u => {
+            if (u.role !== 'STUDENT') return true; // Keep faculty/HOD
+            const label = getAcademicYearLabel(u.admission_year);
+            return label === '2nd Year' || label === '3rd Year';
+        });
 
         sendResponse(res, 200, users, 'Fetched department users');
     } catch (err) {
@@ -568,7 +573,6 @@ const getDashboardAnalysis = async (req, res) => {
 
         // E. Batch & Academic Year Stats (Existing Logic optimized)
         console.log('[HodController] Step 3: Processing batch/year stats...');
-        const currentYear = new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear();
         const batchMap = {};
         const yearMap = {
             '2nd Year': { count: 0, totalCgpa: 0, studentsWithCgpa: 0 },
@@ -579,27 +583,19 @@ const getDashboardAnalysis = async (req, res) => {
         students.forEach(s => {
             // Batch Stats
             const batchLabel = s.admission_year ? `${s.admission_year}-${s.admission_year + 4}` : 'Unknown';
-            // Only count if admission year suggests 2nd/3rd/4th year (i.e. not current year)
-            // But if we want to track batch counts generally we might keep it. 
-            // However, user asked to "Exlude 1st year" largely.
-            // Let's keep batchMap inclusive if they want to see "2025-2029" in distribution? 
-            // The prompt says "remove the first year in the academic performance".
-            // Let's apply validYears filter to batchMap too for consistency if desired, 
-            // but primarily for academicStats as requested.
 
-            const diff = s.admission_year ? currentYear - s.admission_year : -1;
+            const academicYearLabel = getAcademicYearLabel(s.admission_year);
 
-            // Filter 1st Year (diff === 0) from EVERYTHING if we want to be "Strict" again.
-            // Previous prompt said "strictly exclude 1st year".
-            if (diff <= 0) return; // Skip 1st years completely.
+            // ONLY ALLOW 2nd AND 3rd YEAR STUDENTS
+            if (academicYearLabel !== '2nd Year' && academicYearLabel !== '3rd Year') {
+                return;
+            }
 
             if (!batchMap[batchLabel]) batchMap[batchLabel] = 0;
             batchMap[batchLabel]++;
 
             // Academic Year Stats
-            const academicYear = diff === 1 ? '2nd Year' :
-                diff === 2 ? '3rd Year' :
-                    diff === 3 ? '4th Year' : null;
+            const academicYear = academicYearLabel;
 
             if (academicYear && yearMap[academicYear]) {
                 yearMap[academicYear].count++;
@@ -837,17 +833,14 @@ const getDepartmentFaculty = async (req, res) => {
         // Pre-calculate section counts with Year Breakdown
         // Structure: sectionCounts["A"] = { total: 45, byYear: { "2nd Year": 20, "3rd Year": 25 } }
         const sectionCounts = {};
-        const currentYear = new Date().getFullYear();
+        const { getAcademicYearLabel } = require('../../utils/academicYear.util');
 
         allStudents.forEach(s => {
             if (s.section) {
                 const sec = s.section.trim().toUpperCase();
 
                 // Determine Year
-                const diff = s.admission_year ? currentYear - s.admission_year : -1;
-                const academicYear = diff === 1 ? '2nd Year' :
-                    diff === 2 ? '3rd Year' :
-                        diff === 3 ? '4th Year' : 'Other';
+                const academicYear = getAcademicYearLabel(s.admission_year);
 
                 if (!sectionCounts[sec]) {
                     sectionCounts[sec] = { total: 0, byYear: {} };
@@ -939,10 +932,9 @@ const exportWinnersCsv = async (req, res) => {
             const u = w.users;
             const c = w.competitions;
 
-            // Calculate Year (approx)
-            const currentYear = new Date().getFullYear();
-            const diff = u.admission_year ? currentYear - u.admission_year : -1;
-            const yearLabel = diff === 1 ? '2nd' : diff === 2 ? '3rd' : diff === 3 ? '4th' : 'N/A';
+            // Calculate Year
+            const { getAcademicYearLabel } = require('../../utils/academicYear.util');
+            const yearLabel = getAcademicYearLabel(u.admission_year);
 
             return [
                 `"${u.full_name}"`,

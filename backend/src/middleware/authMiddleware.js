@@ -47,7 +47,7 @@ const authMiddleware = async (req, res, next) => {
         }
 
         // ── 3. Extract email from token ───────────────────────────────────────
-        const userEmail = payload.email;
+        const userEmail = payload.email?.trim().toLowerCase();
 
         if (!userEmail) {
             return res.status(401).json({
@@ -60,7 +60,7 @@ const authMiddleware = async (req, res, next) => {
         const { data: user, error: dbError } = await supabase
             .from('users')
             .select('id, role, department_id, assigned_sections, email')
-            .ilike('email', userEmail)
+            .eq('email', userEmail)
             .maybeSingle();
 
         if (dbError || !user) {
