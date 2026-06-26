@@ -41,23 +41,25 @@ const Login = () => {
 
     // ── Handle Supabase OAuth callback ─────────────────────────────────────────
     useEffect(() => {
-        const handleOAuthCallback = async () => {
-            // Supabase puts the token in the URL hash after OAuth redirect
-            const hasOAuthCallback =
-                window.location.hash?.includes('access_token') ||
-                window.location.search?.includes('code=');
+        const hasOAuthCallback =
+            window.location.hash?.includes('access_token') ||
+            window.location.search?.includes('code=');
 
-            if (hasOAuthCallback) {
+        if (hasOAuthCallback) {
+            setLoading(true);
+        }
+
+        // Use onAuthStateChange instead of a fixed 500ms timeout!
+        // On mobile devices, 500ms is not enough time for Supabase to parse the URL hash.
+        // This listener automatically waits until Supabase has successfully parsed the new token.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.access_token) {
                 setLoading(true);
-                // Clean URL immediately
-                window.history.replaceState(null, '', window.location.pathname);
-            }
-
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-
-                if (session?.access_token) {
-                    setLoading(true);
+                try {
+                    // Clean URL ONLY AFTER session is successfully extracted
+                    if (window.location.hash?.includes('access_token')) {
+                        window.history.replaceState(null, '', window.location.pathname);
+                    }
 
                     // Save Google refresh token for Gmail integration (if available)
                     if (session.provider_refresh_token) {
@@ -69,24 +71,42 @@ const Login = () => {
                                 email: session.user.email,
                                 refreshToken: session.provider_refresh_token,
                             }),
-                        }).catch(() => {}); // fire and forget
+                        }).catch(() => {});
                     }
 
                     // Verify with backend and store auth state
                     const data = await login(session.access_token);
                     const path = ROLE_PATHS[data.role] || '/';
                     navigate(path, { replace: true });
-                } else {
+                } catch (err) {
+                    setError(err.message || 'Login failed. Your email may not be registered in this system.');
+                    await supabase.auth.signOut().catch(() => {});
                     setLoading(false);
                 }
-            } catch (err) {
-                setError(err.message || 'Login failed. Your email may not be registered in this system.');
-                await supabase.auth.signOut().catch(() => {});
-                setLoading(false);
+            } else if (event === 'INITIAL_SESSION' && !session) {
+                // If there's no session and no callback in URL, we're just loading the page normally
+                if (!hasOAuthCallback) {
+                    setLoading(false);
+                }
             }
-        };
+        });
 
-        handleOAuthCallback();
+        // Backup safety check just in case the event never fires
+        let fallbackTimer;
+        if (hasOAuthCallback) {
+            fallbackTimer = setTimeout(async () => {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) {
+                    setError("Could not retrieve session from Google login. Please try again.");
+                    setLoading(false);
+                }
+            }, 3000); // Wait a generous 3 seconds on mobile before giving up
+        }
+
+        return () => {
+            subscription?.unsubscribe();
+            if (fallbackTimer) clearTimeout(fallbackTimer);
+        };
     }, [login, navigate]);
 
     // ── Google login button handler ────────────────────────────────────────────
