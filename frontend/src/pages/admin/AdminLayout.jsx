@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import AdminSidebar from './Sidebar';
-import { Menu } from 'lucide-react';
+import SharedSidebar from '../common/SharedSidebar';
+import { Menu, LayoutDashboard, Search, Upload, Bookmark, BarChart3 } from 'lucide-react';
 import logo from '../../assets/logo.png';
 
 const AdminLayout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+    const menuItems = [
+        { icon: LayoutDashboard, label: 'CIT Dashboard', path: '/admin' },
+        { icon: Search, label: 'Student Search', path: '/admin/search' },
+        { icon: Upload, label: 'Manage Competitions', path: '/admin/upload' },
+        { icon: Bookmark, label: 'Global Repository', path: '/admin/repository' },
+        { icon: BarChart3, label: 'Dept. Performance', path: '/admin/performance' },
+    ];
+
     return (
         <div className="flex bg-background min-h-screen font-sans transition-colors duration-200">
-            <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+            <SharedSidebar menuItems={menuItems} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
             <div className="flex-1 ml-0 md:ml-sidebar p-4 md:p-8 w-full max-w-full overflow-x-hidden min-w-0">
                 <div className="md:hidden flex items-center justify-between mb-6 bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800 sticky top-0 z-20">

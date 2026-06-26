@@ -1,16 +1,23 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import HodSidebar from './Sidebar';
-import { Menu } from 'lucide-react';
+import SharedSidebar from '../common/SharedSidebar';
+import { Menu, LayoutDashboard, CheckCircle, Briefcase, Users } from 'lucide-react';
 import logo from '../../assets/logo.png'; // Import default logo for mobile header
 
 const HodLayout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+    const menuItems = [
+        { icon: LayoutDashboard, label: 'Dept. Dashboard', path: '/hod' },
+        { icon: Users, label: 'Faculty Directory', path: '/hod/faculty' },
+        { icon: CheckCircle, label: 'OD Approvals', path: '/hod/approvals' },
+        { icon: Briefcase, label: 'All Competitions', path: '/hod/competitions' },
+    ];
+
     return (
         <div className="flex bg-background min-h-screen font-sans transition-colors duration-200">
             {/* Sidebar with mobile toggle props */}
-            <HodSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+            <SharedSidebar menuItems={menuItems} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
             <div className="flex-1 ml-0 md:ml-sidebar p-4 md:p-8 w-full max-w-full overflow-x-hidden min-w-0">
                 {/* Mobile Header: Visible only on mobile */}
