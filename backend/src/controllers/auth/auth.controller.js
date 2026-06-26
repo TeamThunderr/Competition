@@ -35,16 +35,16 @@ const login = async (req, res) => {
         }
 
         // 3. Extract email from the verified payload
-        const userEmail = payload.email;
+        const userEmail = payload.email?.trim().toLowerCase();
         if (!userEmail) {
             return res.status(401).json({ error: 'Token has no email claim.' });
         }
 
-        // 4. Look up the user in our custom users table (case-insensitive)
+        // 4. Look up the user in our custom users table (exact match, DB is sanitized)
         const { data: user, error: dbError } = await supabase
             .from('users')
             .select('*')
-            .ilike('email', userEmail)
+            .eq('email', userEmail)
             .maybeSingle();
 
         if (dbError && dbError.code !== 'PGRST116') {
@@ -77,7 +77,8 @@ const login = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const saveGoogleToken = async (req, res) => {
     try {
-        const { email, refreshToken } = req.body;
+        const { refreshToken } = req.body;
+        const email = req.body.email?.trim().toLowerCase();
 
         if (!email || !refreshToken) {
             // No new token to save (e.g. repeat login without new consent)
@@ -87,7 +88,7 @@ const saveGoogleToken = async (req, res) => {
         const { data, error } = await supabase
             .from('users')
             .update({ google_refresh_token: refreshToken })
-            .ilike('email', email)
+            .eq('email', email)
             .select();
 
         if (error) {

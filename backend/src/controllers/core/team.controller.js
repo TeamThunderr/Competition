@@ -50,7 +50,8 @@ const createTeam = async (req, res) => {
 // Invite a member to the team
 const inviteMember = async (req, res) => {
     try {
-        const { team_id, email } = req.body;
+        const { team_id } = req.body;
+        const email = req.body.email?.trim().toLowerCase();
         const requesterId = req.userId;
 
         // 1. Verify requester is the leader
