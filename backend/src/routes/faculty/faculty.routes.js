@@ -17,7 +17,7 @@ router.use(authMiddleware);
 router.use(roleMiddleware('FACULTY'));
 
 // Student Management (students list is paginated)
-router.get('/students', paginate, facultyController.getMyStudents);
+router.get('/students', facultyController.getMyStudents);
 router.get('/students/:studentId', facultyController.getStudentDetails);
 router.post('/students/upload', excelUploadMiddleware.single('file'), uploadController.bulkUploadStudents);
 
