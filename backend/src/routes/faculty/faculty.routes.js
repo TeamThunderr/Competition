@@ -24,7 +24,7 @@ router.post('/students/upload', excelUploadMiddleware.single('file'), uploadCont
 // Data & Stats (registrations list is paginated)
 router.get('/stats', facultyController.getStats); // Legacy
 router.get('/dashboard-stats', facultyController.getDashboardStats); // V2 Logic
-router.get('/registrations', paginate, facultyController.getRecentRegistrations);
+router.get('/registrations', facultyController.getRecentRegistrations);
 
 // Feature: Competition View & Sync
 router.get('/competitions/export-report', facultyController.downloadParticipationReport);

@@ -40,17 +40,15 @@ exports.getStudents = async (req, res) => {
             query = query.or(`full_name.ilike.${term},registration_no.ilike.${term},email.ilike.${term}`);
         }
 
-        // Apply API-level pagination (from paginate middleware; defaults to page=1, limit=50)
-        const pagination = req.pagination || { page: 1, limit: 50, offset: 0 };
         query = query.order('full_name', { ascending: true });
 
-        const { data, error, count } = await applyPagination(query, pagination);
+        const { data, error, count } = await query;
 
         if (error) {
             throw error;
         }
 
-        res.status(200).json({ success: true, ...paginatedResponse(data, pagination, count) });
+        res.status(200).json({ success: true, data });
     } catch (error) {
         console.error('Error fetching students:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch students', error: error.message || error });

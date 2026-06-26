@@ -62,13 +62,8 @@ const getMyStudents = async (req, res) => {
             return allowedSections.includes(studentSec);
         });
 
-        // Return paginated envelope — total is the filtered count (all loaded into memory)
-        const pagination = req.pagination || { page: 1, limit: filteredStudents.length, offset: 0 };
-        const total = filteredStudents.length;
-        const { offset, limit } = pagination;
-        const pageSlice = filteredStudents.slice(offset, offset + limit);
-
-        res.status(200).json(paginatedResponse(pageSlice, pagination, total));
+        // Return all filtered students
+        res.status(200).json(filteredStudents);
     } catch (err) {
         console.error('[FacultyController] Error:', err);
         sendResponse(res, 500, null, 'Internal Server Error');
@@ -84,20 +79,15 @@ const getRecentRegistrations = async (req, res) => {
             return sendResponse(res, 200, [], 'No students found');
         }
 
-        // Paginated registrations with exact count
-        const pagination = req.pagination || { page: 1, limit: 20, offset: 0 };
-        const { offset, limit } = pagination;
-
-        const { data: registrations, error, count } = await supabase
+        const { data: registrations, error } = await supabase
             .from('registrations')
             .select(`
                 id, registered_at, verified,
                 users!registrations_user_id_fkey!inner ( full_name, registration_no ),
                 competitions!inner ( title, registration_deadline )
-            `, { count: 'exact' })
+            `)
             .in('user_id', myStudentIds)
-            .order('registered_at', { ascending: false })
-            .range(offset, offset + limit - 1);
+            .order('registered_at', { ascending: false });
 
         if (error) throw error;
 
@@ -111,7 +101,7 @@ const getRecentRegistrations = async (req, res) => {
             registeredAt: r.registered_at
         }));
 
-        res.status(200).json(paginatedResponse(mappedRegs, pagination, count));
+        res.status(200).json(mappedRegs);
 
     } catch (err) {
         console.error('[FacultyController] Error fetching registrations:', err);
