@@ -1,38 +1,57 @@
 // File Name: authService.js
-// Purpose: Handle Authentication (Backend only)
+// Purpose: Auth utilities used by AuthContext
+//
+// NOTE: The actual login logic lives in AuthContext.jsx (login function).
+// This file provides helper utilities for reading/clearing auth state.
 
-const baseApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const API_URL = `${baseApiUrl}/api/auth`;
 import { supabase } from './supabaseClient';
 
-export const loginUser = async (email) => {
-    const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-    });
-
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Login failed');
-    }
-
-    const user = await response.json();
-
-    // store user locally
-    localStorage.setItem('user', JSON.stringify(user));
-    return user;
+const STORAGE_KEYS = {
+    USER: 'auth_user',
+    ROLE: 'auth_role',
+    TOKEN: 'auth_token',
 };
 
+/**
+ * Get the currently logged-in user from localStorage.
+ * Returns null if not logged in or storage is corrupt.
+ */
 export const getCurrentUser = () => {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.USER);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
 };
 
-export const logoutUser = async () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('role');
-    localStorage.removeItem('token');
-    const { error } = await supabase.auth.signOut();
-    if (error) console.error("Supabase SignOut Error:", error);
+/**
+ * Get the current auth token from localStorage.
+ */
+export const getCurrentToken = () => {
+    return localStorage.getItem(STORAGE_KEYS.TOKEN) || null;
 };
+
+/**
+ * Get the current role from localStorage.
+ */
+export const getCurrentRole = () => {
+    return localStorage.getItem(STORAGE_KEYS.ROLE) || null;
+};
+
+/**
+ * Clear all auth state from localStorage and sign out of Supabase.
+ * Prefer using AuthContext.logout() instead of calling this directly.
+ */
+export const logoutUser = async () => {
+    Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+    // Legacy keys cleanup (in case old keys exist)
+    ['user', 'role', 'token'].forEach(k => localStorage.removeItem(k));
+    try {
+        await supabase.auth.signOut();
+    } catch (e) {
+        console.warn('[AuthService] Supabase signOut error:', e);
+    }
+};
+
+export { STORAGE_KEYS };

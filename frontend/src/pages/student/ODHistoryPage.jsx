@@ -127,10 +127,8 @@ const ODHistoryPage = () => {
                                         {od.status === 'APPROVED' && (
                                             <button
                                                 onClick={() => {
-                                                    const userData = JSON.parse(localStorage.getItem('user'));
-                                                    // Handle both wrapped {user: {...}} and direct {...} formats
-                                                    const user = userData?.user || userData;
-                                                    generateODLetter(od, user);
+                                                    const userData = JSON.parse(localStorage.getItem('auth_user'));
+                                                    generateODLetter(od, userData);
                                                 }}
                                                 className="flex justify-center items-center gap-2 px-4 py-2 w-full sm:w-auto bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-lg text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"
                                             >

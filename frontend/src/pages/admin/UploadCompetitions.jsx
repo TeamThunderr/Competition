@@ -65,9 +65,8 @@ const UploadCompetitions = () => {
 
         setUploading(true);
         try {
-            const storedUser = localStorage.getItem('user');
-            const user = storedUser ? JSON.parse(storedUser) : null;
-            if (!user) {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
                 addToast('You must be logged in', 'error');
                 setUploading(false);
                 return;
@@ -76,7 +75,7 @@ const UploadCompetitions = () => {
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/competition/upload`, {
                 method: 'POST',
                 headers: {
-                    'x-user-id': user.id
+                    'Authorization': `Bearer ${token}`
                 },
                 body: formData
             });
@@ -113,9 +112,8 @@ const UploadCompetitions = () => {
         }
 
         try {
-            const storedUser = localStorage.getItem('user');
-            const user = storedUser ? JSON.parse(storedUser) : null;
-            if (!user) {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
                 addToast('You must be logged in', 'error');
                 return;
             }
@@ -124,7 +122,7 @@ const UploadCompetitions = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-user-id': user.id
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     ...formData,
