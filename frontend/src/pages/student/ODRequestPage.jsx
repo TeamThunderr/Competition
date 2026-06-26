@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Sidebar from './Sidebar'; // Student Sidebar
+
 import { ArrowLeft, User, Users, Upload, Trash2, Calendar, FileText, PlusCircle, CheckCircle, Info, AlertCircle, Loader2, XCircle } from 'lucide-react';
 import { studentService } from '../../services/studentService';
 import { supabase } from '../../services/supabaseClient';

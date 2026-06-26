@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from './Sidebar';
+
 import { CheckCircle, XCircle, Eye } from 'lucide-react';
 import { getPendingVerifications, verifyRegistration } from '../../services/facultyService';
 

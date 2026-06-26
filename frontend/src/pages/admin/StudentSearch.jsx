@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import Sidebar from './Sidebar';
+
 import { Search } from 'lucide-react';
 import { getStudents, getStudentById } from '../../services/adminService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';

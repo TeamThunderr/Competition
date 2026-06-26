@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Sidebar from './Sidebar';
+
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -75,7 +75,7 @@ const DeptPerformance = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-black flex transition-colors duration-200">
-            <Sidebar />
+
             <div className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8 w-full max-w-7xl mx-auto">
                 <motion.div 
                     initial="hidden" 

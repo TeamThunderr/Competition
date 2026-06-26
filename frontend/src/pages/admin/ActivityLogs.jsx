@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Sidebar from './Sidebar';
+
 import { ArrowLeft, Clock, AlertCircle, Trash2, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';

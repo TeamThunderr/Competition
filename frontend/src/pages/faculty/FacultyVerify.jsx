@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Sidebar from './Sidebar';
+
 import { CheckCircle, XCircle, ExternalLink, Users, FileText } from 'lucide-react';
 import { getPendingVerifications, verifyRegistration, getPendingShortlistVerifications, verifyShortlist } from '../../services/facultyService';
 import { api } from '../../services/api'; // Direct API for team verification if service not unified

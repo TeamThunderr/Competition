@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import StudentSidebar from './Sidebar';
+
 import { User, Mail, Hash, BookOpen, Calendar, Award, Trophy, Star, Users, GraduationCap, Edit, Check, X, Phone } from 'lucide-react';
 import { getCurrentUser } from '../../services/authService';
 import { api } from '../../services/api';

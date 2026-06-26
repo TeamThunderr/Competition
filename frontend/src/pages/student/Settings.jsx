@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import StudentSidebar from './Sidebar';
+
 import { User, Bell, Lock, Save, Mail, Loader } from 'lucide-react';
 import { getCurrentUser } from '../../services/authService';
 import studentService from '../../services/studentService';

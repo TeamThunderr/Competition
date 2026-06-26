@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from './Sidebar';
+
 import { Upload, FileSpreadsheet, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { getMyStudents, bulkUploadStudents } from '../../services/facultyService';
 import StudentListTable from '../common/StudentListTable';

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Sidebar from './Sidebar';
+
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { getStudentDetails } from '../../services/facultyService';
 import StudentProfileView from '../common/StudentProfileView';

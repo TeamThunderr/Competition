@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Sidebar from './Sidebar';
+
 import { api } from '../../services/api';
 import { Calendar, CheckCircle, Clock, XCircle, FileText, Download } from 'lucide-react';
 import { generateODLetter } from '../../utils/odGenerator';

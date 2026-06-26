@@ -4,7 +4,7 @@ import UploadProofModal from '../../components/common/UploadProofModal';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import AlertModal from '../../components/common/AlertModal';
 import { useToast } from '../../contexts/ToastContext';
-import StudentSidebar from './Sidebar';
+
 import CompetitionListView from '../common/CompetitionListView';
 import { supabase } from '../../services/supabaseClient';
 import { studentService } from '../../services/studentService';

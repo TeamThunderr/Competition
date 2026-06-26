@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import StudentSidebar from './Sidebar';
+
 import { Upload, Calendar, FileText, Send, AlertCircle, Lock, Check, Clock } from 'lucide-react';
 import { getAllCompetitions, requestOD } from '../../services/studentService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';

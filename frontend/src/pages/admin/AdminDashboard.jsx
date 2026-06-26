@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Sidebar from './Sidebar';
+
 import { Link } from 'react-router-dom';
 import { Pencil, Trash2, Upload, X, AlertTriangle } from 'lucide-react';
 import { api } from '../../services/api';

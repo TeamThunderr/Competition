@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from './Sidebar';
+
 import { Search, ChevronDown } from 'lucide-react';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Sidebar from './Sidebar';
+
 import { CheckCircle, XCircle, ExternalLink, Users } from 'lucide-react';
 import { api } from '../../services/api';
 // Assuming we might need to add service methods or use api directly. 

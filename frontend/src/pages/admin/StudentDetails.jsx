@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import Sidebar from './Sidebar';
+
 import { ArrowLeft, Award, CheckCircle, Trophy, User, Clock, AlertCircle, Phone } from 'lucide-react';
 import { getStudentById } from '../../services/adminService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
@@ -48,7 +48,7 @@ const StudentDetails = () => {
     if (error) {
         return (
             <div className="flex bg-background min-h-screen transition-colors duration-200">
-                <Sidebar />
+
                 <main className="flex-1 md:ml-sidebar p-8 pt-16 md:pt-8 w-full">
                     <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-2">
                         <AlertCircle size={20} />
@@ -69,7 +69,7 @@ const StudentDetails = () => {
 
     return (
         <div className="flex bg-gray-50 dark:bg-black min-h-screen font-sans text-gray-900 dark:text-gray-100 transition-colors duration-200">
-            <Sidebar />
+
 
             <main className="flex-1 md:ml-sidebar p-4 md:p-8 pt-16 md:pt-8 w-full min-w-0">
                 <div className="w-[95%] mx-auto">

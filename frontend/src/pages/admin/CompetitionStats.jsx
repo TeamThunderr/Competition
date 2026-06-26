@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import Sidebar from './Sidebar';
+
 import { ArrowLeft, Trophy, Users, CheckCircle, ChevronRight } from 'lucide-react';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';

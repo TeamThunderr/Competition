@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Menu, Trophy } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
-import StudentSidebar from './Sidebar';
+
 import UploadProofModal from '../../components/common/UploadProofModal';
 import { supabase } from '../../services/supabaseClient';
 import { api } from '../../services/api';

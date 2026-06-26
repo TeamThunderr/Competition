@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Menu, RefreshCw, Download } from 'lucide-react';
-import Sidebar from './Sidebar';
+
 import { getDashboardStats } from '../../services/facultyService';
 import { api } from '../../services/api';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import Sidebar from './Sidebar';
+
 import { Upload, FileText } from 'lucide-react';
 import CustomDatePicker from '../../components/common/CustomDatePicker';
 import { useToast } from '../../contexts/ToastContext';
