@@ -112,8 +112,8 @@ const Profile = () => {
                                     <div>
                                         <label className="text-xs font-medium text-muted uppercase tracking-wider block mb-1">Email Address</label>
                                         <div className="flex items-center text-foreground font-medium">
-                                            <Mail size={16} className="text-muted mr-2" />
-                                            {userData.email}
+                                            <Mail size={16} className="text-muted mr-2 shrink-0" />
+                                            <span className="break-all">{userData.email}</span>
                                         </div>
                                     </div>
                                     <div>

@@ -109,7 +109,7 @@ const Settings = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500 mb-1">Email Address</label>
-                                    <div className="text-foreground font-medium p-3 bg-muted/5 rounded-lg border border-border">
+                                    <div className="text-foreground font-medium p-3 bg-muted/5 rounded-lg border border-border break-all">
                                         {userData.email}
                                     </div>
                                 </div>
