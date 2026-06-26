@@ -1,7 +1,7 @@
 import React from 'react';
 import { LogOut, Sun, Moon, ChevronRight, ChevronLeft, LayoutDashboard } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { logoutUser } from '../../services/authService';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import logoLight from '../../assets/logo.png';
 import logoDark from '../../assets/logo-dark.png'; // Make sure to import the new file
@@ -21,6 +21,7 @@ import logoDark from '../../assets/logo-dark.png'; // Make sure to import the ne
 const SharedSidebar = ({ menuItems, isOpen, onClose }) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const [isCollapsed, setIsCollapsed] = React.useState(false);
 
@@ -32,8 +33,8 @@ const SharedSidebar = ({ menuItems, isOpen, onClose }) => {
     }, [isCollapsed]);
 
     const handleLogout = async () => {
-        await logoutUser();
-        navigate('/');
+        await logout();
+        navigate('/login');
     };
 
     return (
