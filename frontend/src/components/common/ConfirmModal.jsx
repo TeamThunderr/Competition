@@ -113,7 +113,7 @@ const ConfirmModal = ({
                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 tracking-tight">
                                         {title}
                                     </h3>
-                                    <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                                    <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed whitespace-pre-line">
                                         {message}
                                     </p>
                                 </div>

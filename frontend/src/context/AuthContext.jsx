@@ -91,6 +91,7 @@ export const AuthProvider = ({ children }) => {
     const logout = useCallback(async () => {
         // Clear storage
         Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+        sessionStorage.clear();
 
         // Clear state
         setUser(null);
