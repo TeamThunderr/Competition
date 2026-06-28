@@ -47,7 +47,7 @@ const StudentCompetitions = () => {
         fetchCompetitions();
     }, []);
 
-    const [activeTab, setActiveTab] = useState('explore');
+    const [activeTab, setActiveTab] = useState('unregistered');
 
     const [appliedCompetitions, setAppliedCompetitions] = useState(() => {
         const saved = localStorage.getItem('appliedCompetitions');
@@ -198,17 +198,19 @@ const StudentCompetitions = () => {
 
     // Filter Logic based on tabs
     const filteredCompetitions = competitions.filter(c => {
-        if (activeTab === 'applications') {
-            return c.my_registration;
+        if (activeTab === 'registered') {
+            // Only show if the registration is verified by faculty
+            return c.my_registration && c.my_registration.verified;
         } else {
-            // Explore Tab: ONLY show open competitions
-            if (!c.registration_deadline) return !c.my_registration; // Keep if no deadline
-
-            const deadline = new Date(c.registration_deadline);
-            deadline.setHours(23, 59, 59, 999);
-            const isClosed = deadline < new Date();
-
-            return !c.my_registration && !isClosed;
+            // Unregistered Tab: ONLY show open competitions IF not registered at all
+            if (!c.my_registration) {
+                if (!c.registration_deadline) return true; // Keep if no deadline
+                const deadline = new Date(c.registration_deadline);
+                deadline.setHours(23, 59, 59, 999);
+                return deadline >= new Date(); // Keep if not closed
+            }
+            // If they have a registration but it's not verified, it stays in Unregistered
+            return !c.my_registration.verified;
         }
     });
 
@@ -239,22 +241,22 @@ const StudentCompetitions = () => {
                     {/* Tab Navigation */}
                     <div className="flex space-x-1 bg-muted/20 p-1 rounded-xl w-fit">
                         <button
-                            onClick={() => setActiveTab('explore')}
-                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'explore'
+                            onClick={() => setActiveTab('unregistered')}
+                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'unregistered'
                                 ? 'bg-card text-primary shadow-sm'
                                 : 'text-muted hover:text-foreground'
                                 }`}
                         >
-                            Explore
+                            Unregistered
                         </button>
                         <button
-                            onClick={() => setActiveTab('applications')}
-                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'applications'
+                            onClick={() => setActiveTab('registered')}
+                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'registered'
                                 ? 'bg-card text-primary shadow-sm'
                                 : 'text-muted hover:text-foreground'
                                 }`}
                         >
-                            My Applications
+                            Registered
                         </button>
                     </div>
 
@@ -270,8 +272,8 @@ const StudentCompetitions = () => {
                 <CompetitionListView
                     Sidebar={null} // We handle sidebar above
                     competitions={filteredCompetitions}
-                    title={activeTab === 'applications' ? "My Applications" : "Available Competitions"}
-                    subtitle={activeTab === 'applications' ? "Competitions you have applied for." : "Browse and register for upcoming events."}
+                    title={activeTab === 'registered' ? "My Registrations" : "Available Competitions"}
+                    subtitle={activeTab === 'registered' ? "Competitions you have registered for." : "Browse and register for upcoming events."}
                     loading={loading}
                     showRegister={true} // Enable register buttons
                     role="STUDENT"
