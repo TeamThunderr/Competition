@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, ChevronDown, Globe } from 'lucide-react';
+import { Search, ChevronDown, Globe, Calendar, Users, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
@@ -33,6 +34,30 @@ const CompetitionListView = ({
     cardActions = {},
     appliedCompetitions = {}
 }) => {
+    // Compact Card for Mobile
+    const CompactCompetitionCard = ({ comp }) => {
+        return (
+            <Link to={`/competitions/${comp.id}`} className="flex items-center p-4 bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-shadow gap-4 mb-3">
+                <div className="w-12 h-12 shrink-0 bg-blue-600/10 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg">
+                    {comp.platform ? comp.platform.substring(0, 2).toUpperCase() : 'CO'}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h4 className="text-foreground font-bold text-base truncate">{comp.title}</h4>
+                    <div className="flex items-center gap-3 text-muted text-xs mt-1">
+                        <span className="flex items-center gap-1">
+                            <Calendar size={12}/> 
+                            {new Date(comp.registration_deadline || comp.event_date || new Date()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <Users size={12}/> 
+                            {comp.max_team_size === 1 ? 'Solo' : `Team`}
+                        </span>
+                    </div>
+                </div>
+                <ChevronRight size={18} className="text-muted shrink-0" />
+            </Link>
+        );
+    };
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('All');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -149,8 +174,8 @@ const CompetitionListView = ({
                 </div>
             </div>
 
-            {/* Content Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Content Grid (Desktop) */}
+            <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {loading ? (
                     <div className="col-span-full py-12 flex justify-center">
                         <RoleBasedLoader role={role} />
@@ -171,6 +196,26 @@ const CompetitionListView = ({
                             <Globe size={48} className="text-muted mx-auto mb-4" />
                             <h3 className="text-lg font-medium text-foreground">No competitions found</h3>
                             <p className="text-muted mt-2">Try adjusting your filters.</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Content List (Mobile) */}
+            <div className="md:hidden flex flex-col">
+                {loading ? (
+                    <div className="py-12 flex justify-center">
+                        <RoleBasedLoader role={role} />
+                    </div>
+                ) : filteredCompetitions.length > 0 ? (
+                    filteredCompetitions.map(comp => (
+                        <CompactCompetitionCard key={comp.id} comp={comp} />
+                    ))
+                ) : (
+                    <div className="py-16 text-center">
+                        <div className="bg-card rounded-2xl border border-dashed border-border p-8 inline-block">
+                            <Globe size={40} className="text-muted mx-auto mb-4" />
+                            <h3 className="text-base font-medium text-foreground">No competitions found</h3>
                         </div>
                     </div>
                 )}
