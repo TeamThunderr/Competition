@@ -47,6 +47,7 @@ const getAllCompetitions = async (req, res) => {
         const { data: regCounts, error: countError } = await supabase
             .from('registrations')
             .select('competition_id')
+            .eq('verified', true)
             .in('user_id', myStudentIds);
 
         if (countError) throw countError;
