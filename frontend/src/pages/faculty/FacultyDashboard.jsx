@@ -106,19 +106,6 @@ const FacultyDashboard = () => {
                                         >
                                             <RefreshCw size={18} /> Sync Comp
                                         </button>
-                                        <button
-                                            onClick={async () => {
-                                                try {
-                                                    const { downloadParticipationReport } = await import('../../services/facultyService');
-                                                    await downloadParticipationReport();
-                                                } catch (e) {
-                                                    console.error(e);
-                                                }
-                                            }}
-                                            className="flex items-center gap-2 bg-card border border-border/50 text-foreground px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-muted/50 transition-all hover:-translate-y-0.5 hover:shadow-md"
-                                        >
-                                            <Download size={18} /> Download
-                                        </button>
                                     </div>
                                 </div>
 

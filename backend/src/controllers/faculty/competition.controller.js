@@ -231,15 +231,21 @@ const getCompetitionStudents = async (req, res) => {
                     return !isReg && !isShort;
                 })
                 .map(s => {
+                    const isReg = regMap.has(s.id);
                     return {
                         id: s.id,
                         name: s.full_name,
                         regNo: s.registration_no,
-                        status: 'NOT_REGISTERED',
+                        status: isReg ? 'PENDING' : 'NOT_REGISTERED',
                         lastSynced: null,
                         confidence: 0,
                         remarks: ''
                     };
+                })
+                .sort((a, b) => {
+                    if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
+                    if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
+                    return a.regNo.localeCompare(b.regNo);
                 })
         };
 
