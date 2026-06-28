@@ -91,6 +91,12 @@ const checkRegistrationStatus = async (req, res) => {
                 // Update DB
                 if (shortlistMatch.status === 'QUALIFIED') {
                     await upsertCompetitionStatus(student_id, competition_id, { is_shortlisted: true });
+                    
+                    // Keep registrations table in sync so students can upload winning proofs later
+                    await supabase.from('registrations')
+                        .update({ status: 'Qualified', qualification_verified: true })
+                        .eq('user_id', student_id)
+                        .eq('competition_id', competition_id);
                 }
 
                 // Update last synced time
@@ -140,6 +146,12 @@ const checkRegistrationStatus = async (req, res) => {
                 case 'QUALIFIED':
                     await ensureRegistrationExists(student_id, competition_id, 'AUTO_GMAIL');
                     await upsertCompetitionStatus(student_id, competition_id, { is_shortlisted: true });
+                    
+                    // Keep registrations table in sync so students can upload winning proofs later
+                    await supabase.from('registrations')
+                        .update({ status: 'Qualified', qualification_verified: true })
+                        .eq('user_id', student_id)
+                        .eq('competition_id', competition_id);
                     break;
 
                 default:
@@ -214,7 +226,7 @@ const uploadProof = async (req, res) => {
             updateData = {
                 shortlist_proof_url: publicUrl,
                 qualification_verified: false, // Reset for Faculty Verification
-                status: 'Qualified',
+                // Do not prematurely set status to 'Qualified' here. Wait for faculty verification.
                 source: 'MANUAL_SCREENSHOT'
             };
         } else {
