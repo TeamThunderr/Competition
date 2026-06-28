@@ -164,6 +164,7 @@ const HodDashboard = () => {
         name: s.full_name,
         email: s.email,
         reg: s.registration_no,
+        registeredCount: s.registrations ? s.registrations.length : 0,
         icon: s.full_name ? s.full_name.charAt(0).toUpperCase() : 'U',
         status: 'Active',
         statusColor: 'text-green-600'
@@ -411,6 +412,7 @@ const HodDashboard = () => {
                                     emptyMessage="No students found in this section."
                                     role="HOD"
                                     showSection={false}
+                                    showRegisteredCount={true}
                                 />
                             </div>
                         )

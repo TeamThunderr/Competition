@@ -294,6 +294,9 @@ const getDepartmentUsers = async (req, res) => {
                     admission_year, 
                     departments!inner (
                         name
+                    ),
+                    registrations:registrations!user_id (
+                        id
                     )
                 `)
                 .eq('department_id', hodDeptId);
