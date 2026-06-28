@@ -252,7 +252,9 @@ const CompetitionDetails = () => {
                                 <Users size={12} /> Team Size
                             </span>
                             <span className="font-medium text-foreground text-sm">
-                                {competition.min_team_size} - {competition.max_team_size} Members
+                                {competition.min_team_size === 1 && competition.max_team_size === 1 
+                                    ? "Individual Participation" 
+                                    : `${competition.min_team_size} - ${competition.max_team_size} Members`}
                             </span>
                         </div>
                         <div className="flex flex-col">
@@ -558,7 +560,9 @@ const CompetitionDetails = () => {
                                         <Users size={16} /> Team Size
                                     </span>
                                     <span className="font-medium text-foreground">
-                                        {competition.min_team_size} - {competition.max_team_size} Members
+                                        {competition.min_team_size === 1 && competition.max_team_size === 1 
+                                            ? "Individual Participation" 
+                                            : `${competition.min_team_size} - ${competition.max_team_size} Members`}
                                     </span>
                                 </div>
                                 <div className={`flex justify-between py-2 ${competition.venue ? 'border-b border-border' : ''}`}>
