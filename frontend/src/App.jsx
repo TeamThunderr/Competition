@@ -3,6 +3,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import { SyncProvider } from './context/SyncContext';
 
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
@@ -79,7 +80,11 @@ function App() {
 
           {/* ── Faculty Routes ─────────────────────────────────────────────── */}
           <Route element={<ProtectedRoute allowedRoles={['FACULTY']} />}>
-            <Route path="/faculty" element={<FacultyLayout />}>
+            <Route path="/faculty" element={
+              <SyncProvider>
+                <FacultyLayout />
+              </SyncProvider>
+            }>
               <Route index element={<FacultyDashboard />} />
               <Route path="students" element={<StudentList />} />
               <Route path="students/:id" element={<StudentDetail />} />

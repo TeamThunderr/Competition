@@ -24,12 +24,12 @@ const getAuthClient = (refreshToken) => {
 // SYNC Single Competition — now enqueues a background job instead of blocking
 const syncCompetition = async (req, res) => {
     try {
-        const { competitionId } = req.params;
+        const { id: competitionId } = req.params;
         const { id: facultyId, department_id, assigned_sections } = req.user;
 
-        console.log(`[Sync] Queue request by Faculty ${facultyId} for Comp ${competitionId}`);
+        console.log(`[Sync] Background request by Faculty ${facultyId} for Comp ${competitionId}`);
 
-        // Verify competition exists before queuing
+        // Verify competition exists
         const { data: competition, error: compErr } = await supabase
             .from('competitions')
             .select('id, title, is_syncing')
@@ -40,7 +40,7 @@ const syncCompetition = async (req, res) => {
             return res.status(404).json({ error: 'Competition not found' });
         }
 
-        // Prevent duplicate queuing while a sync is already running
+        // Prevent duplicate runs while a sync is already running
         if (competition.is_syncing) {
             return res.status(409).json({
                 error: 'Sync already in progress',
@@ -48,37 +48,51 @@ const syncCompetition = async (req, res) => {
             });
         }
 
-        // Enqueue the job — worker picks it up asynchronously
-        const jobId = await addGmailSyncJob({
-            competitionId,
-            facultyId,
-            departmentId: department_id,
-            assignedSections: assigned_sections,
+        // Lock immediately so the frontend disables the button right away
+        await supabase.from('competitions').update({ 
+            is_syncing: true, 
+            sync_status: 'running', 
+            sync_progress: 'Initializing sync...'
+        }).eq('id', competitionId);
+
+        // Fetch the full competition record for performBatchSync
+        const { data: fullComp } = await supabase.from('competitions').select('*').eq('id', competitionId).single();
+
+        // Run sync in the background — respond immediately
+        setImmediate(async () => {
+            try {
+                await performBatchSync(fullComp, department_id, assigned_sections, facultyId);
+                console.log(`[Sync] Background sync complete for ${competitionId}`);
+            } catch (err) {
+                console.error(`[Sync] Background sync failed for ${competitionId}:`, err.message);
+                await supabase.from('competitions').update({ 
+                    is_syncing: false, sync_status: 'failed', sync_progress: 'Sync failed: ' + err.message 
+                }).eq('id', competitionId);
+            }
         });
 
-        // Return 202 immediately — do not wait for Gmail sync to finish
+        // Return 202 immediately
         return res.status(202).json({
-            message: 'Gmail sync queued',
-            jobId,
+            message: 'Gmail sync started in background',
             competitionId,
         });
 
     } catch (err) {
-        console.error('[Sync] Queue Error:', err);
+        console.error('[Sync] Error:', err);
         res.status(500).json({ error: `Internal Server Error: ${err.message}` });
     }
 };
 
-// SYNC ALL Active Competitions — enqueues one job per competition
+// SYNC ALL Active Competitions — runs each in background
 const syncAllCompetitions = async (req, res) => {
     try {
         const { id: facultyId, department_id, assigned_sections } = req.user;
-        console.log(`[SyncAll] Queue request by Faculty ${facultyId}`);
+        console.log(`[SyncAll] Background request by Faculty ${facultyId}`);
 
         const now = new Date().toISOString();
         const { data: competitions, error: compError } = await supabase
             .from('competitions')
-            .select('id, title')
+            .select('*')
             .gte('registration_deadline', now);
 
         if (compError) {
@@ -86,23 +100,39 @@ const syncAllCompetitions = async (req, res) => {
             return res.status(500).json({ error: 'Database Error: Competitions' });
         }
 
-        console.log(`[SyncAll] Queuing ${competitions?.length || 0} competition sync jobs.`);
+        // Filter out competitions that are already syncing
+        const compsToSync = (competitions || []).filter(c => !c.is_syncing);
 
-        const jobIds = await Promise.all(
-            (competitions || []).map((comp) =>
-                addGmailSyncJob({
-                    competitionId:    comp.id,
-                    facultyId,
-                    departmentId:     department_id,
-                    assignedSections: assigned_sections,
-                })
-            )
-        );
+        if (compsToSync.length > 0) {
+            const compIds = compsToSync.map(c => c.id);
+            // Lock immediately so the frontend reflects the change
+            await supabase.from('competitions').update({ 
+                is_syncing: true, 
+                sync_status: 'running', 
+                sync_progress: 'Initializing sync...'
+            }).in('id', compIds);
+        }
+
+        console.log(`[SyncAll] Starting ${compsToSync.length} background sync jobs.`);
+
+        // Run each in background
+        compsToSync.forEach((comp) => {
+            setImmediate(async () => {
+                try {
+                    await performBatchSync(comp, department_id, assigned_sections, facultyId);
+                    console.log(`[SyncAll] Sync complete for ${comp.id}`);
+                } catch (err) {
+                    console.error(`[SyncAll] Sync failed for ${comp.id}:`, err.message);
+                    await supabase.from('competitions').update({ 
+                        is_syncing: false, sync_status: 'failed', sync_progress: 'Sync failed: ' + err.message
+                    }).eq('id', comp.id);
+                }
+            });
+        });
 
         return res.status(202).json({
-            message: 'Gmail sync queued for all active competitions',
-            totalQueued: jobIds.length,
-            jobIds,
+            message: 'Gmail sync started in background for all active competitions',
+            totalStarted: compsToSync.length,
         });
 
     } catch (err) {
@@ -198,7 +228,8 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                 is_syncing: true,
                 sync_started_by: facultyId,
                 last_sync_from: syncFrom,
-                sync_status: 'running'
+                sync_status: 'running',
+                sync_progress: 'Initializing sync...'
             })
             .eq('id', competition.id);
 
@@ -240,7 +271,15 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
 
         // 3. PHASE 1: INGESTION
         console.log(`[BatchSync] Phase 1: Ingesting emails for ${studentsToSync.length} students...`);
+        let currentStudent = 0;
         for (const student of studentsToSync) {
+            currentStudent++;
+            // Update progress every 5 students or if it's the last one
+            if (currentStudent % 5 === 0 || currentStudent === studentsToSync.length) {
+                await supabase.from('competitions').update({
+                    sync_progress: `Ingesting emails from Gmail: Student ${currentStudent} of ${studentsToSync.length}`
+                }).eq('id', competition.id);
+            }
             try {
                 await gmailService.ingestStudentEmails(student.id, competition, syncFrom);
             } catch (err) {
@@ -267,7 +306,16 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
 
         const { parseEmailBatch } = require('../../services/gmail/geminiParser.service');
 
+        let processedBatches = 0;
+        const totalBatches = emailBatches.length;
+        const totalEmails = (pendingEmails || []).length;
+
         for (const batch of emailBatches) {
+            processedBatches++;
+            await supabase.from('competitions').update({
+                sync_progress: `AI Analyzing emails: Batch ${processedBatches} of ${totalBatches} (${totalEmails} total emails)`
+            }).eq('id', competition.id);
+
             try {
                 const results = await parseEmailBatch(batch, competition.title);
 
@@ -349,7 +397,8 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                 last_synced_at: syncTo,
                 last_sync_from: syncFrom,
                 last_sync_to: syncTo,
-                sync_status: syncStatus
+                sync_status: syncStatus,
+                sync_progress: `Sync completed (${stats.detected} detected, ${stats.processed} processed)`
             })
             .eq('id', competition.id);
 

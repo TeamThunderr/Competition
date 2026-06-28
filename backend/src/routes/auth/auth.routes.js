@@ -4,15 +4,23 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../../controllers/auth/auth.controller');
-const validate = require('../../middleware/validate.middleware');
-const { loginSchema } = require('../../validation/schemas/auth.schema');
+const gmailOAuthController = require('../../controllers/auth/gmailOAuth.controller');
+const authMiddleware = require('../../middleware/authMiddleware');
 
 // POST /api/auth/login
-// Verifies Supabase JWT from Authorization header, returns user profile + role
 router.post('/login', authController.login);
 
-// POST /api/auth/save-token
-// Saves Google OAuth refresh token for Gmail integration
+// POST /api/auth/save-token — saves provider_refresh_token from Supabase OAuth
 router.post('/save-token', authController.saveGoogleToken);
+
+// GET /api/auth/gmail/connect — returns Google consent URL (must be logged in)
+router.get('/gmail/connect', authMiddleware, (req, res) => {
+    req.userId = req.user.id; // gmailOAuth controller expects req.userId
+    gmailOAuthController.getAuthUrl(req, res);
+});
+
+// GET /api/auth/gmail/callback — public redirect URI registered in Google Cloud Console
+// Google redirects here after user grants consent
+router.get('/gmail/callback', gmailOAuthController.handleOAuthCallback);
 
 module.exports = router;

@@ -86,6 +86,12 @@ export const syncActiveCompetitions = async () => {
     return response.data || response;
 };
 
+export const getCompetitionSyncStatus = async () => {
+    // Add cache-busting param to prevent 304 cached responses during polling
+    const response = await api.get(`/api/faculty/competition-sync-status?t=${Date.now()}`);
+    return response.data || response;
+};
+
 // Reports
 export const downloadParticipationReport = async () => {
     try {
@@ -157,5 +163,6 @@ export default {
     verifyShortlist,
     getPendingWinningVerifications,
     verifyWinning,
-    downloadCompetitionStudents
+    downloadCompetitionStudents,
+    getCompetitionSyncStatus
 };

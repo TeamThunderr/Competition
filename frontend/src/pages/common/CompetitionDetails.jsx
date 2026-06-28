@@ -14,6 +14,7 @@ import TotalSectionsStats from '../../components/features/competitions/stats/Tot
 import StudentStatsList from '../../components/features/competitions/stats/StudentStatsList';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
+import { useSync } from '../../context/SyncContext';
 
 import { UserCheck, UserPlus } from 'lucide-react';
 
@@ -33,8 +34,13 @@ const CompetitionDetails = () => {
     const [modalTitle, setModalTitle] = useState('');
     const [selectedStudents, setSelectedStudents] = useState([]);
     const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
-    const [syncing, setSyncing] = useState(false);
+    
+    // Use SyncContext for global sync state and progress
+    const { isGlobalSyncing, syncProgressMap, fetchSyncStatus } = useSync() || {}; // Optional fallback if used outside provider
     const { addToast } = useToast();
+
+    // The progress for this specific competition, if it is syncing
+    const currentProgress = syncProgressMap ? syncProgressMap[id] : null;
 
     const user = getCurrentUser();
     const isFaculty = user?.role === 'FACULTY';
@@ -231,9 +237,22 @@ const CompetitionDetails = () => {
                                     </button>
                                     <button
                                         onClick={() => setIsSyncModalOpen(true)}
-                                        className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
+                                        disabled={competition.is_syncing || isGlobalSyncing}
+                                        className={`flex flex-col items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors min-w-[120px] ${
+                                            competition.is_syncing || isGlobalSyncing
+                                                ? 'bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-500'
+                                                : 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50'
+                                        }`}
                                     >
-                                        <RefreshCw size={14} /> Sync
+                                        <div className="flex items-center gap-2 text-sm whitespace-nowrap">
+                                            <RefreshCw size={14} className={(competition.is_syncing || isGlobalSyncing) ? "animate-spin" : ""} /> 
+                                            {(competition.is_syncing || isGlobalSyncing) ? 'Syncing...' : 'Sync'}
+                                        </div>
+                                        {currentProgress && (
+                                            <span className="text-[10px] font-normal mt-1 opacity-80 max-w-[120px] truncate" title={currentProgress}>
+                                                {currentProgress}
+                                            </span>
+                                        )}
                                     </button>
                                 </div>
                             )}
@@ -591,32 +610,23 @@ const CompetitionDetails = () => {
                 isOpen={isSyncModalOpen}
                 onClose={() => setIsSyncModalOpen(false)}
                 title="Sync Competition Data"
-                message={`Start Gmail Sync for ${competition.title}? This will scan for new registrations and update the student lists. This may take a moment.`}
+                message={`Start background sync for ${competition.title}? The AI will scan emails for new registrations. This takes 1-2 minutes.`}
                 confirmText="Start Sync"
-                loading={syncing}
+                loading={isGlobalSyncing}
                 onConfirm={async () => {
-                    setSyncing(true);
                     try {
                         const response = await api.post(`/api/faculty/competition/${id}/sync`, {});
-                        const syncResult = response.data || response;
+                        
+                        addToast("Sync queued! The AI is analyzing emails in the background. Please check back shortly.", 'info');
 
-                        // Show Toast based on results
-                        if (syncResult?.results?.detected > 0) {
-                            addToast(`Sync Completed: Found ${syncResult.results.detected} new registrations for this competition.`, 'success');
-                        } else {
-                            addToast("Sync Completed: No new registrations found for this competition.", 'info');
-                        }
-
-                        // Refresh Data
-                        const students = await getCompetitionStudents(id);
-                        setStatsData(students);
+                        // Optimistically update the UI to prevent further clicks
+                        setCompetition(prev => ({ ...prev, is_syncing: true }));
+                        if (fetchSyncStatus) fetchSyncStatus();
                         setIsSyncModalOpen(false);
                     } catch (e) {
                         console.error(e);
-                        addToast("Sync failed: " + (e.message || "Unknown error"), 'error');
+                        addToast("Sync failed: " + (e.response?.data?.error || e.message || "Unknown error"), 'error');
                         setIsSyncModalOpen(false);
-                    } finally {
-                        setSyncing(false);
                     }
                 }}
             />

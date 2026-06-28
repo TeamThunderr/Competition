@@ -7,6 +7,7 @@ import CompetitionCard from '../../components/features/competitions/CompetitionC
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
+import { useSync } from '../../context/SyncContext';
 
 const FacultyDesktopDashboard = () => {
     const [stats, setStats] = useState({
@@ -22,8 +23,11 @@ const FacultyDesktopDashboard = () => {
     const [error, setError] = useState(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
-    const [syncing, setSyncing] = useState(false);
+    const { isGlobalSyncing, setIsGlobalSyncing, syncProgressMap, fetchSyncStatus } = useSync();
     const { addToast } = useToast();
+    
+    // Find any active progress message to display on the global button
+    const activeProgress = Object.values(syncProgressMap)[0];
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -102,9 +106,22 @@ const FacultyDesktopDashboard = () => {
                                     <div className="flex gap-3">
                                         <button
                                             onClick={() => setIsSyncModalOpen(true)}
-                                            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all hover:-translate-y-0.5"
+                                            disabled={isGlobalSyncing}
+                                            className={`flex flex-col items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold transition-all min-w-[140px] ${
+                                                isGlobalSyncing
+                                                    ? 'bg-gray-300 text-gray-700 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-400'
+                                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-0.5'
+                                            }`}
                                         >
-                                            <RefreshCw size={18} /> Sync Comp
+                                            <div className="flex items-center gap-2">
+                                                <RefreshCw size={18} className={isGlobalSyncing ? "animate-spin" : ""} /> 
+                                                {isGlobalSyncing ? 'Syncing...' : 'Sync Comp'}
+                                            </div>
+                                            {isGlobalSyncing && activeProgress && (
+                                                <span className="text-[10px] font-normal opacity-80 mt-1 max-w-[120px] truncate" title={activeProgress}>
+                                                    {activeProgress}
+                                                </span>
+                                            )}
                                         </button>
                                     </div>
                                 </div>
@@ -136,63 +153,26 @@ const FacultyDesktopDashboard = () => {
                 isOpen={isSyncModalOpen}
                 onClose={() => setIsSyncModalOpen(false)}
                 title="Sync Active Competitions"
-                message="This will check registration status for all students against the database and update the dashboard. This operation might take a few seconds."
+                message="Start background sync for all active competitions? The AI will scan emails for new registrations. This might take a few minutes."
                 confirmText="Start Sync"
-                loading={syncing}
+                loading={isGlobalSyncing}
                 onConfirm={async () => {
-                    setSyncing(true);
                     try {
-                        const { syncCompetition } = await import('../../services/facultyService');
-                        const { getDashboardStats } = await import('../../services/facultyService');
+                        const { syncActiveCompetitions } = await import('../../services/facultyService');
+                        await syncActiveCompetitions();
+                        
+                        // Optimistically lock the UI immediately (don't wait for next poll)
+                        setIsGlobalSyncing(true);
+                        
+                        addToast("Sync started! The AI is scanning emails in the background.", 'info');
 
-                        let totalDetected = 0;
-                        let competitionCount = 0;
-
-                        // Only sync active competitions and those that closed within the last 14 days
-                        const cutoffDate = new Date();
-                        cutoffDate.setDate(cutoffDate.getDate() - 14);
-
-                        const compsToSync = competitions.filter(comp => {
-                            const deadline = new Date(comp.registration_deadline);
-                            return deadline >= cutoffDate;
-                        });
-
-                        for (const comp of compsToSync) {
-                            const result = await syncCompetition(comp.id);
-                            // result contains { results: { processed, detected, errors, skipped } }
-                            if (result?.results) {
-                                totalDetected += (result.results.detected || 0);
-                            }
-                            competitionCount++;
-                        }
-
-                        // Refresh Stats
-                        const newStats = await getDashboardStats();
-                        setStats(newStats);
-
-                        // Refresh Competitions
-                        const activeCompetitionsResponse = await api.get('/api/faculty/competitions');
-                        const activeCompetitions = (activeCompetitionsResponse?.success && Array.isArray(activeCompetitionsResponse.data))
-                            ? activeCompetitionsResponse.data
-                            : (Array.isArray(activeCompetitionsResponse) ? activeCompetitionsResponse : []);
-
-                        setCompetitions(activeCompetitions);
-
-                        // Show Success Toast
-                        if (totalDetected > 0) {
-                            addToast(`Sync Complete: Found ${totalDetected} new registrations across ${competitionCount} competitions.`, 'success');
-                        } else {
-                            addToast(`Sync Complete: No new registrations found. Checked ${competitionCount} competitions.`, 'info');
-                        }
-
-                        setIsSyncModalOpen(false); // Close on success
+                        // Poll after short delay to get live progress from DB
+                        setTimeout(() => fetchSyncStatus(), 800);
+                        setIsSyncModalOpen(false);
                     } catch (e) {
                         console.error(e);
-                        setError("Sync Failed: " + (e.message || "Unknown Error"));
-                        addToast("Sync Failed: " + (e.message || "Unknown error"), 'error');
-                        setIsSyncModalOpen(false); // Close on error too
-                    } finally {
-                        setSyncing(false);
+                        addToast("Sync Failed: " + (e.response?.data?.error || e.message || "Unknown error"), 'error');
+                        setIsSyncModalOpen(false);
                     }
                 }}
             />

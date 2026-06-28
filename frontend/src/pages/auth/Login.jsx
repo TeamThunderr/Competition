@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { supabase, signInWithGoogle } from '../../services/supabaseClient';
+import { supabase, signInWithGoogle, signInWithGoogleConsent } from '../../services/supabaseClient';
 
 // Role → dashboard path mapping
 const ROLE_PATHS = {
@@ -14,19 +14,22 @@ const ROLE_PATHS = {
 };
 
 const Login = () => {
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(
+        window.location.hash?.includes('access_token') || 
+        window.location.search?.includes('code=')
+    );
     const [error, setError] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
-    const { login, isAuthenticated, role } = useAuth();
+    const { login, isAuthenticated, role, logout } = useAuth();
 
-    // If already authenticated, redirect immediately
+    // If already authenticated AND not currently processing an OAuth callback, redirect immediately
     useEffect(() => {
-        if (isAuthenticated && role) {
+        if (isAuthenticated && role && !loading) {
             const path = ROLE_PATHS[role] || '/';
             navigate(path, { replace: true });
         }
-    }, [isAuthenticated, role, navigate]);
+    }, [isAuthenticated, role, navigate, loading]);
 
     // Show reason if redirected here from a ProtectedRoute
     useEffect(() => {
@@ -49,33 +52,56 @@ const Login = () => {
             setLoading(true);
         }
 
+        // Intercept Google OAuth denial BEFORE auto-redirect kicks in
+        if (window.location.hash?.includes('error=access_denied') || window.location.search?.includes('error=access_denied')) {
+            logout(); // Immediately purge any partially-saved localStorage sessions
+            setError('Login cancelled: You must grant Gmail permissions to use this application.');
+            window.history.replaceState(null, '', window.location.pathname);
+            setLoading(false);
+            return;
+        }
+
+        // IMPORTANT: Supabase automatically clears the URL hash upon successful login.
         // Use onAuthStateChange instead of a fixed 500ms timeout!
-        // On mobile devices, 500ms is not enough time for Supabase to parse the URL hash.
-        // This listener automatically waits until Supabase has successfully parsed the new token.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.access_token) {
                 setLoading(true);
                 try {
-                    // Clean URL ONLY AFTER session is successfully extracted
+                    // Grab the refresh token intercepted by main.jsx (if any)
+                    const preExtractRefreshToken = sessionStorage.getItem('intercepted_google_refresh_token');
+                    const actualRefreshToken = preExtractRefreshToken || session.provider_refresh_token;
+
+                    // Clean URL ONLY AFTER session and tokens are successfully extracted
                     if (window.location.hash?.includes('access_token')) {
                         window.history.replaceState(null, '', window.location.pathname);
                     }
 
-                    // Save Google refresh token for Gmail integration (if available)
-                    if (session.provider_refresh_token) {
+                    // Verify with backend and get user profile
+                    const data = await login(session.access_token);
+                    
+                    // Save refresh token if we got one
+                    if (actualRefreshToken) {
                         const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                        fetch(`${baseUrl}/api/auth/save-token`, {
+                        await fetch(`${baseUrl}/api/auth/save-token`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 email: session.user.email,
-                                refreshToken: session.provider_refresh_token,
+                                refreshToken: actualRefreshToken,
                             }),
-                        }).catch(() => {});
+                        }).catch(e => console.error('Token save failed:', e));
+                        
+                        // Clear the intercepted token so we don't accidentally reuse it later
+                        sessionStorage.removeItem('intercepted_google_refresh_token');
+                    } else if (!data.user?.google_refresh_token || data.user.google_refresh_token === 'NULL') {
+                        // User has no token in DB and Google didn't return one (because they unchecked the Gmail box).
+                        // Since we always ask for consent now, missing token = permission denied.
+                        await logout(); // Purge localStorage and Supabase session
+                        setError('Permission Denied: You must grant Gmail access to continue.');
+                        setLoading(false);
+                        return; // Stop the login flow immediately
                     }
 
-                    // Verify with backend and store auth state
-                    const data = await login(session.access_token);
                     const path = ROLE_PATHS[data.role] || '/';
                     navigate(path, { replace: true });
                 } catch (err) {
@@ -111,14 +137,12 @@ const Login = () => {
 
     // ── Google login button handler ────────────────────────────────────────────
     const handleGoogleLogin = async () => {
-        setLoading(true);
-        setError(null);
         try {
+            setLoading(true);
+            setError(null);
             await signInWithGoogle();
-            // After this, user is redirected to Google, then back to /login
-            // The useEffect above handles the callback
         } catch (err) {
-            setError('Failed to start Google sign-in. Please try again.');
+            setError('Failed to initialize Google login.');
             setLoading(false);
         }
     };

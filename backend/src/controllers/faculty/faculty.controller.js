@@ -423,7 +423,7 @@ const getCompetitionSyncStatus = async (req, res) => {
         // Get active competitions + ones whose deadline passed within the last 10 days
         const { data: competitions, error: compError } = await supabase
             .from('competitions')
-            .select('id, title, uploaded_at, last_synced_at, registration_deadline')
+            .select('id, title, uploaded_at, last_synced_at, registration_deadline, is_syncing, sync_progress')
             .gte('registration_deadline', cutoffDate.toISOString().split('T')[0])
             .order('uploaded_at', { ascending: false });
 
@@ -437,7 +437,9 @@ const getCompetitionSyncStatus = async (req, res) => {
             registrationDeadline: comp.registration_deadline,
             syncStatus: comp.last_synced_at ? 'Synced' : 'Never Synced',
             canSync: true,
-            nextSyncFrom: comp.last_synced_at || comp.uploaded_at
+            nextSyncFrom: comp.last_synced_at || comp.uploaded_at,
+            isSyncing: comp.is_syncing,
+            syncProgress: comp.sync_progress
         }));
 
         sendResponse(res, 200, competitionsWithStatus, 'Competition sync status fetched');

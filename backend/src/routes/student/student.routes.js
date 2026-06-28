@@ -49,4 +49,15 @@ router.put('/profile', profileController.updateProfile);
 router.get('/search', profileController.searchStudent);
 router.get('/gmail/status', profileController.checkGmailStatus);
 
+// Gmail OAuth — get the Google consent URL for the currently logged-in student
+const gmailOAuthController = require('../../controllers/auth/gmailOAuth.controller');
+router.get('/gmail/auth-url', (req, res) => {
+    req.userId = req.user.id; // gmailOAuth controller expects req.userId
+    gmailOAuthController.getAuthUrl(req, res);
+});
+router.post('/gmail/revoke', (req, res) => {
+    req.userId = req.user.id;
+    gmailOAuthController.revokeGmailAccess(req, res);
+});
+
 module.exports = router;

@@ -159,10 +159,10 @@ export const studentService = {
         return await api.get('/api/student/gmail/status');
     },
     getGmailAuthUrl: async () => {
-        return await api.get('/api/auth/gmail/url');
+        return await api.get('/api/student/gmail/auth-url');
     },
     revokeGmailAccess: async () => {
-        return await api.del('/api/auth/gmail/revoke');
+        return await api.post('/api/student/gmail/revoke');
     }
 };
 
