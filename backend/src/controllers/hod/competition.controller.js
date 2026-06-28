@@ -6,29 +6,53 @@ const supabase = require('../../config/supabaseClient');
 
 const getAllCompetitions = async (req, res) => {
     try {
-        // Fetch competitions sorted by deadline (participation table removed)
+        const { department_id } = req.user;
+
         console.log("HOD Controller - Fetching competitions");
-        const { data: competitions, error } = await supabase
+
+        // 1. Get HOD's Student IDs
+        const { data: students, error: studentError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('department_id', department_id)
+            .eq('role', 'STUDENT');
+
+        if (studentError) throw studentError;
+
+        const myStudentIds = students.map(s => s.id);
+
+        // 2. Fetch Competitions
+        const { data: competitions, error: compError } = await supabase
             .from('competitions')
-            .select('*, registrations(count)')
+            .select('*')
             .order('registration_deadline', { ascending: true });
 
-        if (error) {
-            console.error('HOD Fetch Error:', error);
-            throw error;
+        if (compError) throw compError;
+
+        // 3. Fetch VERIFIED Registration Counts for My Students
+        let regCounts = [];
+        if (myStudentIds.length > 0) {
+            const { data, error: countError } = await supabase
+                .from('registrations')
+                .select('competition_id')
+                .eq('verified', true)
+                .in('user_id', myStudentIds);
+
+            if (countError) throw countError;
+            regCounts = data;
         }
 
-        console.log('HOD Competitions Sample:', competitions.length > 0 ? JSON.stringify(competitions[0]) : 'No data');
-
-        // Get counts from registrations only
-        const enrichedCompetitions = competitions.map(comp => {
-            const totalCount = comp.registrations && comp.registrations[0] ? comp.registrations[0].count : 0;
-
-            return {
-                ...comp,
-                registrations: [{ count: totalCount }]
-            };
+        // Aggregating counts
+        const countMap = {};
+        regCounts.forEach(r => {
+            countMap[r.competition_id] = (countMap[r.competition_id] || 0) + 1;
         });
+
+        // 4. Merge Data
+        const enrichedCompetitions = competitions.map(c => ({
+            ...c,
+            registrations: [{ count: countMap[c.id] || 0 }]
+        }));
 
         res.status(200).json(enrichedCompetitions);
     } catch (err) {
