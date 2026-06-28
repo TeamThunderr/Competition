@@ -54,7 +54,7 @@ const CompetitionCard = (props) => {
             );
         }
 
-        // 1.5 Rejected
+        // 1.5 Rejected Registration
         if (my_registration.status === 'Rejected' && !my_registration.proof_url) {
             return (
                 <div className="flex gap-2 flex-1 flex-col sm:flex-row items-stretch sm:items-center">
@@ -150,14 +150,33 @@ const CompetitionCard = (props) => {
                     );
                 }
 
-                // If status is 'Qualified' (meaning they uploaded it) but verified is false (or not manual yet):
+                // If status is 'Qualified' (meaning they uploaded it) but verified is false:
                 if (my_registration.status === 'Qualified' && !my_registration.qualification_verified) {
-                    return (
-                        <span className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold tracking-wide border dark:bg-transparent dark:border-yellow-500/30 text-yellow-700 dark:text-yellow-400 bg-yellow-50">
-                            <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></div>
-                            Verification Pending
-                        </span>
-                    );
+                    if (my_registration.shortlist_proof_url) {
+                        return (
+                            <span className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold tracking-wide border dark:bg-transparent dark:border-yellow-500/30 text-yellow-700 dark:text-yellow-400 bg-yellow-50">
+                                <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></div>
+                                Verification Pending
+                            </span>
+                        );
+                    } else {
+                        // Shortlist was rejected, prompt to re-upload
+                        return (
+                            <div className="flex gap-2 flex-1">
+                                <span className={`flex flex-1 items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold tracking-wide border
+                                    dark:bg-transparent dark:border-green-500/30 text-green-700 dark:text-green-400 bg-green-50`}
+                                >
+                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                                    Registered
+                                </span>
+                                <button
+                                    onClick={() => onRegister(competition.id, 'QUALIFIED')}
+                                    className="flex-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 py-2.5 px-4 rounded-xl text-sm font-semibold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shadow-sm flex items-center justify-center gap-2">
+                                    <XCircle size={16} /> Re-upload Shortlist
+                                </button>
+                            </div>
+                        );
+                    }
                 }
 
                 // If here, they are Shortlisted but haven't uploaded Valid Qualified proof yet
@@ -255,7 +274,19 @@ const CompetitionCard = (props) => {
 
                     {/* Status Indicator Dot */}
                     {my_registration && (
-                        <div className={`w-3 h-3 rounded-full ${my_registration.verified ? 'bg-green-500' : 'bg-yellow-400'}`} title={my_registration.verified ? "Verified" : "Pending"} />
+                        <div className={`w-3 h-3 rounded-full ${
+                            my_registration.verified 
+                                ? 'bg-green-500' 
+                                : (my_registration.status === 'Rejected' || (!my_registration.qualification_verified && my_registration.status === 'Qualified' && !my_registration.shortlist_proof_url) 
+                                    ? 'bg-red-500' 
+                                    : 'bg-yellow-400')
+                        }`} title={
+                            my_registration.verified 
+                                ? "Verified" 
+                                : (my_registration.status === 'Rejected' || (!my_registration.qualification_verified && my_registration.status === 'Qualified' && !my_registration.shortlist_proof_url)
+                                    ? "Rejected" 
+                                    : "Pending")
+                        } />
                     )}
                 </div>
             </div>
@@ -343,3 +374,4 @@ const CompetitionCard = (props) => {
 };
 
 export default CompetitionCard;
+

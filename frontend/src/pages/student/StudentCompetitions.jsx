@@ -47,7 +47,7 @@ const StudentCompetitions = () => {
         fetchCompetitions();
     }, []);
 
-    const [activeTab, setActiveTab] = useState('unregistered');
+    const [activeTab, setActiveTab] = useState('explore');
 
     const [appliedCompetitions, setAppliedCompetitions] = useState(() => {
         const saved = localStorage.getItem('appliedCompetitions');
@@ -198,10 +198,10 @@ const StudentCompetitions = () => {
 
     // Filter Logic based on tabs
     const filteredCompetitions = competitions.filter(c => {
-        if (activeTab === 'registered') {
+        if (activeTab === 'applications') {
             return c.my_registration;
         } else {
-            // Unregistered Tab: ONLY show open competitions
+            // Explore Tab: ONLY show open competitions
             if (!c.registration_deadline) return !c.my_registration; // Keep if no deadline
 
             const deadline = new Date(c.registration_deadline);
@@ -239,22 +239,22 @@ const StudentCompetitions = () => {
                     {/* Tab Navigation */}
                     <div className="flex space-x-1 bg-muted/20 p-1 rounded-xl w-fit">
                         <button
-                            onClick={() => setActiveTab('unregistered')}
-                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'unregistered'
+                            onClick={() => setActiveTab('explore')}
+                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'explore'
                                 ? 'bg-card text-primary shadow-sm'
                                 : 'text-muted hover:text-foreground'
                                 }`}
                         >
-                            Unregistered
+                            Explore
                         </button>
                         <button
-                            onClick={() => setActiveTab('registered')}
-                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'registered'
+                            onClick={() => setActiveTab('applications')}
+                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'applications'
                                 ? 'bg-card text-primary shadow-sm'
                                 : 'text-muted hover:text-foreground'
                                 }`}
                         >
-                            Registered
+                            My Applications
                         </button>
                     </div>
 
@@ -270,8 +270,8 @@ const StudentCompetitions = () => {
                 <CompetitionListView
                     Sidebar={null} // We handle sidebar above
                     competitions={filteredCompetitions}
-                    title={activeTab === 'registered' ? "My Registrations" : "Available Competitions"}
-                    subtitle={activeTab === 'registered' ? "Competitions you have registered for." : "Browse and register for upcoming events."}
+                    title={activeTab === 'applications' ? "My Applications" : "Available Competitions"}
+                    subtitle={activeTab === 'applications' ? "Competitions you have applied for." : "Browse and register for upcoming events."}
                     loading={loading}
                     showRegister={true} // Enable register buttons
                     role="STUDENT"
