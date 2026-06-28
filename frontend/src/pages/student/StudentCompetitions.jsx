@@ -5,6 +5,8 @@ import ConfirmModal from '../../components/common/ConfirmModal';
 import AlertModal from '../../components/common/AlertModal';
 import { useToast } from '../../contexts/ToastContext';
 
+import CompetitionDetails from '../common/CompetitionDetails';
+import { formatDateTime } from '../../utils/dateFormatter';
 import CompetitionListView from '../common/CompetitionListView';
 import { supabase } from '../../services/supabaseClient';
 import { studentService } from '../../services/studentService';
@@ -228,17 +230,18 @@ const StudentCompetitions = () => {
     // Filter Logic based on tabs
     const filteredCompetitions = competitions.filter(c => {
         if (activeTab === 'registered') {
-            return !!c.my_registration;
+            // Only show if the registration is verified by faculty
+            return c.my_registration && c.my_registration.verified;
         } else {
-            // Unregistered Tab: ONLY show open competitions
-            if (c.my_registration) return false;
-            if (!c.registration_deadline) return true; // Keep if no deadline
-
-            const deadline = new Date(c.registration_deadline);
-            deadline.setHours(23, 59, 59, 999);
-            const isClosed = deadline < new Date();
-
-            return !isClosed;
+            // Unregistered Tab: ONLY show open competitions IF not registered at all
+            if (!c.my_registration) {
+                if (!c.registration_deadline) return true; // Keep if no deadline
+                const deadline = new Date(c.registration_deadline);
+                deadline.setHours(23, 59, 59, 999);
+                return deadline >= new Date(); // Keep if not closed
+            }
+            // If they have a registration but it's not verified, it stays in Unregistered
+            return !c.my_registration.verified;
         }
     });
 
@@ -292,7 +295,7 @@ const StudentCompetitions = () => {
                     {latestSyncTime && (
                         <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100 shadow-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                             <RefreshCw className="w-4 h-4" />
-                            <span>Faculty Last Synced: {latestSyncTime.toLocaleString()}</span>
+                            <span>Faculty Last Synced: {formatDateTime(latestSyncTime)}</span>
                         </div>
                     )}
                 </div>

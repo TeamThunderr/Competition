@@ -164,6 +164,7 @@ const HodDashboard = () => {
         name: s.full_name,
         email: s.email,
         reg: s.registration_no,
+        registeredCount: s.registrations ? s.registrations.length : 0,
         icon: s.full_name ? s.full_name.charAt(0).toUpperCase() : 'U',
         status: 'Active',
         statusColor: 'text-green-600'
@@ -216,7 +217,7 @@ const HodDashboard = () => {
                 <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto items-center">
                     {/* Year Tabs */}
                     <div className="flex bg-muted/10 p-1 rounded-lg border border-border shadow-sm h-10 items-center justify-center sm:justify-start w-full sm:w-auto">
-                        {['2nd'].map((tab) => (
+                        {['2nd', '3rd'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => { setActiveTab(tab); setSelectedSection('All Sections'); }}
@@ -411,6 +412,7 @@ const HodDashboard = () => {
                                     emptyMessage="No students found in this section."
                                     role="HOD"
                                     showSection={false}
+                                    showRegisteredCount={true}
                                 />
                             </div>
                         )

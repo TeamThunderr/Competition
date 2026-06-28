@@ -16,13 +16,8 @@ export const getMyStudents = async () => {
     return response.data || response;
 };
 
-export const bulkUploadStudents = async (formData) => {
-    // Note: Content-Type header 'multipart/form-data' is usually handled automatically by browser/axios when data is FormData
-    const response = await api.post('/api/faculty/students/upload', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
+export const updateStudentSection = async (studentId, section) => {
+    const response = await api.put(`/api/faculty/students/${studentId}/section`, { section });
     return response.data || response;
 };
 
@@ -103,7 +98,7 @@ export const downloadParticipationReport = async () => {
         const url = window.URL.createObjectURL(new Blob([response]));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `Participation_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+        link.setAttribute('download', `Participation_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`);
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -130,7 +125,7 @@ export const downloadCompetitionStudents = async (competitionId, type, title) =>
 
         // Clean title for filename
         const cleanTitle = title ? title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : competitionId;
-        const filename = `${type}_${cleanTitle}.csv`; // Format: registered_competitiontitle.csv
+        const filename = `${type}_${cleanTitle}.xlsx`; // Format: registered_competitiontitle.xlsx
 
         link.setAttribute('download', filename);
         document.body.appendChild(link);
@@ -149,7 +144,7 @@ export const downloadCompetitionStudents = async (competitionId, type, title) =>
 export default {
     getDashboardStats,
     getMyStudents,
-    bulkUploadStudents,
+    updateStudentSection,
     getStudentDetails,
     getRecentRegistrations,
     getPendingVerifications,

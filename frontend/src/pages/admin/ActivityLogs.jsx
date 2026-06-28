@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Clock, AlertCircle, Trash2, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
+import { formatDateTime } from '../../utils/dateFormatter';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import EditCompetitionModal from '../../components/admin/EditCompetitionModal';
 import { useToast } from '../../contexts/ToastContext';
@@ -147,9 +148,7 @@ const ActivityLogs = () => {
                                                         <span className="font-medium text-foreground">{log.user}</span>
                                                     </div>
                                                     <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                                                    <div>{new Date(log.timestamp).toLocaleDateString()}</div>
-                                                    <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                                                    <div>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                    <div>{formatDateTime(log.timestamp)}</div>
                                                 </div>
                                             </div>
                                         </div>

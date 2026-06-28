@@ -3,9 +3,7 @@ const router = express.Router();
 const facultyController = require('../../controllers/faculty/faculty.controller');
 const verificationController = require('../../controllers/faculty/verification.controller');
 const facultyCompetitionController = require('../../controllers/faculty/competition.controller');
-const teamVerificationController = require('../../controllers/faculty/team_verification.controller');
-const uploadController = require('../../controllers/faculty/upload.controller');
-const excelUploadMiddleware = require('../../middleware/excelUploadMiddleware');
+
 const authMiddleware = require('../../middleware/authMiddleware');
 const roleMiddleware = require('../../middleware/role.middleware');
 const validate = require('../../middleware/validate.middleware');
@@ -19,7 +17,7 @@ router.use(roleMiddleware('FACULTY'));
 // Student Management (students list is paginated)
 router.get('/students', facultyController.getMyStudents);
 router.get('/students/:studentId', facultyController.getStudentDetails);
-router.post('/students/upload', excelUploadMiddleware.single('file'), uploadController.bulkUploadStudents);
+router.put('/students/:studentId/section', facultyController.updateStudentSection);
 
 // Data & Stats (registrations list is paginated)
 router.get('/stats', facultyController.getStats); // Legacy
@@ -41,19 +39,17 @@ router.post('/competition/:id/sync', gmailSyncLimiter, facultyController.syncCom
 router.get('/competition-sync-status', facultyController.getCompetitionSyncStatus);
 
 // Verification Routes (Student Registration)
-router.get('/pending-verifications', facultyController.getPendingVerifications);
-router.post('/verify-registration', validate(verifyRegistrationSchema), facultyController.verifyRegistration);
+router.get('/pending-verifications', verificationController.getPendingVerifications);
+router.post('/verify-registration', validate(verifyRegistrationSchema), verificationController.verifyRegistration);
 
 // Verification Routes (Shortlist)
-router.get('/pending-shortlists', facultyController.getPendingShortlistVerifications);
-router.post('/verify-shortlist', facultyController.verifyShortlist);
+router.get('/pending-shortlists', verificationController.getPendingShortlistVerifications);
+router.post('/verify-shortlist', verificationController.verifyShortlist);
 
 // Verification Routes (Winning)
 router.get('/pending-winning', verificationController.getPendingWinningVerifications);
 router.post('/verify-winning', verificationController.verifyWinning);
 
-// Team Verification Routes
-router.get('/pending-teams', teamVerificationController.getPendingTeamVerifications);
-router.post('/verify-team', teamVerificationController.verifyTeam);
+// Team Verification Routes Removed
 
 module.exports = router;

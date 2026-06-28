@@ -1,137 +1,187 @@
 // File Name: verification.controller.js
-// Purpose: Handle manual verification of student registrations (Faculty)
-// Written for beginner developers
+// Purpose: Handle manual verification of student registrations, shortlists, and winnings (Faculty)
 
 const { sendResponse } = require('../../utils/responseHelper');
 const supabase = require('../../config/supabaseClient');
+const { getMyStudentIds } = require('./faculty.controller');
 
-// 1. Get Pending Verifications (For Faculty Dashboard)
+// 1. Get Pending Verifications
 const getPendingVerifications = async (req, res) => {
     try {
         const { assigned_sections, department_id } = req.user;
+        const myStudentIds = await getMyStudentIds(req.user.id, department_id, assigned_sections || []);
 
-        // Logic: Fetch registrations that are 'Pending' (verified = false)
-        // AND belong to students in my assigned sections/department.
+        if (myStudentIds.length === 0) {
+            return sendResponse(res, 200, [], 'No students found');
+        }
 
-        // We can reuse the "getMyStudentIds" logic if it were shared, 
-        // or just join with users table and filter in the query.
-
-        console.log(`[Verification] Fetching pending requests for Dept: ${department_id}`);
-
-        const { data: requests, error } = await supabase
+        const { data: registrations, error } = await supabase
             .from('registrations')
             .select(`
-                id,
-                registered_at,
-                source,
-                proof_url,
-                verified,
-                users!registrations_user_id_fkey!inner (
-                    id,
-                    full_name,
-                    registration_no,
-                    section,
-                    department_id
-                ),
-                competitions!inner (
-                    id,
-                    title
-                )
+                id, registered_at, proof_url, verified, status, source,
+                users!registrations_user_id_fkey!inner ( full_name, registration_no, section ),
+                competitions!inner ( title )
             `)
+            .in('user_id', myStudentIds)
             .eq('verified', false)
-            .eq('source', 'MANUAL_SCREENSHOT') // Only show manual ones for validation (or all?)
-            .eq('users.department_id', department_id);
-        // Note: assigned_sections filtering is harder via join. 
-        // We'll fetch Dept-wide and filter in memory if strict section access is needed.
-        // For MVP, Dept access is fine.
+            .not('proof_url', 'is', null) // Exclude rejected requests without new proofs
+            .order('registered_at', { ascending: false });
 
         if (error) throw error;
 
-        // Filter by assigned sections (if strictly enforced)
-        const allowedSections = assigned_sections
-            ? assigned_sections.map(s => s.split('-')[1] || s).map(s => s.trim())
-            : [];
-
-        // If assigned_sections is empty/null, maybe allow all (HOD/Admin role reuse) or none?
-        // Let's assume Faculty *must* be assigned sections, or they see nothing.
-        // Or if they are "Class Advisor", they see their class.
-
-        const filteredRequests = requests.filter(req => {
-            if (allowedSections.length === 0) return true; // Fallback: Show all if no assignment logic
-            return allowedSections.includes(req.users.section);
-        });
-
-        // Map to UI friendly format
-        const responseData = filteredRequests.map(req => ({
-            id: req.id,
-            studentName: req.users.full_name,
-            regNo: req.users.registration_no,
-            competition: req.competitions.title,
-            proofUrl: req.proof_url,
-            status: 'Pending',
-            submittedAt: new Date(req.registered_at).toLocaleDateString()
+        // Map to frontend expectation
+        const mappedRegs = registrations.map(r => ({
+            id: r.id,
+            competitions: { title: r.competitions.title },
+            users: {
+                full_name: r.users.full_name,
+                registration_no: r.users.registration_no,
+                section: r.users.section
+            },
+            proof_url: r.proof_url,
+            status: r.status,
+            source: r.source,
+            created_at: r.registered_at
         }));
 
-        sendResponse(res, 200, responseData, 'Fetched pending verifications');
-
+        sendResponse(res, 200, mappedRegs, 'Fetched pending registrations');
     } catch (err) {
-        console.error('[VerificationController] Error:', err);
-        sendResponse(res, 500, null, 'Internal Server Error');
+        console.error('[VerificationController] Pending Regs Error:', err);
+        sendResponse(res, 500, null, 'Internal Server Error: ' + err.message);
     }
 };
 
 // 2. Verify (Approve/Reject) Registration
 const verifyRegistration = async (req, res) => {
     try {
-        const { registration_id, action } = req.body; // action: 'approve' | 'reject'
-        const faculty_id = req.user.id;
+        const { registration_id, action } = req.body;
 
-        if (!registration_id || !action) {
-            return sendResponse(res, 400, null, 'Registration ID and Action are required');
+        if (!['approve', 'reject'].includes(action)) {
+            return sendResponse(res, 400, null, 'Invalid action');
         }
 
         if (action === 'approve') {
-            const { data, error } = await supabase
-                .from('registrations')
-                .update({
-                    verified: true,
-                    verified_by: faculty_id
-                })
-                .eq('id', registration_id)
-                .select();
-
-            if (error) throw error;
-            sendResponse(res, 200, data, 'Registration Verified Successfully');
-
-        } else if (action === 'reject') {
-            // Option A: Delete the record
-            // Option B: Set status='REJECTED' (if we had a status column. We have 'verified' bool only).
-            // Schema check: registrations table has 'verified' (bool). 
-            // detected_hackathons has 'status'.
-            // registrations also has 'status'?? Let's check schema/previous implementation.
-            // The user schema typically had 'verified' boolean. 
-            // If we assume 'reject' means invalid proof -> Delete request so they can upload again?
-
             const { error } = await supabase
                 .from('registrations')
-                .delete()
+                .update({ verified: true, status: 'Registered' })
                 .eq('id', registration_id);
-
             if (error) throw error;
-            sendResponse(res, 200, null, 'Registration Request Rejected (Deleted)');
         } else {
-            return sendResponse(res, 400, null, 'Invalid Action');
+            // Reject -> Update proof_url to null to allow re-upload
+            const { error } = await supabase
+                .from('registrations')
+                .update({ 
+                    verified: false, 
+                    proof_url: null,
+                    status: 'Rejected'
+                })
+                .eq('id', registration_id);
+            if (error) throw error;
         }
 
+        sendResponse(res, 200, null, `Registration ${action}ed`);
     } catch (err) {
-        console.error('[VerificationController] Error:', err);
+        console.error('[VerificationController] Verify Error:', err);
+        sendResponse(res, 500, null, 'Verification failed');
+    }
+};
+
+// 3. Get Pending Shortlist Verifications
+const getPendingShortlistVerifications = async (req, res) => {
+    try {
+        const { assigned_sections, department_id } = req.user;
+        const myStudentIds = await getMyStudentIds(req.user.id, department_id, assigned_sections || []);
+
+        if (myStudentIds.length === 0) {
+            return sendResponse(res, 200, [], 'No students found');
+        }
+
+        const { data: registrations, error } = await supabase
+            .from('registrations')
+            .select(`
+                id, registered_at, shortlist_proof_url, qualification_verified, status,
+                users!registrations_user_id_fkey!inner ( full_name, registration_no, section ),
+                competitions!inner ( title )
+            `)
+            .in('user_id', myStudentIds)
+            .eq('qualification_verified', false)
+            .not('shortlist_proof_url', 'is', null)
+            .order('registered_at', { ascending: false });
+
+        if (error) {
+            console.error('[VerificationController] Pending Shortlist Query Error:', error);
+            throw error;
+        }
+
+        const mappedRegs = registrations.map(r => ({
+            id: r.id,
+            competitions: { title: r.competitions.title },
+            users: {
+                full_name: r.users.full_name,
+                registration_no: r.users.registration_no,
+                section: r.users.section
+            },
+            proof_url: r.shortlist_proof_url, 
+            created_at: r.registered_at,
+            type: 'SHORTLIST'
+        }));
+
+        sendResponse(res, 200, mappedRegs, 'Fetched pending shortlists');
+    } catch (err) {
+        console.error('[VerificationController] Pending Shortlist Error:', err);
         sendResponse(res, 500, null, 'Internal Server Error');
     }
 };
 
+// 4. Verify Shortlist
+const verifyShortlist = async (req, res) => {
+    const { registration_id, action } = req.body;
+
+    try {
+        if (action === 'approve') {
+            const { data: regData, error: fetchError } = await supabase
+                .from('registrations')
+                .select('user_id, competition_id')
+                .eq('id', registration_id)
+                .single();
+            if (fetchError) throw fetchError;
+
+            const { error } = await supabase
+                .from('registrations')
+                .update({ qualification_verified: true, status: 'Qualified' })
+                .eq('id', registration_id);
+            if (error) throw error;
+            
+            await supabase.from('competition_status').upsert({
+                user_id: regData.user_id,
+                competition_id: regData.competition_id,
+                is_shortlisted: true,
+                updated_at: new Date()
+            }, { onConflict: 'user_id, competition_id' });
+        } else if (action === 'reject') {
+            const { error } = await supabase
+                .from('registrations')
+                .update({ shortlist_proof_url: null, qualification_verified: false })
+                .eq('id', registration_id);
+            if (error) throw error;
+        }
+
+        sendResponse(res, 200, null, `Shortlist ${action}d successfully`);
+    } catch (err) {
+        console.error('[VerificationController] Verify Shortlist Error:', err);
+        sendResponse(res, 500, null, 'Failed to verify');
+    }
+};
+
+// 5. Get Pending Winning Verifications
 const getPendingWinningVerifications = async (req, res) => {
     try {
-        const { department_id } = req.user;
+        const { assigned_sections, department_id } = req.user;
+        const myStudentIds = await getMyStudentIds(req.user.id, department_id, assigned_sections || []);
+
+        if (myStudentIds.length === 0) {
+            return sendResponse(res, 200, [], 'No students found');
+        }
 
         const { data: requests, error } = await supabase
             .from('registrations')
@@ -154,9 +204,9 @@ const getPendingWinningVerifications = async (req, res) => {
                     title
                 )
             `)
+            .in('user_id', myStudentIds)
             .eq('won_status', 'WON')
-            .eq('winning_verified', false)
-            .eq('users.department_id', department_id);
+            .eq('winning_verified', false);
 
         if (error) throw error;
 
@@ -179,6 +229,7 @@ const getPendingWinningVerifications = async (req, res) => {
     }
 };
 
+// 6. Verify Winning
 const verifyWinning = async (req, res) => {
     try {
         const { registration_id, action } = req.body;
@@ -197,9 +248,16 @@ const verifyWinning = async (req, res) => {
                     status: 'Winner'
                 })
                 .eq('id', registration_id)
-                .select();
+                .select('user_id, competition_id');
 
             if (error) throw error;
+            
+            await supabase.from('competition_status').upsert({
+                user_id: data[0].user_id,
+                competition_id: data[0].competition_id,
+                is_winner: true,
+                updated_at: new Date()
+            }, { onConflict: 'user_id, competition_id' });
             sendResponse(res, 200, data, 'Winning Status Verified Successfully');
 
         } else if (action === 'reject') {
@@ -228,6 +286,8 @@ const verifyWinning = async (req, res) => {
 module.exports = {
     getPendingVerifications,
     verifyRegistration,
+    getPendingShortlistVerifications,
+    verifyShortlist,
     getPendingWinningVerifications,
     verifyWinning
 };

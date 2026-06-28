@@ -3,6 +3,8 @@
 // UPDATED: Removed all participation table references - uses registrations only
 
 const supabase = require('../../config/supabaseClient');
+const { getAcademicYearLabel } = require('../../utils/academicYear.util');
+const { buildXlsxBuffer } = require('../../utils/exportHelper');
 
 const getAllCompetitions = async (req, res) => {
     try {
@@ -46,6 +48,7 @@ const getAllCompetitions = async (req, res) => {
         const { data: regCounts, error: countError } = await supabase
             .from('registrations')
             .select('competition_id')
+            .eq('verified', true)
             .in('user_id', myStudentIds);
 
         if (countError) throw countError;
@@ -184,8 +187,10 @@ const getCompetitionStudents = async (req, res) => {
             registered: myStudents
                 .filter(s => {
                     const isReg = regMap.has(s.id);
-                    const isShort = statusMap.get(s.id)?.is_shortlisted;
-                    return isReg && !isShort;
+                    const st = statusMap.get(s.id);
+                    const isShort = st?.is_shortlisted;
+                    const isWinner = st?.is_winner;
+                    return isReg && !isShort && !isWinner;
                 })
                 .map(s => {
                     const r = regMap.get(s.id);
@@ -211,7 +216,7 @@ const getCompetitionStudents = async (req, res) => {
             shortlisted: myStudents
                 .filter(s => {
                     const st = statusMap.get(s.id);
-                    return st && st.is_shortlisted;
+                    return st?.is_shortlisted && !st?.is_winner;
                 })
                 .map(s => {
                     return {
@@ -222,22 +227,44 @@ const getCompetitionStudents = async (req, res) => {
                     };
                 }),
 
-            unregistered: myStudents
+            winners: myStudents
                 .filter(s => {
-                    const isReg = regMap.has(s.id);
-                    const isShort = statusMap.get(s.id)?.is_shortlisted;
-                    return !isReg && !isShort;
+                    const st = statusMap.get(s.id);
+                    return st?.is_winner;
                 })
                 .map(s => {
                     return {
                         id: s.id,
                         name: s.full_name,
                         regNo: s.registration_no,
-                        status: 'NOT_REGISTERED',
+                        status: 'Winner'
+                    };
+                }),
+
+            unregistered: myStudents
+                .filter(s => {
+                    const isReg = regMap.has(s.id);
+                    const st = statusMap.get(s.id);
+                    const isShort = st?.is_shortlisted;
+                    const isWinner = st?.is_winner;
+                    return !isReg && !isShort && !isWinner;
+                })
+                .map(s => {
+                    const isReg = regMap.has(s.id);
+                    return {
+                        id: s.id,
+                        name: s.full_name,
+                        regNo: s.registration_no,
+                        status: isReg ? 'PENDING' : 'NOT_REGISTERED',
                         lastSynced: null,
                         confidence: 0,
                         remarks: ''
                     };
+                })
+                .sort((a, b) => {
+                    if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
+                    if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
+                    return a.regNo.localeCompare(b.regNo);
                 })
         };
 
@@ -336,20 +363,19 @@ const exportCompetitionStudents = async (req, res) => {
         if (type === 'registered') {
             // All registered students (including shortlisted/winners/etc)
             exportData = myStudents
-                .filter(s => regMap.has(s.id))
+                .filter(s => regMap.has(s.id) && regMap.get(s.id).verified)
                 .map(s => {
                     const reg = regMap.get(s.id);
                     return {
                         ...s,
                         status: 'Registered',
-                        registered_at: reg.registered_at ? new Date(reg.registered_at).toLocaleString() : 'N/A',
                         verified: reg.verified ? 'Yes' : 'No'
                     };
                 });
         } else {
             // Unregistered students
             exportData = myStudents
-                .filter(s => !regMap.has(s.id))
+                .filter(s => !regMap.has(s.id) || !regMap.get(s.id).verified)
                 .map(s => ({
                     ...s,
                     status: 'Not Registered',
@@ -358,32 +384,21 @@ const exportCompetitionStudents = async (req, res) => {
                 }));
         }
 
-        // 5. Generate CSV
-        const csvRows = [];
-        // Header
-        csvRows.push(['Student Name', 'Register No', 'Section', 'Email', 'Phone', 'Status', 'Verified', 'Registered At', 'Venue'].join(','));
+        // 5. Generate XLSX
+        const headers = ['Student Name', 'Register No', 'Section', 'Status'];
+        const xlsxData = exportData.map(s => ({
+            'Student Name': s.full_name || '',
+            'Register No': s.registration_no || '',
+            'Section': s.section || '',
+            'Status': s.status
+        }));
 
-        exportData.forEach(s => {
-            const row = [
-                `"${s.full_name || ''}"`,
-                `"${s.registration_no || ''}"`,
-                `"${s.section || ''}"`,
-                `"${s.email || ''}"`,
-                `"${s.phone_number || ''}"`,
-                `"${s.status}"`,
-                `"${s.verified}"`,
-                `"${s.registered_at}"`,
-                `"${comp.venue || 'N/A'}"`
-            ].join(',');
-            csvRows.push(row);
-        });
+        const buffer = buildXlsxBuffer(xlsxData, headers, 'Students');
+        const filename = `${comp.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${type}_students.xlsx`;
 
-        const csvString = csvRows.join('\n');
-        const filename = `${comp.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${type}_students.csv`;
-
-        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.status(200).send(csvString);
+        res.status(200).send(buffer);
 
     } catch (err) {
         console.error('Error exporting competition students:', err);

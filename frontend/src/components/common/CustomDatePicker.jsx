@@ -154,7 +154,7 @@ const CustomDatePicker = ({
                     ${isOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-200 dark:border-zinc-800 hover:border-blue-400'}
                 `}>
                     <span className={selectedDate ? 'text-gray-900 dark:text-white' : 'text-gray-400'}>
-                        {selectedDate ? selectedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : placeholder}
+                        {selectedDate ? selectedDate.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: 'numeric' }) : placeholder}
                     </span>
                 </div>
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-blue-500 transition-colors" size={16} />
@@ -176,7 +176,7 @@ const CustomDatePicker = ({
                                 <ChevronLeft size={20} />
                             </button>
                             <span className="font-bold text-gray-800 dark:text-white">
-                                {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                {currentMonth.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', month: 'long', year: 'numeric' })}
                             </span>
                             <button onClick={handleNextMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors text-gray-600 dark:text-gray-300">
                                 <ChevronRight size={20} />

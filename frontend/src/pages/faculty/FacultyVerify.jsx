@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 
-import { CheckCircle, XCircle, ExternalLink, Users, FileText } from 'lucide-react';
-import { getPendingVerifications, verifyRegistration, getPendingShortlistVerifications, verifyShortlist } from '../../services/facultyService';
-import { api } from '../../services/api'; // Direct API for team verification if service not unified
+import { CheckCircle, XCircle, Users, FileText, X, ZoomIn } from 'lucide-react';
+import { 
+    getPendingVerifications, verifyRegistration, 
+    getPendingShortlistVerifications, verifyShortlist,
+    getPendingWinningVerifications, verifyWinning
+} from '../../services/facultyService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import { formatDate } from '../../utils/dateFormatter';
 
 const FacultyVerify = () => {
     const [activeTab, setActiveTab] = useState('registration'); // 'registration' | 'shortlist' | 'winning'
@@ -13,6 +17,7 @@ const FacultyVerify = () => {
     const [winning, setWinning] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
+    const [selectedImage, setSelectedImage] = useState(null); // State for image lightbox
 
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
@@ -30,7 +35,7 @@ const FacultyVerify = () => {
             const [regData, shortlistData, winningData] = await Promise.all([
                 getPendingVerifications(),
                 getPendingShortlistVerifications(),
-                api.get('/api/faculty/pending-winning').then(res => res.data || res) // Use API directly if service not updated/exported correctly in this scope
+                getPendingWinningVerifications()
             ]);
 
             // Handle Registration Data
@@ -82,7 +87,7 @@ const FacultyVerify = () => {
                 await verifyShortlist(id, action);
                 setShortlisted(prev => prev.filter(p => p.id !== id));
             } else if (activeTab === 'winning') {
-                await api.post('/api/faculty/verify-winning', { registration_id: id, action });
+                await verifyWinning(id, action);
                 setWinning(prev => prev.filter(p => p.id !== id));
             }
 
@@ -113,15 +118,15 @@ const FacultyVerify = () => {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-4 border-b border-border mb-6">
+                <div className="flex overflow-x-auto whitespace-nowrap gap-2 sm:gap-4 border-b border-border mb-6 pb-1" style={{ scrollbarWidth: 'none' }}>
                     <button
                         onClick={() => setActiveTab('registration')}
-                        className={`pb-3 px-1 text-sm font-medium transition-colors relative ${activeTab === 'registration'
+                        className={`pb-3 px-2 text-sm font-medium transition-colors relative ${activeTab === 'registration'
                             ? 'text-primary border-b-2 border-primary'
                             : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
-                        Registration Proofs
+                        Registration <span className="hidden sm:inline">Proofs</span>
                         {registrations.length > 0 && (
                             <span className="ml-2 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full dark:bg-primary/20">
                                 {registrations.length}
@@ -130,12 +135,12 @@ const FacultyVerify = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('shortlist')}
-                        className={`pb-3 px-1 text-sm font-medium transition-colors relative ${activeTab === 'shortlist'
+                        className={`pb-3 px-2 text-sm font-medium transition-colors relative ${activeTab === 'shortlist'
                             ? 'text-primary border-b-2 border-primary'
                             : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
-                        Shortlisted Proofs
+                        Shortlisted <span className="hidden sm:inline">Proofs</span>
                         {shortlisted.length > 0 && (
                             <span className="ml-2 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full dark:bg-primary/20">
                                 {shortlisted.length}
@@ -144,12 +149,12 @@ const FacultyVerify = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('winning')}
-                        className={`pb-3 px-1 text-sm font-medium transition-colors relative ${activeTab === 'winning'
+                        className={`pb-3 px-2 text-sm font-medium transition-colors relative ${activeTab === 'winning'
                             ? 'text-primary border-b-2 border-primary'
                             : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
-                        Winning Proofs
+                        Winning <span className="hidden sm:inline">Proofs</span>
                         {winning.length > 0 && (
                             <span className="ml-2 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full dark:bg-primary/20">
                                 {winning.length}
@@ -174,122 +179,116 @@ const FacultyVerify = () => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-6">
-                        {currentList.map((item) => (
-                            <div key={item.id} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden flex flex-col md:flex-row">
-                                {/* Proof Image Preview (Click to open full) */}
-                                <div className="w-full md:w-64 h-48 md:h-auto bg-muted/10 md:border-r border-border relative group">
-                                    <img
-                                        src={item.winning_proof_url || item.shortlist_proof_url || item.proof_url || item.proofUrl} // Handle various backend naming conventions
-                                        alt="Proof"
-                                        className="w-full h-full object-cover"
-                                    />
-                                    <a
-                                        href={item.winning_proof_url || item.shortlist_proof_url || item.proof_url || item.proofUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                        <div className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2">
-                                            <ExternalLink size={16} />
-                                            View Full
+                        {currentList.map((item) => {
+                            const proofUrl = item.winning_proof_url || item.shortlist_proof_url || item.proof_url || item.proofUrl;
+                            return (
+                                <div key={item.id} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden flex flex-col md:flex-row">
+                                    {/* Proof Image Preview (Click to open modal) */}
+                                    <div className="w-full md:w-56 h-36 md:h-auto bg-muted/10 md:border-r border-border relative group cursor-pointer"
+                                         onClick={() => setSelectedImage(proofUrl)}>
+                                        <img
+                                            src={proofUrl}
+                                            alt="Proof"
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2">
+                                                <ZoomIn size={16} />
+                                                View Proof
+                                            </div>
                                         </div>
-                                    </a>
-                                </div>
-
-                                {/* Details */}
-                                <div className="flex-1 p-6 flex flex-col justify-center">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="text-lg font-bold text-foreground">
-                                            {item.competitions?.title || item.competitionTitle || item.competition || 'Unknown Competition'}
-                                        </h3>
-                                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${activeTab === 'registration'
-                                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                                            : activeTab === 'shortlist'
-                                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                                                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-                                            }`}>
-                                            {activeTab === 'registration' ? 'Registration' : activeTab === 'shortlist' ? 'Shortlist' : 'Winning'}
-                                        </span>
                                     </div>
 
-                                    <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                            <span className="text-muted block">Student Name</span>
-                                            <span className="font-medium text-foreground">{item.users?.full_name || item.studentName || 'N/A'}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-muted block">Registration No</span>
-                                            <span className="font-medium text-foreground">{item.users?.registration_no || item.regNo || 'N/A'}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-muted block">Class/Section</span>
-                                            <span className="font-medium text-foreground">Section {item.users?.section || item.section || 'N/A'}</span>
-                                        </div>
-
-                                        <div>
-                                            <span className="text-muted block">Submitted At</span>
-                                            <span className="font-medium text-foreground">
-                                                {item.registered_at
-                                                    ? new Date(item.registered_at).toLocaleDateString()
-                                                    : (item.submittedAt || 'N/A')}
+                                    {/* Details */}
+                                    <div className="flex-1 p-4 md:p-6 flex flex-col justify-center">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className="text-base md:text-lg font-bold text-foreground line-clamp-1 pr-2">
+                                                {item.competitions?.title || item.competitionTitle || item.competition || 'Unknown Competition'}
+                                            </h3>
+                                            <span className={`px-2 py-1 text-[10px] md:text-xs rounded-full font-bold uppercase tracking-wider ${activeTab === 'registration'
+                                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                                : activeTab === 'shortlist'
+                                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                                                }`}>
+                                                {activeTab === 'registration' ? 'Registration' : activeTab === 'shortlist' ? 'Shortlist' : 'Winning'}
                                             </span>
                                         </div>
+
+                                        <div className="mt-2 md:mt-4 grid grid-cols-2 gap-2 md:gap-4 text-xs md:text-sm">
+                                            <div>
+                                                <span className="text-muted block text-[10px] md:text-xs uppercase font-semibold mb-0.5">Student Name</span>
+                                                <span className="font-medium text-foreground truncate block">{item.users?.full_name || item.studentName || 'N/A'}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-muted block text-[10px] md:text-xs uppercase font-semibold mb-0.5">Registration No</span>
+                                                <span className="font-medium text-foreground">{item.users?.registration_no || item.regNo || 'N/A'}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-muted block text-[10px] md:text-xs uppercase font-semibold mb-0.5">Section</span>
+                                                <span className="font-medium text-foreground">{item.users?.section || item.section || 'N/A'}</span>
+                                            </div>
+
+                                            <div>
+                                                <span className="text-muted block text-[10px] md:text-xs uppercase font-semibold mb-0.5">Submitted At</span>
+                                                <span className="font-medium text-foreground">
+                                                    {formatDate(item.created_at || item.submittedAt || item.registered_at)}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {/* Action Buttons */}
-                                    <div className="mt-6 flex gap-3">
+                                    {/* Actions */}
+                                    <div className="p-3 md:p-6 grid grid-cols-2 md:flex md:flex-col justify-center gap-2 md:gap-3 border-t md:border-t-0 md:border-l border-border bg-gray-50/50 dark:bg-gray-800/30">
                                         <button
                                             onClick={() => handleAction(item.id, 'approve')}
-                                            disabled={actionLoading === item.id}
-                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
+                                            disabled={!!actionLoading}
+                                            className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 md:px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 shadow-sm text-sm"
                                         >
                                             {actionLoading === item.id ? (
-                                                <span className="animate-pulse">Processing...</span>
+                                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                             ) : (
-                                                <>
-                                                    <CheckCircle size={18} />
-                                                    Accept
-                                                </>
+                                                <CheckCircle size={16} />
                                             )}
+                                            Approve
                                         </button>
                                         <button
                                             onClick={() => handleAction(item.id, 'reject')}
-                                            disabled={actionLoading === item.id}
-                                            className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                            disabled={!!actionLoading}
+                                            className="flex items-center justify-center gap-2 bg-white text-red-600 border border-red-200 px-4 md:px-6 py-2 rounded-lg font-medium hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50 dark:bg-gray-800 dark:border-red-900/50 dark:hover:bg-red-900/20 text-sm"
                                         >
-                                            <XCircle size={18} />
+                                            <XCircle size={16} />
                                             Reject
                                         </button>
                                     </div>
                                 </div>
-
-                                {/* Actions */}
-                                <div className="p-6 flex flex-col justify-center gap-3 border-t md:border-t-0 md:border-l border-border bg-gray-50/50 dark:bg-gray-800/30">
-                                    <button
-                                        onClick={() => handleAction(item.id, 'approve')}
-                                        disabled={!!actionLoading}
-                                        className="flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 shadow-sm"
-                                    >
-                                        {actionLoading === item.id ? (
-                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        ) : (
-                                            <CheckCircle size={18} />
-                                        )}
-                                        Approve
-                                    </button>
-                                    <button
-                                        onClick={() => handleAction(item.id, 'reject')}
-                                        disabled={!!actionLoading}
-                                        className="flex items-center justify-center gap-2 bg-white text-red-600 border border-red-200 px-6 py-2 rounded-lg font-medium hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50"
-                                    >
-                                        <XCircle size={18} />
-                                        Reject
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
+            
+            {/* Image Modal */}
+            {selectedImage && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                    onClick={() => setSelectedImage(null)}
+                >
+                    <div className="relative max-w-5xl max-h-[90vh] w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                        <button 
+                            className="absolute -top-12 right-0 md:-right-12 text-white/70 hover:text-white p-2 transition-colors"
+                            onClick={() => setSelectedImage(null)}
+                        >
+                            <X size={32} />
+                        </button>
+                        <img 
+                            src={selectedImage} 
+                            alt="Full Proof" 
+                            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-white/10"
+                        />
+                    </div>
+                </div>
+            )}
+
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}

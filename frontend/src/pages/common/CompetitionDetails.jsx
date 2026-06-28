@@ -7,6 +7,7 @@ import { getHODCompetitionStats } from '../../services/hodService';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
+import { formatDate } from '../../utils/dateFormatter';
 import StudentListModal from '../../components/common/StudentListModal';
 import TotalSectionsStats from '../../components/features/competitions/stats/TotalSectionsStats';
 import StudentStatsList from '../../components/features/competitions/stats/StudentStatsList';
@@ -236,7 +237,7 @@ const CompetitionDetails = () => {
                                 <Clock size={12} /> Registration Ends
                             </span>
                             <span className="font-medium text-foreground text-sm">
-                                {competition.registration_deadline ? new Date(competition.registration_deadline).toLocaleDateString() : "TBA"}
+                                {formatDate(competition.registration_deadline)}
                             </span>
                         </div>
                         <div className="flex flex-col">
@@ -244,7 +245,7 @@ const CompetitionDetails = () => {
                                 <Calendar size={12} /> Event Date
                             </span>
                             <span className="font-medium text-foreground text-sm">
-                                {competition.event_date ? new Date(competition.event_date).toLocaleDateString() : "TBA"}
+                                {formatDate(competition.event_date)}
                             </span>
                         </div>
                         <div className="flex flex-col">
@@ -252,7 +253,9 @@ const CompetitionDetails = () => {
                                 <Users size={12} /> Team Size
                             </span>
                             <span className="font-medium text-foreground text-sm">
-                                {competition.min_team_size} - {competition.max_team_size} Members
+                                {competition.min_team_size === 1 && competition.max_team_size === 1 
+                                    ? "Individual Participation" 
+                                    : `${competition.min_team_size} - ${competition.max_team_size} Members`}
                             </span>
                         </div>
                         <div className="flex flex-col">
@@ -312,7 +315,7 @@ const CompetitionDetails = () => {
                                 </div>
                             )}
 
-                            <div className="overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] flex-1">
+                            <div className="overflow-y-auto h-72 md:h-96 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {isHOD && unregisteredSections ? (
                                     filterByYear(unregisteredSections).length > 0 ? (
                                         filterByYear(unregisteredSections).map((group, gIdx) => (
@@ -343,7 +346,14 @@ const CompetitionDetails = () => {
                                         statsData.unregistered.map(student => (
                                             <div key={student.id} className="text-sm p-3 rounded-lg border bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-zinc-800">
                                                 <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{student.name}</div>
-                                                <div className="text-xs text-gray-600 dark:text-zinc-400 truncate">{student.regNo}</div>
+                                                <div className="flex justify-between items-center mt-1">
+                                                    <div className="text-xs text-gray-600 dark:text-zinc-400 truncate">{student.regNo}</div>
+                                                    {student.status === 'PENDING' && (
+                                                        <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">
+                                                            Pending Verification
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))
                                     ) : (
@@ -381,7 +391,7 @@ const CompetitionDetails = () => {
                                 )
                             }
 
-                            <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                            <div className="overflow-y-auto h-72 md:h-96 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {isHOD && statsData.registered_sections ? (
                                     filterByYear(statsData.registered_sections).length > 0 ? (
                                         filterByYear(statsData.registered_sections).map((group, gIdx) => (
@@ -459,7 +469,7 @@ const CompetitionDetails = () => {
                                 <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
                                 <span className="truncate">Shortlisted ({statsData.shortlisted?.length || 0})</span>
                             </h3>
-                            <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                            <div className="overflow-y-auto h-72 md:h-96 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {statsData.shortlisted?.map(student => (
                                     <div key={student.id} className="text-sm p-3 bg-purple-50 rounded-lg border border-purple-100 dark:bg-purple-900/20 dark:border-purple-800">
                                         <div className="font-medium text-foreground truncate">{student.name}</div>
@@ -498,7 +508,7 @@ const CompetitionDetails = () => {
                                 )
                             }
 
-                            <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                            <div className="overflow-y-auto h-72 md:h-96 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {statsData.winners?.map(student => (
                                     <div key={student.id} className="text-sm p-3 bg-green-50 rounded-lg border border-green-100 dark:bg-green-900/20 dark:border-green-800">
                                         <div className="font-medium text-foreground truncate">{student.name}</div>
@@ -539,7 +549,7 @@ const CompetitionDetails = () => {
                                     </span>
                                     <span className="font-medium text-foreground">
                                         {competition.registration_deadline
-                                            ? new Date(competition.registration_deadline).toLocaleDateString()
+                                            ? formatDate(competition.registration_deadline)
                                             : "TBA"}
                                     </span>
                                 </div>
@@ -549,7 +559,7 @@ const CompetitionDetails = () => {
                                     </span>
                                     <span className="font-medium text-foreground">
                                         {competition.event_date
-                                            ? new Date(competition.event_date).toLocaleDateString()
+                                            ? formatDate(competition.event_date)
                                             : "TBA"}
                                     </span>
                                 </div>
@@ -558,7 +568,9 @@ const CompetitionDetails = () => {
                                         <Users size={16} /> Team Size
                                     </span>
                                     <span className="font-medium text-foreground">
-                                        {competition.min_team_size} - {competition.max_team_size} Members
+                                        {competition.min_team_size === 1 && competition.max_team_size === 1 
+                                            ? "Individual Participation" 
+                                            : `${competition.min_team_size} - ${competition.max_team_size} Members`}
                                     </span>
                                 </div>
                                 <div className={`flex justify-between py-2 ${competition.venue ? 'border-b border-border' : ''}`}>

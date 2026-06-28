@@ -7,6 +7,8 @@ const { sendResponse } = require('../../utils/responseHelper');
 const supabase = require('../../config/supabaseClient');
 const statsService = require('../../services/admin/stats.service');
 const { performBatchSync } = require('./participation.controller');
+const { formatIST } = require('../../utils/dateFormatter');
+const { buildXlsxBuffer } = require('../../utils/exportHelper');
 const { paginatedResponse } = require('../../utils/paginate.util');
 
 // ------------------------------------------------------------------
@@ -284,6 +286,7 @@ const getDashboardStats = async (req, res) => {
             const { data, error: regError } = await supabase
                 .from('registrations')
                 .select('user_id, competition_id') // Fetch competition_id for debugging
+                .eq('verified', true) // Only count verified registrations
                 .in('user_id', myStudentIds);
 
             if (regError) throw regError;
@@ -349,13 +352,6 @@ const getDashboardStats = async (req, res) => {
     }
 };
 
-const formatIST = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    if (isNaN(date)) return 'N/A';
-    return date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-};
-
 // ------------------------------------------------------------------
 // 3. Sync Logic (V2 Implementation)
 // ------------------------------------------------------------------
@@ -395,8 +391,8 @@ const syncCompetition = async (req, res) => {
         const response = {
             competitionTitle: competition.title,
             syncWindow: {
-                from: formatIST(competition.last_synced_at || competition.uploaded_at || competition.created_at),
-                to: formatIST(new Date().toISOString())
+                from: competition.last_synced_at || competition.uploaded_at || competition.created_at,
+                to: new Date().toISOString()
             },
             results: stats,
             details: logs,
@@ -429,14 +425,12 @@ const getCompetitionSyncStatus = async (req, res) => {
         const competitionsWithStatus = competitions.map(comp => ({
             id: comp.id,
             title: comp.title,
-            uploadedAt: formatIST(comp.uploaded_at),
-            lastSyncedAt: comp.last_synced_at ? formatIST(comp.last_synced_at) : null,
+            uploadedAt: comp.uploaded_at,
+            lastSyncedAt: comp.last_synced_at || null,
             registrationDeadline: comp.registration_deadline,
             syncStatus: comp.last_synced_at ? 'Synced' : 'Never Synced',
             canSync: true,
-            nextSyncFrom: comp.last_synced_at
-                ? formatIST(comp.last_synced_at)
-                : formatIST(comp.uploaded_at)
+            nextSyncFrom: comp.last_synced_at || comp.uploaded_at
         }));
 
         sendResponse(res, 200, competitionsWithStatus, 'Competition sync status fetched');
@@ -672,6 +666,7 @@ const getPendingVerifications = async (req, res) => {
             `)
             .in('user_id', myStudentIds)
             .eq('verified', false)
+            .not('proof_url', 'is', null) // Exclude rejected requests without new proofs
             .order('registered_at', { ascending: false });
 
         if (error) throw error;
@@ -835,14 +830,18 @@ const verifyRegistration = async (req, res) => {
         if (action === 'approve') {
             const { error } = await supabase
                 .from('registrations')
-                .update({ verified: true })
+                .update({ verified: true, status: 'Registered' })
                 .eq('id', registration_id);
             if (error) throw error;
         } else {
-            // Reject -> Delete to allow re-upload
+            // Reject -> Update proof_url to null to allow re-upload instead of deleting
             const { error } = await supabase
                 .from('registrations')
-                .delete()
+                .update({ 
+                    verified: false, 
+                    proof_url: null,
+                    status: 'Rejected' // Allows frontend to show rejection message
+                })
                 .eq('id', registration_id);
             if (error) throw error;
         }
@@ -876,40 +875,94 @@ const downloadParticipationReport = async (req, res) => {
 
         if (error) throw error;
 
-        // Generate CSV
-        const csvRows = [];
-        // Header
-        csvRows.push(['Student Name', 'Register No', 'Section', 'Email', 'Phone', 'Competition', 'Organizer', 'Platform', 'Date', 'Status', 'Verified', 'Registered At', 'Venue'].join(','));
+        // Generate XLSX
+        const headers = ['Student Name', 'Register No', 'Section', 'Email', 'Phone', 'Competition', 'Organizer', 'Platform', 'Date', 'Status', 'Verified', 'Registered At', 'Venue'];
+        const xlsxData = reportData.map(r => ({
+            'Student Name': r.users?.full_name || 'N/A',
+            'Register No': r.users?.registration_no || 'N/A',
+            'Section': r.users?.section || 'N/A',
+            'Email': r.users?.email || 'N/A',
+            'Phone': r.users?.phone_number || 'N/A',
+            'Competition': r.competitions?.title || 'N/A',
+            'Organizer': r.competitions?.organizer || 'N/A',
+            'Platform': r.competitions?.platform || 'N/A',
+            'Date': r.competitions?.event_date || 'N/A',
+            'Status': r.status || 'Pending',
+            'Verified': r.verified ? 'Yes' : 'No',
+            'Registered At': formatIST(r.registered_at),
+            'Venue': r.competitions?.venue || 'N/A'
+        }));
 
-        reportData.forEach(r => {
-            const row = [
-                r.users?.full_name || 'N/A',
-                r.users?.registration_no || 'N/A',
-                r.users?.section || 'N/A',
-                r.users?.email || 'N/A',
-                r.users?.phone_number || 'N/A',
-                r.competitions?.title || 'N/A',
-                r.competitions?.organizer || 'N/A',
-                r.competitions?.platform || 'N/A',
-                r.competitions?.event_date || 'N/A',
-                r.status || 'Pending',
-                r.verified ? 'Yes' : 'No',
-                new Date(r.registered_at).toLocaleString(),
-                r.competitions?.venue || 'N/A'
-            ].map(field => `"${String(field).replace(/"/g, '""')}"`); // Escape quotes
+        const buffer = buildXlsxBuffer(xlsxData, headers, 'Report');
 
-            csvRows.push(row.join(','));
-        });
-
-        const csvString = csvRows.join('\n');
-
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename="participation_report_${Date.now()}.csv"`);
-        res.status(200).send(csvString);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="participation_report_${Date.now()}.xlsx"`);
+        res.status(200).send(buffer);
 
     } catch (err) {
         console.error('[Faculty] Export Error:', err);
         sendResponse(res, 500, null, 'Failed to export report');
+    }
+};
+
+const updateStudentSection = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const { section } = req.body;
+        const { assigned_sections, department_id } = req.user;
+
+        if (!studentId || !section) {
+            return sendResponse(res, 400, null, 'Student ID and new section are required');
+        }
+
+        const allowedSections = assigned_sections
+            ? assigned_sections.map(s => s.split('-')[1] || s).map(s => s.trim())
+            : [];
+
+        if (allowedSections.length === 0) {
+            return sendResponse(res, 403, null, 'You are not assigned as a class advisor to any section');
+        }
+
+        // Fetch student
+        const { data: student, error: studentError } = await supabase
+            .from('users')
+            .select('section, department_id, role')
+            .eq('id', studentId)
+            .single();
+
+        if (studentError || !student) {
+            return sendResponse(res, 404, null, 'Student not found');
+        }
+
+        if (student.role !== 'STUDENT') {
+            return sendResponse(res, 400, null, 'Only student sections can be changed');
+        }
+
+        // Verify that the student currently belongs to the faculty's assigned section
+        if (!allowedSections.includes(student.section)) {
+            return sendResponse(res, 403, null, 'You can only change the section of students currently in your assigned section(s)');
+        }
+
+        // Ensure the student's department matches
+        if (student.department_id !== department_id) {
+            return sendResponse(res, 403, null, 'Student belongs to a different department');
+        }
+
+        // Perform Update
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ section: section.toUpperCase() })
+            .eq('id', studentId);
+
+        if (updateError) {
+            console.error('[FacultyController] Update Section DB Error:', updateError);
+            throw updateError;
+        }
+
+        sendResponse(res, 200, null, 'Student section updated successfully');
+    } catch (err) {
+        console.error('[FacultyController] Update Section Error:', err);
+        sendResponse(res, 500, null, 'Internal Server Error');
     }
 };
 
@@ -926,5 +979,7 @@ module.exports = {
     verifyRegistration,
     getPendingShortlistVerifications,
     verifyShortlist,
-    downloadParticipationReport
+    downloadParticipationReport,
+    getMyStudentIds,
+    updateStudentSection
 };

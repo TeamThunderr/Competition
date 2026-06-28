@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { api } from '../../services/api';
+import { formatDate } from '../../utils/dateFormatter';
 import { Calendar, CheckCircle, Clock, XCircle, FileText, Download } from 'lucide-react';
 import { generateODLetter } from '../../utils/odGenerator';
 
@@ -79,7 +80,7 @@ const ODHistoryPage = () => {
                                                         <div key={idx} className="text-sm text-purple-800 dark:text-purple-200">
                                                             <span className="font-medium">{comp.title}</span>
                                                             <span className="text-purple-600 dark:text-purple-400 ml-2">
-                                                                ({new Date(comp.from_date).toLocaleDateString()} - {new Date(comp.to_date).toLocaleDateString()})
+                                                                ({formatDate(comp.from_date)} - {formatDate(comp.to_date)})
                                                             </span>
                                                         </div>
                                                     ))}
@@ -93,17 +94,17 @@ const ODHistoryPage = () => {
                                             <div className="flex items-center gap-2">
                                                 <Calendar size={16} />
                                                 <span>
-                                                    {new Date(od.from_date).toLocaleDateString()} - {new Date(od.to_date).toLocaleDateString()}
+                                                    {formatDate(od.from_date)} - {formatDate(od.to_date)}
                                                     {od.original_from_date && od.original_from_date !== od.from_date && (
                                                         <span className="ml-2 text-xs text-purple-600 dark:text-purple-400">
-                                                            (Originally: {new Date(od.original_from_date).toLocaleDateString()})
+                                                            (Originally: {formatDate(od.original_from_date)})
                                                         </span>
                                                     )}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Clock size={16} />
-                                                <span>Requested: {new Date(od.created_at).toLocaleDateString()}</span>
+                                                <span>Requested: {formatDate(od.created_at)}</span>
                                             </div>
                                         </div>
 
