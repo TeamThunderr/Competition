@@ -62,9 +62,10 @@ const StudentListTable = ({
                 </div>
             </div>
 
-            {/* Table */}
+            {/* Table / List View */}
             <div className="min-h-[400px] overflow-x-auto">
-                <table className="w-full">
+                {/* Desktop Table View */}
+                <table className="w-full hidden md:table">
                     <thead className="bg-muted/5">
                         <tr className="text-left text-xs font-semibold text-muted uppercase tracking-wider">
                             <th className="px-6 py-4 w-12">S.No</th>
@@ -121,6 +122,41 @@ const StudentListTable = ({
                         )}
                     </tbody>
                 </table>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden flex flex-col divide-y divide-border">
+                    {loading ? (
+                        <div className="p-12">
+                            <RoleBasedLoader role={role} />
+                        </div>
+                    ) : sortedStudents.length === 0 ? (
+                        <div className="p-12 text-center text-muted">
+                            {emptyMessage}
+                        </div>
+                    ) : (
+                        sortedStudents.map((student, index) => (
+                            <div 
+                                key={student.id || index}
+                                onClick={() => onRowClick && onRowClick(student)}
+                                className={`p-4 hover:bg-muted/5 transition-colors flex items-center gap-4 ${onRowClick ? 'cursor-pointer active:bg-muted/10' : ''}`}
+                            >
+                                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-sm flex-shrink-0">
+                                    {student.name ? student.name.charAt(0).toUpperCase() : <User size={16} />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-semibold text-foreground text-sm truncate">{student.name}</div>
+                                    <div className="text-xs text-muted truncate mt-0.5">{student.rollNo || student.regNo || student.reg || '-'}</div>
+                                    <div className="text-xs text-muted truncate mt-0.5 opacity-70">{student.email}</div>
+                                </div>
+                                {showSection && (
+                                    <div className="flex-shrink-0 text-xs font-medium bg-muted/10 text-foreground px-2 py-1 rounded-md">
+                                        Sec {student.section}
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
         </div>
     );

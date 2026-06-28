@@ -40,31 +40,17 @@ const FacultyMobileDashboard = () => {
             {/* Header & Quick Actions */}
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-5 rounded-3xl shadow-xl mb-6 mt-2 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
-                <div className="flex justify-between items-center mb-6 relative z-10">
+                <div className="flex justify-between items-center relative z-10">
                     <div>
-                        <h1 className="text-2xl font-bold">Dashboard</h1>
+                        <h1 className="text-2xl font-bold">Active Events</h1>
                         <p className="text-blue-100 text-sm opacity-90">Quick Access</p>
                     </div>
-                    <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm">
-                        <Filter size={20} className="text-white" />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
                     <button
                         onClick={() => setIsSyncModalOpen(true)}
-                        className="flex flex-col items-center justify-center gap-2 bg-white/10 hover:bg-white/20 active:bg-white/30 backdrop-blur-md border border-white/20 rounded-2xl p-4 transition-all"
+                        className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 active:bg-white/30 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3 transition-all"
                     >
-                        <RefreshCw size={24} className="text-blue-100" />
+                        <RefreshCw size={20} className="text-blue-100" />
                         <span className="text-sm font-medium">Sync All</span>
-                    </button>
-                    
-                    <button
-                        onClick={async () => await downloadParticipationReport()}
-                        className="flex flex-col items-center justify-center gap-2 bg-white/10 hover:bg-white/20 active:bg-white/30 backdrop-blur-md border border-white/20 rounded-2xl p-4 transition-all"
-                    >
-                        <Download size={24} className="text-green-100" />
-                        <span className="text-sm font-medium">Global Report</span>
                     </button>
                 </div>
             </div>
@@ -81,8 +67,7 @@ const FacultyMobileDashboard = () => {
                 </div>
             ) : (
                 <div className="px-4">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-lg font-bold text-foreground">Active Events</h2>
+                    <div className="flex justify-end items-center mb-4">
                         <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full dark:bg-blue-900/50 dark:text-blue-300">
                             {activeCompetitions.length} Total
                         </span>
