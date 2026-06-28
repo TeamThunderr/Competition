@@ -1,5 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { formatDate } from '../../../utils/dateFormatter';
 import { Calendar, Users, Trophy, ExternalLink, Mail, XCircle } from 'lucide-react';
 
 const CompetitionCard = (props) => {
@@ -266,11 +267,11 @@ const CompetitionCard = (props) => {
             <div className="space-y-3 mb-6">
                 <div className="flex items-center text-sm text-muted">
                     <Calendar className="w-4 h-4 mr-2" />
-                    <span>Event Date: {competition.event_date ? new Date(competition.event_date).toLocaleDateString() : 'TBA'}</span>
+                    <span>Event Date: {competition.event_date ? formatDate(competition.event_date) : 'TBA'}</span>
                 </div>
                 <div className="flex items-center text-sm text-muted">
                     <Calendar className="w-4 h-4 mr-2" />
-                    <span>Deadline: {new Date(competition.registration_deadline || competition.created_at).toLocaleDateString()}</span>
+                    <span>Deadline: {formatDate(competition.registration_deadline || competition.created_at)}</span>
                 </div>
                 <div className="flex items-center text-sm text-muted">
                     <Users className="w-4 h-4 mr-2" />

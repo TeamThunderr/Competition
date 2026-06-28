@@ -5,6 +5,8 @@ import ConfirmModal from '../../components/common/ConfirmModal';
 import AlertModal from '../../components/common/AlertModal';
 import { useToast } from '../../contexts/ToastContext';
 
+import CompetitionDetails from '../common/CompetitionDetails';
+import { formatDateTime } from '../../utils/dateFormatter';
 import CompetitionListView from '../common/CompetitionListView';
 import { supabase } from '../../services/supabaseClient';
 import { studentService } from '../../services/studentService';
@@ -260,7 +262,7 @@ const StudentCompetitions = () => {
                     {latestSyncTime && (
                         <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100 shadow-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                             <RefreshCw className="w-4 h-4" />
-                            <span>Faculty Last Synced: {latestSyncTime.toLocaleString()}</span>
+                            <span>Faculty Last Synced: {formatDateTime(latestSyncTime)}</span>
                         </div>
                     )}
                 </div>

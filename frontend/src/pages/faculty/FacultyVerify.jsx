@@ -8,6 +8,7 @@ import {
 } from '../../services/facultyService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import { formatDate } from '../../utils/dateFormatter';
 
 const FacultyVerify = () => {
     const [activeTab, setActiveTab] = useState('registration'); // 'registration' | 'shortlist' | 'winning'
@@ -232,9 +233,7 @@ const FacultyVerify = () => {
                                         <div>
                                             <span className="text-muted block">Submitted At</span>
                                             <span className="font-medium text-foreground">
-                                                {item.registered_at
-                                                    ? new Date(item.registered_at).toLocaleDateString()
-                                                    : (item.submittedAt || 'N/A')}
+                                                {formatDate(item.registered_at || item.submittedAt)}
                                             </span>
                                         </div>
                                     </div>

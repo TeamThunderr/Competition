@@ -5,6 +5,7 @@ import { ArrowLeft, User, Users, Upload, Trash2, Calendar, FileText, PlusCircle,
 import { studentService } from '../../services/studentService';
 import { supabase } from '../../services/supabaseClient';
 import { api } from '../../services/api';
+import { formatDate } from '../../utils/dateFormatter';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import CustomDatePicker from '../../components/common/CustomDatePicker';
 import { getAcademicYearLabel } from '../../utils/academicYear';
@@ -69,7 +70,7 @@ const ODRequestPage = () => {
             setAlertModal({
                 isOpen: true,
                 title: 'Pending Request Conflict',
-                message: `You already have a PENDING OD request for:\n"${conflict.competitions?.title}"\nFrom: ${new Date(conflict.from_date).toLocaleDateString()} To: ${new Date(conflict.to_date).toLocaleDateString()}\n\nYou cannot submit a new request until this is processed.`,
+                message: `You already have a PENDING OD request for:\n"${conflict.competitions?.title}"\nFrom: ${formatDate(conflict.from_date)} To: ${formatDate(conflict.to_date)}\n\nYou cannot submit a new request until this is processed.`,
                 type: 'danger',
                 onConfirm: closeAlert
             });
@@ -211,12 +212,12 @@ const ODRequestPage = () => {
                     setIsExtension(extensionOD);
                     setDateError(null);
 
-                    const extendedEndDate = formData.to_date ? new Date(formData.to_date).toLocaleDateString() : '(select end date)';
+                    const extendedEndDate = formData.to_date ? formatDate(formData.to_date) : '(select end date)';
 
                     setAlertModal({
                         isOpen: true,
                         title: '🔗 Extending Your Previous OD',
-                        message: `These dates will extend your existing OD for "${extensionOD.competitions?.title || 'Competition'}".\n\nCurrent: ${new Date(extensionOD.from_date).toLocaleDateString()} to ${new Date(extensionOD.to_date).toLocaleDateString()}\nExtended: ${new Date(extensionOD.from_date).toLocaleDateString()} to ${extendedEndDate}`,
+                        message: `These dates will extend your existing OD for "${extensionOD.competitions?.title || 'Competition'}".\n\nCurrent: ${formatDate(extensionOD.from_date)} to ${formatDate(extensionOD.to_date)}\nExtended: ${formatDate(extensionOD.from_date)} to ${extendedEndDate}`,
                         type: 'info',
                         onConfirm: closeAlert
                     });
@@ -247,7 +248,7 @@ const ODRequestPage = () => {
                             setAlertModal({
                                 isOpen: true,
                                 title: '⚠️ Oops! These dates won\'t work',
-                                message: `You already have an OD for these dates.\n\n📌 ${overlappingOD.competitions?.title || 'Competition'}\n📅 ${new Date(overlappingOD.from_date).toLocaleDateString()} to ${new Date(overlappingOD.to_date).toLocaleDateString()}\nStatus: ${overlappingOD.status}\n\nPlease choose different dates.`,
+                                message: `You already have an OD for these dates.\n\n📌 ${overlappingOD.competitions?.title || 'Competition'}\n📅 ${formatDate(overlappingOD.from_date)} to ${formatDate(overlappingOD.to_date)}\nStatus: ${overlappingOD.status}\n\nPlease choose different dates.`,
                                 type: 'danger',
                                 onConfirm: () => {
                                     // Clear the dates so user must select again

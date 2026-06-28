@@ -1,4 +1,5 @@
 // import jsPDF from 'jspdf';
+import { formatDate } from './dateFormatter';
 
 export const generateODLetter = (odData, studentProfile) => {
     const jsPDF = window.jspdf.jsPDF;
@@ -85,8 +86,8 @@ export const generateODLetter = (odData, studentProfile) => {
 
         // Loop through all competitions in the extension chain
         odData.competitions_info.forEach((comp, idx) => {
-            const fromD = new Date(comp.from_date).toLocaleDateString('en-GB');
-            const toD = new Date(comp.to_date).toLocaleDateString('en-GB');
+            const fromD = formatDate(comp.from_date);
+            const toD = formatDate(comp.to_date);
             const dur = fromD === toD ? fromD : `${fromD} to ${toD}`;
 
             doc.setFontSize(10);
@@ -103,16 +104,16 @@ export const generateODLetter = (odData, studentProfile) => {
         });
 
         // Add Total Duration of the entire OD request (start of first to end of last)
-        const totalFrom = new Date(odData.original_from_date || odData.from_date).toLocaleDateString('en-GB');
-        const totalTo = new Date(odData.to_date).toLocaleDateString('en-GB');
+        const totalFrom = formatDate(odData.original_from_date || odData.from_date);
+        const totalTo = formatDate(odData.to_date);
         yPos += 5;
         yPos += drawRow("Overall Duration:", `${totalFrom} to ${totalTo}`, yPos);
 
     } else {
         // Single Competition
         const competitionName = odData.competitions?.title || "External Technical Event";
-        const fromDate = new Date(odData.from_date).toLocaleDateString('en-GB');
-        const toDate = new Date(odData.to_date).toLocaleDateString('en-GB');
+        const fromDate = formatDate(odData.from_date);
+        const toDate = formatDate(odData.to_date);
         const duration = fromDate === toDate ? fromDate : `${fromDate} to ${toDate}`;
 
         // Calculate days
@@ -164,7 +165,7 @@ export const generateODLetter = (odData, studentProfile) => {
     // --- Section 3: Verification Details ---
     yPos = drawSectionTitle("System Verification", yPos);
 
-    yPos += drawRow("Approved Date:", new Date(odData.created_at).toLocaleDateString('en-GB'), yPos);
+    yPos += drawRow("Approved Date:", formatDate(odData.created_at), yPos);
 
     // Footer Note
     const footerY = 270;

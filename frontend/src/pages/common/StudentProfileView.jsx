@@ -1,5 +1,6 @@
 import React from 'react';
 import { Award, CheckCircle, Trophy, User, Clock, Phone, AlertCircle } from 'lucide-react';
+import { formatDate } from '../../utils/dateFormatter';
 
 const StudentProfileView = ({ student, onEditSection }) => {
     if (!student) return null;
@@ -118,7 +119,7 @@ const StudentProfileView = ({ student, onEditSection }) => {
                                             <span className="font-semibold text-gray-900 dark:text-gray-100 block">{comp.competitionName}</span>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{comp.platform}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{new Date(comp.registeredAt).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{formatDate(comp.registeredAt)}</td>
                                         <td className="px-6 py-4">
                                             <span className={`flex items-center gap-1 text-sm font-medium ${comp.verificationStatus === 'Verified' ? 'text-green-600' : 'text-amber-600'}`}>
                                                 {comp.verificationStatus === 'Verified' ? <CheckCircle size={14} /> : <Clock size={14} />}

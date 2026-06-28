@@ -8,6 +8,7 @@ import { supabase } from '../../services/supabaseClient';
 import { api } from '../../services/api';
 import { studentService } from '../../services/studentService';
 import { useToast } from '../../contexts/ToastContext';
+import { formatDate } from '../../utils/dateFormatter';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
 const StudentDashboard = () => {
@@ -77,7 +78,7 @@ const StudentDashboard = () => {
                             <h3 className="font-bold text-emerald-800 dark:text-emerald-200">Active OD</h3>
                             <p className="text-sm text-emerald-700 dark:text-emerald-300 line-clamp-1">{activeOD.competitions?.title}</p>
                             <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                                {new Date(activeOD.from_date).toLocaleDateString()} - {new Date(activeOD.to_date).toLocaleDateString()}
+                                {formatDate(activeOD.from_date)} - {formatDate(activeOD.to_date)}
                             </p>
                         </div>
                     </div>
@@ -89,7 +90,7 @@ const StudentDashboard = () => {
                             <div>
                                 <h4 className="text-xs font-bold text-amber-700 dark:text-amber-300">Extension Request Pending</h4>
                                 <p className="text-[10px] text-amber-600 dark:text-amber-400">
-                                    For {pendingOD.competitions?.title} ({new Date(pendingOD.from_date).toLocaleDateString()})
+                                    For {pendingOD.competitions?.title} ({formatDate(pendingOD.from_date)})
                                 </p>
                             </div>
                         </div>
