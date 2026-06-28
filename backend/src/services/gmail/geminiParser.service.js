@@ -1,7 +1,6 @@
-const { models, generateContentWithFallback } = require('../../config/geminiClient');
+const { generateContentWithFallback } = require('../../config/geminiClient');
 
 const parseEmailBatch = async (emailsArray, competitionTitle) => {
-    if (!models || models.length === 0) return null;
 
     try {
         // Construct the 50-Message Batch concatenated string
@@ -33,7 +32,8 @@ Each object must follow this strict schema:
 ]
 
 Rules:
-- If the email is NOT competition related, set is_competition_related to false and all other fields to null.
+- CRITICAL: If the email is for a DIFFERENT competition or hackathon than "${competitionTitle}", you MUST set is_competition_related to false and all other fields to null.
+- If the email is NOT competition related at all, set is_competition_related to false.
 - For status: REGISTERED means confirmed registration, SHORTLISTED means selected for next round, REJECTED means not selected, WINNER means won or placed.
 `;
 

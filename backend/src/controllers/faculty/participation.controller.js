@@ -365,9 +365,9 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                                     }).eq('user_id', emailRecord.user_id).eq('competition_id', competition.id);
                                 }
                             }
-                        } else {
-                            stats.processed++;
                         }
+                        
+                        stats.processed++;
                     }
                 }
             } catch (batchErr) {

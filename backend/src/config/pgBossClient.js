@@ -20,8 +20,8 @@ dotenv.config();
 // The session pooler (pooler.supabase.com) does NOT support LISTEN/NOTIFY,
 // which means workers will never pick up jobs. Always use the direct host.
 const connectionString =
-    process.env.DIRECT_DATABASE_URL ||
     process.env.DATABASE_URL ||
+    process.env.DIRECT_DATABASE_URL ||
     `postgresql://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD}@${process.env.DB_HOST || 'db.' + (process.env.SUPABASE_URL || '').replace('https://', '').replace('.supabase.co', '') + '.supabase.co'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'postgres'}`;
 
 const boss = new PgBoss({
