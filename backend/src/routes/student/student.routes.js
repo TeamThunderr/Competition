@@ -30,6 +30,7 @@ router.post('/validate-teammate', studentController.validateTeammate);
 // Competitions (paginated)
 router.get('/competitions', competitionController.getAllCompetitions);
 router.get('/competition/:id', competitionController.getCompetitionDetails);
+router.post('/toggle-temp-registration', competitionController.toggleTempRegistration);
 
 // Registration / Verification Flow
 router.post('/check-status', registrationController.checkRegistrationStatus);
