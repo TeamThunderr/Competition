@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { Link } from 'react-router-dom';
-import { Pencil, Trash2, Upload, X, AlertTriangle } from 'lucide-react';
+import { Pencil, Trash2, Upload, X, AlertTriangle, Calendar, Trophy, Users, Activity, Clock } from 'lucide-react';
 import { api } from '../../services/api';
 import { formatDate } from '../../utils/dateFormatter';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';

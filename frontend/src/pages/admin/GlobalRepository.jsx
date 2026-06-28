@@ -180,13 +180,13 @@ const GlobalRepository = () => {
                     {/* Content Card */}
                     <div className="bg-card rounded-xl border border-border shadow-sm flex flex-col transition-colors duration-200">
                         {/* Filter Bar */}
-                        <div className="p-6 border-b border-border">
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-wrap">
+                        <div className="p-4 sm:p-6 border-b border-border">
+                            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
 
                                 {/* Left Side: Search + Filters */}
-                                <div className="flex flex-col gap-4 w-full md:w-auto flex-1">
-                                    {/* Search Bar - Line 1 */}
-                                    <div className="relative w-full md:w-96">
+                                <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto flex-1">
+                                    {/* Search Bar */}
+                                    <div className="relative w-full sm:w-80 md:w-96">
                                         <input
                                             type="text"
                                             placeholder="Search competitions..."
@@ -197,15 +197,15 @@ const GlobalRepository = () => {
                                         <Search className="absolute left-3 top-2.5 text-muted" size={16} />
                                     </div>
 
-                                    {/* Dropdowns - Line 2 */}
-                                    <div className="flex gap-3 flex-wrap">
-                                        <div className="relative">
+                                    {/* Dropdowns */}
+                                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                        <div className="relative w-full sm:w-44">
                                             <button
                                                 onClick={() => { setDeptOpen(!deptOpen); setPlatformOpen(false); }}
-                                                className="flex items-center gap-2 bg-background border border-border px-4 py-2 rounded-lg text-sm text-foreground hover:bg-muted/10 w-44 justify-between transition-colors"
+                                                className="flex items-center gap-2 bg-background border border-border px-4 py-2 rounded-lg text-sm text-foreground hover:bg-muted/10 w-full justify-between transition-colors"
                                             >
-                                                {selectedDept}
-                                                <ChevronDown size={16} />
+                                                <span className="truncate">{selectedDept}</span>
+                                                <ChevronDown size={16} className="shrink-0" />
                                             </button>
                                             {deptOpen && (
                                                 <div className="absolute top-full left-0 mt-1 w-full bg-card border border-border rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
@@ -228,13 +228,13 @@ const GlobalRepository = () => {
                                             )}
                                         </div>
 
-                                        <div className="relative">
+                                        <div className="relative w-full sm:w-40">
                                             <button
                                                 onClick={() => { setPlatformOpen(!platformOpen); setDeptOpen(false); }}
-                                                className="flex items-center gap-2 bg-background border border-border px-4 py-2 rounded-lg text-sm text-foreground hover:bg-muted/10 w-40 justify-between transition-colors"
+                                                className="flex items-center gap-2 bg-background border border-border px-4 py-2 rounded-lg text-sm text-foreground hover:bg-muted/10 w-full justify-between transition-colors"
                                             >
-                                                {selectedPlatform}
-                                                <ChevronDown size={16} />
+                                                <span className="truncate">{selectedPlatform}</span>
+                                                <ChevronDown size={16} className="shrink-0" />
                                             </button>
                                             {platformOpen && (
                                                 <div className="absolute top-full left-0 mt-1 w-full bg-card border border-border rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
@@ -260,12 +260,12 @@ const GlobalRepository = () => {
                                 </div>
 
                                 {/* Tabs */}
-                                <div className="flex bg-muted/10 rounded-lg p-1 border border-border shadow-sm ml-auto self-start">
+                                <div className="flex bg-muted/10 rounded-lg p-1 border border-border shadow-sm w-full xl:w-auto overflow-x-auto shrink-0 justify-between sm:justify-start">
                                     {tabs.map((tab) => (
                                         <button
                                             key={tab}
                                             onClick={() => handleTabChange(tab)}
-                                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab
+                                            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab
                                                 ? 'bg-background text-blue-600 shadow-sm border border-border dark:text-blue-400'
                                                 : 'text-muted hover:text-foreground hover:bg-background/50'
                                                 }`}

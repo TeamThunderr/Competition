@@ -71,7 +71,7 @@ const StudentSearch = () => {
                             />
                         </div>
 
-                        <div className="overflow-hidden">
+                        <div className="overflow-x-auto">
                             {loading ? (
                                 <div className="flex justify-center py-10">
                                     <RoleBasedLoader role="ADMIN" />

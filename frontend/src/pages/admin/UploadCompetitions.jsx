@@ -266,7 +266,7 @@ const UploadCompetitions = () => {
 
                     {activeTab === 'manual' && (
                         <div className="bg-card dark:bg-zinc-900 p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm transition-colors duration-200">
-                            <div className="grid grid-cols-2 gap-6 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Competition Name <span className="text-red-500">*</span></label>
                                     <input
@@ -302,7 +302,7 @@ const UploadCompetitions = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Organizer <span className="text-red-500">*</span></label>
                                     <input
@@ -362,7 +362,7 @@ const UploadCompetitions = () => {
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select "All Departments" for college-wide events.</p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <div>
                                     <CustomDatePicker
                                         label="One Registration Deadline"
@@ -411,7 +411,7 @@ const UploadCompetitions = () => {
                                 </div>
 
                                 {formData.team_allowed && (
-                                    <div className="grid grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Min Team Size</label>
                                             <input
