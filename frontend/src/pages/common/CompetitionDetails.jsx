@@ -346,7 +346,14 @@ const CompetitionDetails = () => {
                                         statsData.unregistered.map(student => (
                                             <div key={student.id} className="text-sm p-3 rounded-lg border bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-zinc-800">
                                                 <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{student.name}</div>
-                                                <div className="text-xs text-gray-600 dark:text-zinc-400 truncate">{student.regNo}</div>
+                                                <div className="flex justify-between items-center mt-1">
+                                                    <div className="text-xs text-gray-600 dark:text-zinc-400 truncate">{student.regNo}</div>
+                                                    {student.status === 'PENDING' && (
+                                                        <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">
+                                                            Pending Verification
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))
                                     ) : (

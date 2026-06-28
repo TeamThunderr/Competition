@@ -185,8 +185,9 @@ const getCompetitionStudents = async (req, res) => {
             registered: myStudents
                 .filter(s => {
                     const isReg = regMap.has(s.id);
+                    const isVerified = regMap.get(s.id)?.verified;
                     const isShort = statusMap.get(s.id)?.is_shortlisted;
-                    return isReg && !isShort;
+                    return isReg && isVerified && !isShort;
                 })
                 .map(s => {
                     const r = regMap.get(s.id);
@@ -226,15 +227,17 @@ const getCompetitionStudents = async (req, res) => {
             unregistered: myStudents
                 .filter(s => {
                     const isReg = regMap.has(s.id);
+                    const isVerified = regMap.get(s.id)?.verified;
                     const isShort = statusMap.get(s.id)?.is_shortlisted;
-                    return !isReg && !isShort;
+                    return (!isReg || !isVerified) && !isShort;
                 })
                 .map(s => {
+                    const isReg = regMap.has(s.id);
                     return {
                         id: s.id,
                         name: s.full_name,
                         regNo: s.registration_no,
-                        status: 'NOT_REGISTERED',
+                        status: isReg ? 'PENDING' : 'NOT_REGISTERED',
                         lastSynced: null,
                         confidence: 0,
                         remarks: ''
@@ -337,7 +340,7 @@ const exportCompetitionStudents = async (req, res) => {
         if (type === 'registered') {
             // All registered students (including shortlisted/winners/etc)
             exportData = myStudents
-                .filter(s => regMap.has(s.id))
+                .filter(s => regMap.has(s.id) && regMap.get(s.id).verified)
                 .map(s => {
                     const reg = regMap.get(s.id);
                     return {
@@ -350,7 +353,7 @@ const exportCompetitionStudents = async (req, res) => {
         } else {
             // Unregistered students
             exportData = myStudents
-                .filter(s => !regMap.has(s.id))
+                .filter(s => !regMap.has(s.id) || !regMap.get(s.id).verified)
                 .map(s => ({
                     ...s,
                     status: 'Not Registered',
