@@ -24,10 +24,11 @@ const AdminDashboard = () => {
     const [selectedCompetition, setSelectedCompetition] = useState(null);
     const [deleteConfirmation, setDeleteConfirmation] = useState({ open: false, competition: null });
 
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = async (force = false) => {
         try {
             // 1. Fetch Department Stats
-            const json = await api.get('/api/admin/stats');
+            const options = force ? { cache: false } : {};
+            const json = await api.get('/api/admin/stats', options);
             let totalVerified = 0;
 
             if (json.success && json.data) {
@@ -38,7 +39,7 @@ const AdminDashboard = () => {
             }
 
             // 2. Fetch All Competitions
-            const compRes = await api.get('/api/competitions');
+            const compRes = await api.get('/api/competitions', options);
             const comps = compRes?.data || (Array.isArray(compRes) ? compRes : []);
 
             let activeCount = 0;
@@ -92,7 +93,7 @@ const AdminDashboard = () => {
 
     const handleRefresh = () => {
         setLoading(true);
-        fetchDashboardData();
+        fetchDashboardData(true);
     };
 
     const handleEdit = (competition) => {

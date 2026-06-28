@@ -135,8 +135,9 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 // ─── Exported API methods ─────────────────────────────────────────────────────
 export const api = {
     get: (endpoint, options = {}) => {
-        if (options.cache === false) {
-            return request(endpoint, { method: 'GET', ...options });
+        const { cache: bypassCache, ...reqOptions } = options;
+        if (bypassCache === false) {
+            return request(endpoint, { method: 'GET', ...reqOptions });
         }
 
         const cacheKey = endpoint;
@@ -149,7 +150,7 @@ export const api = {
             apiCache.delete(cacheKey);
         }
 
-        const promise = request(endpoint, { method: 'GET', ...options }).catch(err => {
+        const promise = request(endpoint, { method: 'GET', ...reqOptions }).catch(err => {
             apiCache.delete(cacheKey);
             throw err;
         });

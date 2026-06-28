@@ -9,10 +9,15 @@ const createCompetitionSchema = z.object({
   organizer:             z.string().min(2,  { message: 'organizer must be at least 2 characters' }),
   platform:              z.string().optional(),
   registration_deadline: z.string().datetime({ message: 'registration_deadline must be a valid ISO 8601 datetime' }),
-  event_date:            z.string().datetime({ message: 'event_date must be a valid ISO 8601 datetime' }),
+  event_date:            z.string().datetime({ message: 'event_date must be a valid ISO 8601 datetime' }).optional(),
   team_allowed:          z.boolean({ required_error: 'team_allowed is required' }),
   min_team_size:         z.number().int().min(1).optional(),
   max_team_size:         z.number().int().min(1).optional(),
+  description:           z.string().optional(),
+  mode:                  z.string().optional(),
+  venue:                 z.string().optional(),
+  link:                  z.string().optional(),
+  external_link:         z.string().optional(),
   departments:           z.array(z.string()).optional(),
 });
 
