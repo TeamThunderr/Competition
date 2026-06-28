@@ -200,13 +200,13 @@ const HodDashboard = () => {
     return (
         <>
             {/* Header with Download Button */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4 sticky top-0 z-10 bg-background/95 backdrop-blur-md pt-4 pb-4 border-b border-border/50">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
                     <div>
-                        <h1 className="text-2xl font-bold text-foreground">
+                        <h1 className="text-xl md:text-2xl font-bold text-foreground">
                             {activeTab} Year Dashboard
                         </h1>
-                        <p className="text-muted mt-1">
+                        <p className="text-sm text-muted mt-0.5">
                             {selectedSection === 'All Sections'
                                 ? `Overview of ${activeTab} Year Sections`
                                 : `Detailed View: ${selectedSection}`}
@@ -214,16 +214,16 @@ const HodDashboard = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto items-center">
+                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-stretch sm:items-center">
                     {/* Year Tabs */}
-                    <div className="flex bg-muted/10 p-1 rounded-lg border border-border shadow-sm h-10 items-center justify-center sm:justify-start w-full sm:w-auto">
+                    <div className="flex bg-muted/20 p-1 rounded-xl border border-border shadow-inner h-11 items-center justify-center sm:justify-start w-full sm:w-auto">
                         {['2nd', '3rd'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => { setActiveTab(tab); setSelectedSection('All Sections'); }}
-                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab
-                                    ? 'bg-blue-50 text-blue-700 shadow-sm dark:bg-blue-900/30 dark:text-blue-300'
-                                    : 'text-muted hover:text-foreground hover:bg-muted/10'
+                                className={`flex-1 sm:px-6 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === tab
+                                    ? 'bg-card text-blue-600 shadow-sm dark:bg-zinc-800 dark:text-blue-400'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/10'
                                     }`}
                             >
                                 {tab} Year
@@ -234,10 +234,10 @@ const HodDashboard = () => {
                     <div className="relative w-full sm:w-auto">
                         <button
                             onClick={toggleTopDropdown}
-                            className="bg-card border border-border px-4 py-2 rounded-lg text-sm text-foreground flex items-center justify-between space-x-2 shadow-sm hover:bg-muted/10 w-full sm:w-[200px] h-10"
+                            className="bg-card border border-border px-4 py-2 rounded-xl text-sm font-medium text-foreground flex items-center justify-between space-x-2 shadow-sm hover:bg-muted/10 w-full sm:w-[160px] h-11 transition-colors"
                         >
                             <span className="truncate">{selectedSection === 'All Sections' ? 'All Sections' : selectedSection}</span>
-                            <ChevronDown size={16} />
+                            <ChevronDown size={16} className={`transition-transform duration-200 ${isTopDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
 
                         {isTopDropdownOpen && (
@@ -254,7 +254,7 @@ const HodDashboard = () => {
                                         onClick={() => handleSectionSelect(section)}
                                         className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/10"
                                     >
-                                        {section}
+                                        Section {section}
                                     </button>
                                 ))}
                             </div>
@@ -266,19 +266,20 @@ const HodDashboard = () => {
 
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8">
                 {currentStats.map((stat, index) => (
-                    <div key={index} className={`bg-card p-6 rounded-xl shadow-sm border border-border ${stat.borderLeft}`}>
-                        <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{stat.label}</h3>
-                        <div className="text-3xl font-bold text-foreground mb-2">{stat.value}</div>
-                        <p className="text-xs text-muted/80">{stat.subtext}</p>
+                    <div key={index} className="bg-card p-4 md:p-6 rounded-2xl shadow-sm border border-border/60 relative overflow-hidden group">
+                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${stat.borderLeft.includes('blue') ? 'bg-blue-500' : 'bg-transparent'} transition-colors group-hover:bg-blue-400`} />
+                        <h3 className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 md:mb-2 line-clamp-1">{stat.label}</h3>
+                        <div className="text-2xl md:text-3xl font-black text-foreground tracking-tight mb-1">{stat.value}</div>
+                        <p className="text-[10px] md:text-xs text-muted font-medium line-clamp-1">{stat.subtext}</p>
                     </div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div className="w-full">
                 {/* Main Content Area (Table or Student List) */}
-                <div className="lg:col-span-2 bg-card rounded-xl shadow-sm border border-border p-6 order-2 lg:order-1">
+                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                         <div>
                             <h2 className="text-lg font-bold text-foreground mb-1">
@@ -334,35 +335,46 @@ const HodDashboard = () => {
                                         <div
                                             key={index}
                                             onClick={() => handleSectionSelect(row.section)}
-                                            className="bg-card p-4 rounded-xl border border-border shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
+                                            className="bg-card p-5 rounded-2xl border border-border shadow-sm hover:shadow-md cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden"
                                         >
-                                            <div className="flex justify-between items-start mb-3 border-b border-border pb-3">
-                                                <div>
-                                                    <h3 className="text-lg font-bold text-foreground">{row.section}</h3>
-                                                    <p className="text-xs text-muted">{row.batch}</p>
+                                            {/* Top Row: Section & Badge */}
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-lg">
+                                                        {row.section}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-base font-bold text-foreground leading-tight">Section {row.section}</h3>
+                                                        <p className="text-xs text-muted font-medium mt-0.5">Batch {row.batch}</p>
+                                                    </div>
                                                 </div>
-                                                <div className={`px-2 py-1 rounded-md text-xs font-medium ${row.pending > 0 ? 'bg-red-50 text-red-600' : 'bg-muted/10 text-muted'}`}>
-                                                    {row.pending} OD Pending
-                                                </div>
+                                                {row.pending > 0 && (
+                                                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20 shadow-sm animate-pulse">
+                                                        <AlertCircle size={12} />
+                                                        {row.pending} OD Pending
+                                                    </div>
+                                                )}
                                             </div>
 
-                                            <div className="flex items-center gap-2 mb-3 text-sm text-muted">
-                                                <BookOpen size={16} className="text-blue-500" />
-                                                <span>{row.classAdvisor || 'Not Assigned'}</span>
+                                            {/* Faculty */}
+                                            <div className="flex items-center gap-2 mb-4 text-xs font-medium text-muted bg-muted/10 p-2 rounded-lg">
+                                                <User size={14} className="text-blue-500" />
+                                                <span>{row.classAdvisor || 'No Advisor Assigned'}</span>
                                             </div>
 
-                                            <div className="grid grid-cols-3 gap-2 text-center bg-muted/10 rounded-lg p-2">
-                                                <div>
-                                                    <div className="text-xs text-muted uppercase">Total</div>
-                                                    <div className="font-bold text-foreground">{row.totalStudents}</div>
+                                            {/* Metrics Grid */}
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <div className="bg-muted/10 rounded-xl p-2 text-center border border-border/50">
+                                                    <div className="text-[10px] text-muted font-bold uppercase mb-0.5">Total</div>
+                                                    <div className="font-black text-foreground text-sm">{row.totalStudents}</div>
                                                 </div>
-                                                <div>
-                                                    <div className="text-xs text-muted uppercase">Reg</div>
-                                                    <div className="font-bold text-blue-600">{row.registered}</div>
+                                                <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-2 text-center border border-blue-100 dark:border-blue-800/30">
+                                                    <div className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase mb-0.5">Reg</div>
+                                                    <div className="font-black text-blue-700 dark:text-blue-300 text-sm">{row.registered}</div>
                                                 </div>
-                                                <div>
-                                                    <div className="text-xs text-muted uppercase">Qual</div>
-                                                    <div className="font-bold text-green-600">{row.qualified}</div>
+                                                <div className="bg-green-50 dark:bg-green-900/10 rounded-xl p-2 text-center border border-green-100 dark:border-green-800/30">
+                                                    <div className="text-[10px] text-green-600 dark:text-green-400 font-bold uppercase mb-0.5">Qual</div>
+                                                    <div className="font-black text-green-700 dark:text-green-300 text-sm">{row.qualified}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -418,45 +430,6 @@ const HodDashboard = () => {
                         )
                     }
                 </div >
-
-                {/* OD Actions Card */}
-                <div className="flex flex-col gap-6 w-full order-1 lg:order-2">
-                    <div className="bg-card rounded-xl shadow-sm border border-border p-6 h-fit">
-                        <div className="flex justify-between items-start mb-4">
-                            <h2 className="text-lg font-bold text-foreground">OD Actions</h2>
-                            <span className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                            </span>
-                        </div>
-
-                        <p className="text-sm text-muted mb-6 leading-relaxed">
-                            You have <span className="font-bold text-foreground">
-                                {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0)} pending OD {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0) === 1 ? 'request' : 'requests'}
-                            </span> that require {filteredSectionData.reduce((acc, curr) => acc + (curr.pending || 0), 0) === 1 ? 'validation' : 'validation'} against email evidence.
-                        </p>
-
-                        <button
-                            onClick={() => navigate('/hod/approvals')}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2 shadow-sm"
-                        >
-                            <span>Review Queue</span>
-                            <ChevronRight size={16} />
-                        </button>
-                    </div>
-
-                    {/* Quick Links or Stats */}
-                    <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl shadow-md p-6 text-white">
-                        <h3 className="font-bold text-lg mb-2">Faculty Directory</h3>
-                        <p className="text-purple-100 text-sm mb-4">Manage department staff and view section assignments.</p>
-                        <button
-                            onClick={() => navigate('/hod/faculty')}
-                            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-medium px-4 py-2 rounded-lg transition-all w-full flex items-center justify-center gap-2"
-                        >
-                            View Directory
-                        </button>
-                    </div>
-                </div>
             </div >
         </>
     );

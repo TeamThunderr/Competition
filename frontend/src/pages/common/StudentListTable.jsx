@@ -64,10 +64,10 @@ const StudentListTable = ({
             </div>
 
             {/* Table */}
-            <div className="min-h-[400px] overflow-x-auto">
-                <table className="w-full">
-                    <thead className="bg-muted/5">
-                        <tr className="text-left text-xs font-semibold text-muted uppercase tracking-wider">
+            <div className="max-h-[500px] min-h-[400px] overflow-auto">
+                <table className="w-full relative">
+                    <thead className="bg-card sticky top-0 z-10 shadow-sm">
+                        <tr className="text-left text-xs font-semibold text-muted uppercase tracking-wider bg-muted/5">
                             <th className="px-6 py-4 w-12">S.No</th>
                             <th className="px-6 py-4">Register No</th>
                             <th className="px-6 py-4">Name</th>
