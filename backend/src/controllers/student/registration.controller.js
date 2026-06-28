@@ -221,7 +221,7 @@ const uploadProof = async (req, res) => {
             updateData = {
                 proof_url: publicUrl,
                 verified: false, // Needs faculty approval
-                status: 'Registered',
+                status: 'Pending',
                 source: 'MANUAL_SCREENSHOT'
             };
         }
@@ -260,8 +260,7 @@ const uploadShortlistProof = async (req, res) => {
             .from('registrations')
             .update({
                 shortlist_proof_url: proof_url,
-                qualification_verified: false, // Reset for Faculty Verification
-                status: 'Qualified' // Set status so frontend can show "Verification Pending"
+                qualification_verified: false
             })
             .eq('user_id', student_id)
             .eq('competition_id', competition_id)
@@ -311,9 +310,7 @@ const updateWinningStatus = async (req, res) => {
             won_status: won_status,
             winning_proof_url: winning_proof_url || null,
             // If they marked as WON, they need faculty verification. If NOT_WON, it's auto-verified
-            winning_verified: won_status === 'WON' ? false : true,
-            // If they marked as WON, we can also update the top-level status to 'Winner' for legacy compatibility
-            status: won_status === 'WON' ? 'Winner' : 'Qualified'
+            winning_verified: won_status === 'WON' ? false : true
         };
 
         const { data, error } = await supabase

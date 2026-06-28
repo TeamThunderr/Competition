@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { getStudentDetails } from '../../services/facultyService';
+import { getStudentDetails, updateStudentSection } from '../../services/facultyService';
 import StudentProfileView from '../common/StudentProfileView';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+import { useToast } from '../../contexts/ToastContext';
 
 const StudentDetail = () => {
     const { id } = useParams();
@@ -12,6 +13,10 @@ const StudentDetail = () => {
     const [student, setStudent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isChangeSectionModalOpen, setIsChangeSectionModalOpen] = useState(false);
+    const [newSection, setNewSection] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { addToast } = useToast();
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -31,6 +36,37 @@ const StudentDetail = () => {
             fetchDetails();
         }
     }, [id]);
+
+    const handleChangeSectionSubmit = async (e) => {
+        e.preventDefault();
+        if (!newSection.trim()) return;
+
+        setIsSubmitting(true);
+        try {
+            await updateStudentSection(id, newSection.trim().toUpperCase());
+            addToast('Section updated successfully', 'success');
+            setIsChangeSectionModalOpen(false);
+            
+            // Refresh student details
+            try {
+                const data = await getStudentDetails(id);
+                setStudent(data);
+            } catch (fetchErr) {
+                // If faculty loses access after changing the section, redirect to list
+                if (fetchErr.response?.status === 403 || fetchErr.response?.status === 404) {
+                    navigate('/faculty/students');
+                } else {
+                    console.error("Failed to refresh student details", fetchErr);
+                    addToast('Student updated, but failed to refresh details', 'error');
+                }
+            }
+        } catch (err) {
+            console.error("Failed to update section", err);
+            addToast(err.response?.data?.message || err.message || 'Failed to update section', 'error');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -70,7 +106,54 @@ const StudentDetail = () => {
                 </div>
 
                 {/* Shared Profile View */}
-                <StudentProfileView student={student} />
+                <StudentProfileView 
+                    student={student} 
+                    onEditSection={() => {
+                        setNewSection(student.profile.section);
+                        setIsChangeSectionModalOpen(true);
+                    }}
+                />
+
+                {/* Change Section Modal */}
+                {isChangeSectionModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                        <div className="bg-card w-full max-w-md rounded-xl shadow-lg border border-border p-6 animate-in fade-in zoom-in-95">
+                            <h2 className="text-xl font-bold text-foreground mb-4">Change Section</h2>
+                            <p className="text-sm text-muted mb-4">
+                                Enter the new section for <strong>{student.profile.name}</strong>. They will be moved out of your assigned section if you enter a different one.
+                            </p>
+                            <form onSubmit={handleChangeSectionSubmit}>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-foreground mb-1">New Section</label>
+                                    <input
+                                        type="text"
+                                        value={newSection}
+                                        onChange={(e) => setNewSection(e.target.value)}
+                                        placeholder="e.g., A, B, C"
+                                        className="w-full px-3 py-2 bg-muted/5 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        required
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsChangeSectionModalOpen(false)}
+                                        className="px-4 py-2 text-muted hover:text-foreground transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                    >
+                                        {isSubmitting ? 'Updating...' : 'Update Section'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
         </>
     );
 };

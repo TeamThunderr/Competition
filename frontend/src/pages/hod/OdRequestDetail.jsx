@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import HodLayout from './HodLayout';
 import { ArrowLeft, Check, X, ShieldCheck, Calendar, Clock, User, ExternalLink } from 'lucide-react';
 import { getODRequestDetail, manageODRequest } from '../../services/hodService';
+import { formatDate } from '../../utils/dateFormatter';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
@@ -153,12 +154,12 @@ const OdRequestDetail = () => {
                             <div className="flex items-center gap-2 text-sm">
                                 <span className="font-medium text-gray-700">Original Start:</span>
                                 <span className="text-purple-700 font-bold">
-                                    {request.original_from_date ? new Date(request.original_from_date).toLocaleDateString() : new Date(request.from_date).toLocaleDateString()}
+                                    {request.original_from_date ? formatDate(request.original_from_date) : formatDate(request.from_date)}
                                 </span>
                                 <span className="text-gray-400">→</span>
                                 <span className="font-medium text-gray-700">Extended End:</span>
                                 <span className="text-purple-700 font-bold">
-                                    {new Date(request.to_date).toLocaleDateString()}
+                                    {formatDate(request.to_date)}
                                 </span>
                                 <span className="ml-2 text-xs text-gray-500">
                                     ({Math.ceil((new Date(request.to_date) - new Date(request.original_from_date || request.from_date)) / (1000 * 60 * 60 * 24)) + 1} days total)
@@ -175,7 +176,7 @@ const OdRequestDetail = () => {
                                         <div key={idx} className="flex items-center justify-between p-2 bg-purple-50 rounded">
                                             <span className="font-medium text-purple-900">{comp.title}</span>
                                             <span className="text-sm text-purple-700">
-                                                {new Date(comp.from_date).toLocaleDateString()} - {new Date(comp.to_date).toLocaleDateString()}
+                                                {formatDate(comp.from_date)} - {formatDate(comp.to_date)}
                                             </span>
                                         </div>
                                     ))}
@@ -235,7 +236,7 @@ const OdRequestDetail = () => {
                                         </div>
                                         <p className="font-bold text-gray-900">
                                             {request.competitions?.event_date
-                                                ? new Date(request.competitions.event_date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                                                ? new Date(request.competitions.event_date).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
                                                 : <span className="text-orange-500">To Be Announced</span>}
                                         </p>
                                     </div>

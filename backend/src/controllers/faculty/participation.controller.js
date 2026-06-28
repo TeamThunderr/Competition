@@ -3,6 +3,7 @@ const supabase = require('../../config/supabaseClient');
 const gmailService = require('../../services/gmail/gmail.service');
 const { google } = require('googleapis');
 const { addGmailSyncJob } = require('../../queues/gmailSync.queue');
+const { buildXlsxBuffer } = require('../../utils/exportHelper');
 
 // Helper to get OAuth2 Client with Refresh Token
 const getAuthClient = (refreshToken) => {
@@ -139,16 +140,30 @@ const exportParticipationStats = async (req, res) => {
 
         if (regError) throw regError;
 
-        const header = "Student Name,Reg No,Section,Competition,Platform,Status,Source,Verified\n";
-        const rows = registrations.map(r => {
+        const headers = ['Student Name', 'Reg No', 'Section', 'Competition', 'Platform', 'Status', 'Source', 'Verified'];
+        
+        const xlsxData = registrations.reduce((acc, r) => {
             const student = myStudents.find(s => s.id === r.user_id);
-            if (!student) return null;
-            return `${student.full_name},${student.registration_no},${student.section},"${r.competitions?.title}","${r.competitions?.platform}",${r.status},${r.source},${r.verified}`;
-        }).filter(r => r).join("\n");
+            if (student) {
+                acc.push({
+                    'Student Name': student.full_name || 'N/A',
+                    'Reg No': student.registration_no || 'N/A',
+                    'Section': student.section || 'N/A',
+                    'Competition': r.competitions?.title || 'N/A',
+                    'Platform': r.competitions?.platform || 'N/A',
+                    'Status': r.status || 'N/A',
+                    'Source': r.source || 'N/A',
+                    'Verified': r.verified ? 'Yes' : 'No'
+                });
+            }
+            return acc;
+        }, []);
 
-        res.header('Content-Type', 'text/csv');
-        res.attachment(`registration_report_${new Date().getTime()}.csv`);
-        res.send(header + rows);
+        const buffer = buildXlsxBuffer(xlsxData, headers, 'Report');
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="registration_report_${Date.now()}.xlsx"`);
+        res.status(200).send(buffer);
 
     } catch (err) {
         console.error('[Export] Error:', err);
@@ -158,14 +173,12 @@ const exportParticipationStats = async (req, res) => {
 
 // Shared Logic for Batch Sync (Using Registrations Table ONLY)
 async function performBatchSync(competition, departmentId, assignedVersion, facultyId = null) {
-    // If no last_synced_at exists, use uploaded_at/created_at but subtract 14 days as a buffer
-    // This catches students who registered slightly before the faculty created the event, without wasting tokens on 6 months of emails.
-    let syncFrom = competition.last_synced_at;
-    if (!syncFrom) {
-        const baseDate = new Date(competition.uploaded_at || competition.created_at || Date.now());
-        baseDate.setDate(baseDate.getDate() - 14); // 14-day lookback buffer
-        syncFrom = baseDate.toISOString();
-    }
+    // ALWAYS use uploaded_at/created_at minus 14 days as a buffer for the sync window start.
+    // This catches students who registered before faculty synced, while ignoreDuplicates in gmailService
+    // prevents us from processing the same email twice.
+    const baseDate = new Date(competition.uploaded_at || competition.created_at || Date.now());
+    baseDate.setDate(baseDate.getDate() - 14); // 14-day lookback buffer
+    let syncFrom = baseDate.toISOString();
     const syncTo = new Date().toISOString();
 
     const stats = { processed: 0, detected: 0, errors: 0, skipped: 0 };

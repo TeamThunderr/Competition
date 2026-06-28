@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Search, User, Clock, FileCheck, AlertCircle } from 'lucide-react';
+import { formatDate } from '../../../../utils/dateFormatter';
 import { useNavigate } from 'react-router-dom';
 
 const SectionStudentList = ({ title, students, onClose }) => {
@@ -94,7 +95,7 @@ const SectionStudentList = ({ title, students, onClose }) => {
                                 <div className="hidden md:block text-right">
                                     {student.uploaded_at && (
                                         <div className="text-xs text-muted mb-1">
-                                            {new Date(student.uploaded_at).toLocaleDateString()}
+                                            {formatDate(student.uploaded_at)}
                                         </div>
                                     )}
                                 </div>

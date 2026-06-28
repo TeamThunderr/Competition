@@ -48,9 +48,26 @@ const getAllCompetitions = async (req, res) => {
             odRequests = [];
         }
 
+        // Fetch user's temp registrations
+        let tempRegistrations = [];
+        try {
+            const { data, error: tempError } = await supabase
+                .from('student_competition_temp_status')
+                .select('competition_id, is_temp_registered, temp_registered_at')
+                .eq('student_id', userId)
+                .eq('is_temp_registered', true);
+
+            if (tempError) throw tempError;
+            tempRegistrations = data || [];
+        } catch (err) {
+            console.warn("Warning: Could not fetch student_competition_temp_status", err.message);
+            tempRegistrations = [];
+        }
+
         // Merge data
         const enrichedCompetitions = competitions.map(comp => {
             const reg = registrations.find(r => r.competition_id === comp.id);
+            const tempReg = tempRegistrations.find(t => t.competition_id === comp.id);
 
             // Check if this competition is the main one OR part of combined competitions in ANY OD request
             const od = odRequests.find(o => {
@@ -83,6 +100,8 @@ const getAllCompetitions = async (req, res) => {
                 my_registration: reg || null,
                 my_status: derivedStatus,
                 my_od: od || null,
+                is_temp_registered: !!tempReg,
+                temp_registered_at: tempReg ? tempReg.temp_registered_at : null,
                 registrations: [{ count: totalCount }]
             };
         });
@@ -111,5 +130,38 @@ const getCompetitionDetails = async (req, res) => {
     }
 };
 
+const toggleTempRegistration = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { competition_id, is_temp_registered } = req.body;
 
-module.exports = { getAllCompetitions, getCompetitionDetails };
+        if (!competition_id) {
+            return res.status(400).json({ error: 'competition_id is required' });
+        }
+
+        const now = new Date().toISOString();
+
+        const { data, error } = await supabase
+            .from('student_competition_temp_status')
+            .upsert({
+                student_id: userId,
+                competition_id: competition_id,
+                is_temp_registered: Boolean(is_temp_registered),
+                temp_registered_at: Boolean(is_temp_registered) ? now : null
+            }, { onConflict: 'student_id,competition_id' })
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Error toggling temp registration:", error);
+            throw error;
+        }
+
+        res.status(200).json({ success: true, data });
+    } catch (err) {
+        console.error('Error in toggleTempRegistration:', err);
+        res.status(500).json({ error: 'Internal Server Error', details: err.message });
+    }
+};
+
+module.exports = { getAllCompetitions, getCompetitionDetails, toggleTempRegistration };

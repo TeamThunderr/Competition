@@ -5,6 +5,7 @@
 const { sendResponse } = require('../../utils/responseHelper');
 const supabase = require('../../config/supabaseClient');
 const statsService = require('../../services/admin/stats.service');
+const { buildXlsxBuffer } = require('../../utils/exportHelper');
 const { getAcademicYearLabel } = require('../../utils/academicYear.util');
 
 const getDepartmentStats = async (req, res) => {
@@ -549,7 +550,7 @@ const getDashboardAnalysis = async (req, res) => {
         const trendMap = {};
         allRegistrations.forEach(r => {
             const date = new Date(r.created_at || r.registered_at); // specific fallback
-            const key = date.toLocaleString('default', { month: 'short', year: 'numeric' }); // e.g., "Dec 2024"
+            const key = date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', year: 'numeric' }); // e.g., "Dec 2024"
             if (!trendMap[key]) trendMap[key] = { name: key, date: date, count: 0 };
             trendMap[key].count++;
         });
@@ -929,32 +930,31 @@ const exportWinnersCsv = async (req, res) => {
 
         if (error) throw error;
 
-        // Generate CSV
-        const header = ['Student Name', 'Reg No', 'Section', 'Year', 'Competition', 'Organizer', 'Date'];
-        const rows = winners.map(w => {
+        // Generate XLSX
+        const headers = ['Student Name', 'Reg No', 'Section', 'Year', 'Competition', 'Organizer', 'Date'];
+        const { getAcademicYearLabel } = require('../../utils/academicYear.util');
+        
+        const xlsxData = winners.map(w => {
             const u = w.users;
             const c = w.competitions;
-
-            // Calculate Year
-            const { getAcademicYearLabel } = require('../../utils/academicYear.util');
             const yearLabel = getAcademicYearLabel(u.admission_year);
 
-            return [
-                `"${u.full_name}"`,
-                `"${u.registration_no || ''}"`,
-                `"${u.section || ''}"`,
-                `"${yearLabel} Year"`,
-                `"${c.title}"`,
-                `"${c.organizer || ''}"`,
-                `"${c.event_date || ''}"`
-            ].join(',');
+            return {
+                'Student Name': u.full_name || 'N/A',
+                'Reg No': u.registration_no || 'N/A',
+                'Section': u.section || 'N/A',
+                'Year': `${yearLabel} Year`,
+                'Competition': c.title || 'N/A',
+                'Organizer': c.organizer || 'N/A',
+                'Date': c.event_date || 'N/A'
+            };
         });
 
-        const csvString = [header.join(','), ...rows].join('\n');
+        const buffer = buildXlsxBuffer(xlsxData, headers, 'Winners');
 
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename="winners_report.csv"');
-        res.status(200).send(csvString);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename="winners_report.xlsx"');
+        res.status(200).send(buffer);
 
     } catch (err) {
         console.error('[HodController] Error exporting CSV:', err);

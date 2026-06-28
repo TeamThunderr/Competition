@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { Search, ChevronDown } from 'lucide-react';
 import { api } from '../../services/api';
+import { formatDate } from '../../utils/dateFormatter';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
 const GlobalRepository = () => {
@@ -309,9 +310,9 @@ const GlobalRepository = () => {
                                                     <div className="text-xs text-muted">{comp.organizer}</div>
                                                 </td>
                                                 <td className="px-4 py-4 text-sm text-foreground truncate">{comp.platform}</td>
-                                                <td className="px-4 py-4 text-sm text-foreground">{new Date(comp.registration_deadline).toLocaleDateString()}</td>
+                                                <td className="px-4 py-4 text-sm text-foreground">{formatDate(comp.registration_deadline)}</td>
                                                 <td className="px-4 py-4 text-sm text-foreground">
-                                                    {comp.event_date ? new Date(comp.event_date).toLocaleDateString() : 'TBA'}
+                                                    {formatDate(comp.event_date)}
                                                 </td>
                                                 <td className="px-4 py-4 text-sm text-foreground truncate" title={Array.isArray(comp.departments) ? comp.departments.join(', ') : (comp.departments || 'All')}>
                                                     {Array.isArray(comp.departments)

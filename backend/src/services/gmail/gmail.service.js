@@ -801,7 +801,7 @@ const ingestStudentEmails = async (userId, competition, lastSyncedAt = null) => 
             if (emailsToBuffer.length > 0) {
                 const { error } = await supabase
                     .from('email_ingestion_buffer')
-                    .upsert(emailsToBuffer, { onConflict: 'competition_id, user_id, gmail_message_id' });
+                    .upsert(emailsToBuffer, { onConflict: 'competition_id, user_id, gmail_message_id', ignoreDuplicates: true });
 
                 if (error) {
                     console.error('[Ingestion] Error saving to buffer:', error);

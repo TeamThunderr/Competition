@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Pencil, Trash2, Upload, X, AlertTriangle } from 'lucide-react';
 import { api } from '../../services/api';
+import { formatDate } from '../../utils/dateFormatter';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 import EditCompetitionModal from '../../components/admin/EditCompetitionModal';
@@ -230,19 +231,16 @@ const AdminDashboard = () => {
                                                 <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full">
                                                     {comp.platform || 'Unknown Platform'}
                                                 </span>
-                                                <span className="text-xs text-muted">
-                                                    {comp.created_at ? new Date(comp.created_at).toLocaleDateString('en-US', {
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                        year: 'numeric'
-                                                    }) : 'N/A'}
-                                                </span>
+                                                <div className="text-xs text-muted flex items-center gap-2">
+                                                    <Calendar size={12} />
+                                                    {formatDate(comp.created_at)}
+                                                </div>
                                             </div>
                                             <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-2">{comp.title || 'Untitled Competition'}</h3>
                                             <p className="text-sm text-muted mb-4 line-clamp-2">{comp.description}</p>
 
                                             <div className="space-y-2 text-xs text-muted">
-                                                <div>Deadline: {comp.registration_deadline ? new Date(comp.registration_deadline).toLocaleDateString() : 'TBA'}</div>
+                                                <div>Deadline: {formatDate(comp.registration_deadline)}</div>
                                                 <div>Registrations: {comp.registrations?.[0]?.count || 0}</div>
                                             </div>
                                         </div>

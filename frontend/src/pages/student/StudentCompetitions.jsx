@@ -5,12 +5,16 @@ import ConfirmModal from '../../components/common/ConfirmModal';
 import AlertModal from '../../components/common/AlertModal';
 import { useToast } from '../../contexts/ToastContext';
 
+import CompetitionDetails from '../common/CompetitionDetails';
+import { formatDateTime } from '../../utils/dateFormatter';
 import CompetitionListView from '../common/CompetitionListView';
 import { supabase } from '../../services/supabaseClient';
 import { studentService } from '../../services/studentService';
 import { RefreshCw } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const StudentCompetitions = () => {
+    const { user } = useAuth();
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -43,21 +47,85 @@ const StudentCompetitions = () => {
 
     useEffect(() => {
         fetchCompetitions();
-    }, []);
+    }, [user?.id]);
 
     const [activeTab, setActiveTab] = useState('unregistered');
 
-    const [appliedCompetitions, setAppliedCompetitions] = useState(() => {
-        const saved = localStorage.getItem('appliedCompetitions');
-        return saved ? JSON.parse(saved) : {};
-    });
+    const [appliedCompetitions, setAppliedCompetitions] = useState({});
 
-    const handleToggleApplied = (compId) => {
+    useEffect(() => {
+        if (user?.id && competitions.length > 0) {
+            const cleaned = {};
+            competitions.forEach(c => {
+                if (c.is_temp_registered && !c.my_registration) {
+                    cleaned[c.id] = c.temp_registered_at ? new Date(c.temp_registered_at).getTime() : Date.now();
+                }
+            });
+            setAppliedCompetitions(cleaned);
+
+            const times = competitions
+                .map(c => c.last_synced_at)
+                .filter(t => t)
+                .map(t => new Date(t).getTime());
+            const maxSync = times.length > 0 ? Math.max(...times) : 0;
+
+            const unverifiedComps = competitions.filter(c => {
+                const toggleVal = cleaned[c.id];
+                if (!toggleVal || c.my_registration) return false;
+                
+                const syncTime = c.last_synced_at ? new Date(c.last_synced_at).getTime() : maxSync;
+                const toggleTime = typeof toggleVal === 'number' ? toggleVal : 0;
+                return syncTime > toggleTime;
+            });
+
+            if (unverifiedComps.length > 0 && !sessionStorage.getItem(`notified_temp_${user.id}`)) {
+                sessionStorage.setItem(`notified_temp_${user.id}`, 'true');
+                const messageList = unverifiedComps.map(c => 
+                    `Even after the latest sync, your competition "${c.title}" is still showing as unregistered — even though you had marked it as temporarily registered. Please verify whether you completed your registration, or upload manual proof for faculty review.`
+                ).join('\n\n');
+
+                setAlertConfig({
+                    isOpen: true,
+                    title: "Post-Sync Registration Alert",
+                    message: messageList,
+                    type: "warning",
+                    autoClose: false
+                });
+            }
+        }
+    }, [competitions, user?.id]);
+
+    const handleToggleApplied = async (compId) => {
+        if (!user?.id) return;
+        const currentlyApplied = !!appliedCompetitions[compId];
+        const nextState = !currentlyApplied;
+
+        // Optimistic UI update
         setAppliedCompetitions(prev => {
-            const newState = { ...prev, [compId]: !prev[compId] };
-            localStorage.setItem('appliedCompetitions', JSON.stringify(newState));
+            const newState = { ...prev };
+            if (currentlyApplied) {
+                delete newState[compId];
+            } else {
+                newState[compId] = Date.now();
+            }
             return newState;
         });
+
+        try {
+            await studentService.toggleTempRegistration(compId, nextState);
+        } catch (err) {
+            console.error("Failed to sync temp registration to DB:", err);
+            // Revert on failure
+            setAppliedCompetitions(prev => {
+                const newState = { ...prev };
+                if (currentlyApplied) {
+                    newState[compId] = Date.now();
+                } else {
+                    delete newState[compId];
+                }
+                return newState;
+            });
+        }
     };
 
     const [selectedProofType, setSelectedProofType] = useState(null);
@@ -75,51 +143,16 @@ const StudentCompetitions = () => {
         navigate(`/student/od-request/${compId}`);
     };
 
-    const handleAutoSync = async (compId) => {
-        try {
-            const statusRes = await studentService.checkGmailStatus();
-            if (!statusRes.data?.connected) {
-                setAlertConfig({
-                    isOpen: true,
-                    title: 'Gmail Not Connected',
-                    message: 'Please connect your Gmail in Settings to use Auto-Detect.',
-                    type: 'warning'
-                });
-                return;
-            }
-            
-            addToast("Scanning Gmail for registration...", "info");
-            const res = await studentService.checkStatus(compId, null);
-            if (res.data?.status === 'REGISTERED' || res.data?.status === 'QUALIFIED') {
-                addToast("Competition registered successfully from Gmail!", "success");
-                fetchCompetitions();
-            } else {
-                setAlertConfig({
-                    isOpen: true,
-                    title: 'Not Found',
-                    message: 'Could not find registration email. Try manual upload.',
-                    type: 'warning'
-                });
-            }
-        } catch (err) {
-            console.error("Auto-sync error", err);
-            
-            if (err.response?.status === 403 && err.response?.data?.reason === 'gmail_not_connected') {
-                setAlertConfig({
-                    isOpen: true,
-                    title: 'Gmail Access Revoked',
-                    message: 'Your Gmail access has expired or been revoked. Please reconnect in Settings.',
-                    type: 'error'
-                });
-            } else {
-                setAlertConfig({
-                    isOpen: true,
-                    title: 'Sync Failed',
-                    message: 'Failed to scan Gmail. ' + (err.response?.data?.error || err.message),
-                    type: 'error'
-                });
-            }
-        }
+    const handleAutoSync = (compId) => {
+        addToast("Our auto-detect is still putting on its detective hat. Hang tight — Sherlock is almost ready!", "info");
+        setAlertConfig({
+            isOpen: true,
+            title: 'Sherlock on the Case! 🕵️‍♂️',
+            message: 'Our auto-detect is still putting on its detective hat. Hang tight — Sherlock is almost ready!',
+            type: 'info',
+            autoClose: true,
+            duration: 3500
+        });
     };
 
     const handleWonStatusUpdate = (compId) => {
@@ -197,16 +230,18 @@ const StudentCompetitions = () => {
     // Filter Logic based on tabs
     const filteredCompetitions = competitions.filter(c => {
         if (activeTab === 'registered') {
-            return c.my_registration;
+            // Only show if the registration is verified by faculty
+            return c.my_registration && c.my_registration.verified;
         } else {
-            // Unregistered Tab: ONLY show open competitions
-            if (!c.registration_deadline) return !c.my_registration; // Keep if no deadline
-
-            const deadline = new Date(c.registration_deadline);
-            deadline.setHours(23, 59, 59, 999);
-            const isClosed = deadline < new Date();
-
-            return !c.my_registration && !isClosed;
+            // Unregistered Tab: ONLY show open competitions IF not registered at all
+            if (!c.my_registration) {
+                if (!c.registration_deadline) return true; // Keep if no deadline
+                const deadline = new Date(c.registration_deadline);
+                deadline.setHours(23, 59, 59, 999);
+                return deadline >= new Date(); // Keep if not closed
+            }
+            // If they have a registration but it's not verified, it stays in Unregistered
+            return !c.my_registration.verified;
         }
     });
 
@@ -260,7 +295,7 @@ const StudentCompetitions = () => {
                     {latestSyncTime && (
                         <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100 shadow-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                             <RefreshCw className="w-4 h-4" />
-                            <span>Faculty Last Synced: {latestSyncTime.toLocaleString()}</span>
+                            <span>Faculty Last Synced: {formatDateTime(latestSyncTime)}</span>
                         </div>
                     )}
                 </div>
@@ -303,7 +338,7 @@ const StudentCompetitions = () => {
                 title={alertConfig.title}
                 message={alertConfig.message}
                 type={alertConfig.type}
-                autoClose={true}
+                autoClose={alertConfig.autoClose !== undefined ? alertConfig.autoClose : true}
             />
         </>
     );

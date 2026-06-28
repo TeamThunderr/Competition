@@ -118,20 +118,37 @@ const UploadCompetitions = () => {
                 return;
             }
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/competitions`, {
+            // Format dates for Zod schema
+            const payload = {
+                ...formData,
+                team_allowed: formData.team_allowed,
+                min_team_size: formData.team_allowed ? parseInt(formData.min_team_size, 10) : 1,
+                max_team_size: formData.team_allowed ? parseInt(formData.max_team_size, 10) : 1,
+                departments: formData.departments
+            };
+
+            if (payload.deadline) {
+                payload.registration_deadline = `${payload.deadline}T23:59:59Z`;
+                delete payload.deadline;
+            } else {
+                delete payload.deadline;
+            }
+
+            if (payload.event_date) {
+                if (!payload.event_date.includes('T')) {
+                    payload.event_date = `${payload.event_date}T00:00:00Z`;
+                }
+            } else {
+                delete payload.event_date;
+            }
+
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/competition`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    ...formData,
-                    // Pass explicit values or let formData handle it
-                    team_allowed: formData.team_allowed,
-                    min_team_size: formData.min_team_size,
-                    max_team_size: formData.max_team_size,
-                    departments: formData.departments // Send array directly
-                })
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {
@@ -153,7 +170,13 @@ const UploadCompetitions = () => {
                 });
             } else {
                 const error = await response.json();
-                addToast(`Error: ${error.error}`, 'error');
+                let errMsg = error.message;
+                if (!errMsg && error.issues) {
+                    errMsg = error.issues.map(i => `${i.field}: ${i.message}`).join(', ');
+                } else if (!errMsg && error.error) {
+                    errMsg = error.error;
+                }
+                addToast(`Error: ${errMsg || "Unknown error"}`, 'error');
             }
         } catch (err) {
             console.error('Error uploading competition:', err);
