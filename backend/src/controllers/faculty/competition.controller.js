@@ -3,7 +3,8 @@
 // UPDATED: Removed all participation table references - uses registrations only
 
 const supabase = require('../../config/supabaseClient');
-const { formatIST } = require('../../utils/dateFormatter');
+const { getAcademicYearLabel } = require('../../utils/academicYear.util');
+const { buildXlsxBuffer } = require('../../utils/exportHelper');
 
 const getAllCompetitions = async (req, res) => {
     try {
@@ -350,7 +351,6 @@ const exportCompetitionStudents = async (req, res) => {
                     return {
                         ...s,
                         status: 'Registered',
-                        registered_at: formatIST(reg.registered_at),
                         verified: reg.verified ? 'Yes' : 'No'
                     };
                 });
@@ -366,32 +366,21 @@ const exportCompetitionStudents = async (req, res) => {
                 }));
         }
 
-        // 5. Generate CSV
-        const csvRows = [];
-        // Header
-        csvRows.push(['Student Name', 'Register No', 'Section', 'Email', 'Phone', 'Status', 'Verified', 'Registered At', 'Venue'].join(','));
+        // 5. Generate XLSX
+        const headers = ['Student Name', 'Register No', 'Section', 'Status'];
+        const xlsxData = exportData.map(s => ({
+            'Student Name': s.full_name || '',
+            'Register No': s.registration_no || '',
+            'Section': s.section || '',
+            'Status': s.status
+        }));
 
-        exportData.forEach(s => {
-            const row = [
-                `"${s.full_name || ''}"`,
-                `"${s.registration_no || ''}"`,
-                `"${s.section || ''}"`,
-                `"${s.email || ''}"`,
-                `"${s.phone_number || ''}"`,
-                `"${s.status}"`,
-                `"${s.verified}"`,
-                `"${s.registered_at}"`,
-                `"${comp.venue || 'N/A'}"`
-            ].join(',');
-            csvRows.push(row);
-        });
+        const buffer = buildXlsxBuffer(xlsxData, headers, 'Students');
+        const filename = `${comp.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${type}_students.xlsx`;
 
-        const csvString = csvRows.join('\n');
-        const filename = `${comp.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${type}_students.csv`;
-
-        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.status(200).send(csvString);
+        res.status(200).send(buffer);
 
     } catch (err) {
         console.error('Error exporting competition students:', err);
