@@ -3,6 +3,7 @@ const router = express.Router();
 const facultyController = require('../../controllers/faculty/faculty.controller');
 const verificationController = require('../../controllers/faculty/verification.controller');
 const facultyCompetitionController = require('../../controllers/faculty/competition.controller');
+const participationController = require('../../controllers/faculty/participation.controller');
 
 const authMiddleware = require('../../middleware/authMiddleware');
 const roleMiddleware = require('../../middleware/role.middleware');
@@ -35,7 +36,7 @@ router.get('/competition/:id/export', facultyCompetitionController.exportCompeti
 const { gmailSyncLimiter } = require('../../middleware/rateLimiter.middleware');
 
 // V2 Sync Routes
-router.post('/competition/:id/sync', gmailSyncLimiter, facultyController.syncCompetition);
+router.post('/competition/:id/sync', gmailSyncLimiter, participationController.syncCompetition);
 router.get('/competition-sync-status', facultyController.getCompetitionSyncStatus);
 
 // Verification Routes (Student Registration)

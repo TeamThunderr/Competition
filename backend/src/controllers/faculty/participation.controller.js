@@ -173,12 +173,18 @@ const exportParticipationStats = async (req, res) => {
 
 // Shared Logic for Batch Sync (Using Registrations Table ONLY)
 async function performBatchSync(competition, departmentId, assignedVersion, facultyId = null) {
-    // ALWAYS use uploaded_at/created_at minus 14 days as a buffer for the sync window start.
-    // This catches students who registered before faculty synced, while ignoreDuplicates in gmailService
-    // prevents us from processing the same email twice.
-    const baseDate = new Date(competition.uploaded_at || competition.created_at || Date.now());
-    baseDate.setDate(baseDate.getDate() - 14); // 14-day lookback buffer
-    let syncFrom = baseDate.toISOString();
+    let syncFrom;
+    if (competition.last_synced_at) {
+        // If it was already synced, start from the last sync time minus a 2-day buffer (in case of delayed emails)
+        const baseDate = new Date(competition.last_synced_at);
+        baseDate.setDate(baseDate.getDate() - 2); 
+        syncFrom = baseDate.toISOString();
+    } else {
+        // First sync ever: use uploaded_at minus 14 days to catch early registrations
+        const baseDate = new Date(competition.uploaded_at || competition.created_at || Date.now());
+        baseDate.setDate(baseDate.getDate() - 14); // 14-day lookback buffer
+        syncFrom = baseDate.toISOString();
+    }
     const syncTo = new Date().toISOString();
 
     const stats = { processed: 0, detected: 0, errors: 0, skipped: 0 };

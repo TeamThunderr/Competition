@@ -196,10 +196,13 @@ const getCompetitionStudents = async (req, res) => {
                     const r = regMap.get(s.id);
                     const source = r?.source || 'UNKNOWN';
                     const verified = r?.verified || false;
-                    const confidence = r?.confidence_score || 100;
-                    const remarks = r?.source === 'AUTO_GMAIL'
-                        ? `Gmail Verified`
-                        : (r?.proof_url ? 'Manual Verified' : '');
+                    const confidence = source === 'AUTO_GMAIL' ? (r?.confidence_score || 100) : (r?.confidence_score || 0);
+                    let remarks = '';
+                    if (source === 'AUTO_GMAIL') {
+                        remarks = 'Gmail Verified';
+                    } else if (r?.proof_url) {
+                        remarks = verified ? 'Manual Verified' : 'Pending Verification';
+                    }
 
                     return {
                         id: s.id,
