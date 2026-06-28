@@ -69,29 +69,28 @@ const StudentProfileView = ({ student, onEditSection }) => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm transition-colors duration-200">
-                    <div className="flex items-center gap-3 mb-2 text-blue-600 dark:text-blue-400">
-                        <Clock size={20} />
-                        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Registered</h3>
+            <div className="grid grid-cols-3 gap-3 md:gap-6 mb-8">
+                <div className="bg-white dark:bg-zinc-900 p-4 md:p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm flex flex-col items-center md:items-start text-center md:text-left transition-colors duration-200">
+                    <div className="flex items-center justify-center md:justify-start gap-1 md:gap-3 mb-1 md:mb-2 text-blue-600 dark:text-blue-400">
+                        <Clock className="w-4 h-4 md:w-5 md:h-5" />
+                        <h3 className="text-[10px] md:text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Reg</h3>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.registered}</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.registered}</p>
                 </div>
-                <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm transition-colors duration-200">
-                    <div className="flex items-center gap-3 mb-2 text-purple-600 dark:text-purple-400">
-                        <CheckCircle size={20} />
-                        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Qualified</h3>
+                <div className="bg-white dark:bg-zinc-900 p-4 md:p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm flex flex-col items-center md:items-start text-center md:text-left transition-colors duration-200">
+                    <div className="flex items-center justify-center md:justify-start gap-1 md:gap-3 mb-1 md:mb-2 text-purple-600 dark:text-purple-400">
+                        <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />
+                        <h3 className="text-[10px] md:text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Qual</h3>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.qualified}</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.qualified}</p>
                 </div>
-                <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm transition-colors duration-200">
-                    <div className="flex items-center gap-3 mb-2 text-amber-500">
-                        <Trophy size={20} />
-                        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Won</h3>
+                <div className="bg-white dark:bg-zinc-900 p-4 md:p-6 rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm flex flex-col items-center md:items-start text-center md:text-left transition-colors duration-200">
+                    <div className="flex items-center justify-center md:justify-start gap-1 md:gap-3 mb-1 md:mb-2 text-amber-500">
+                        <Trophy className="w-4 h-4 md:w-5 md:h-5" />
+                        <h3 className="text-[10px] md:text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Won</h3>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.won || 0}</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.won || 0}</p>
                 </div>
-
             </div>
 
             {/* Competition History */}
@@ -101,44 +100,77 @@ const StudentProfileView = ({ student, onEditSection }) => {
                 </div>
 
                 {competitions.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50/50 dark:bg-zinc-800/50">
-                                <tr className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <th className="px-6 py-4">Competition</th>
-                                    <th className="px-6 py-4">Platform</th>
-                                    <th className="px-6 py-4">Registered At</th>
-                                    <th className="px-6 py-4">Verification</th>
-                                    <th className="px-6 py-4">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50 dark:divide-slate-700">
-                                {competitions.map((comp, index) => (
-                                    <tr key={index} className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <span className="font-semibold text-gray-900 dark:text-gray-100 block">{comp.competitionName}</span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{comp.platform}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{formatDate(comp.registeredAt)}</td>
-                                        <td className="px-6 py-4">
-                                            <span className={`flex items-center gap-1 text-sm font-medium ${comp.verificationStatus === 'Verified' ? 'text-green-600' : 'text-amber-600'}`}>
-                                                {comp.verificationStatus === 'Verified' ? <CheckCircle size={14} /> : <Clock size={14} />}
-                                                {comp.verificationStatus}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${comp.status === 'Won' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                                comp.status === 'Qualified' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                                    'bg-gray-50 text-gray-600 border-gray-200'
-                                                }`}>
-                                                {comp.status}
-                                            </span>
-                                        </td>
+                    <>
+                        {/* Desktop Table View */}
+                        <div className="overflow-x-auto hidden md:block">
+                            <table className="w-full">
+                                <thead className="bg-gray-50/50 dark:bg-zinc-800/50">
+                                    <tr className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        <th className="px-6 py-4">Competition</th>
+                                        <th className="px-6 py-4">Platform</th>
+                                        <th className="px-6 py-4">Registered At</th>
+                                        <th className="px-6 py-4">Verification</th>
+                                        <th className="px-6 py-4">Status</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50 dark:divide-slate-700">
+                                    {competitions.map((comp, index) => (
+                                        <tr key={index} className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <span className="font-semibold text-gray-900 dark:text-gray-100 block">{comp.competitionName}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{comp.platform}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{formatDate(comp.registeredAt)}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`flex items-center gap-1 text-sm font-medium ${comp.verificationStatus === 'Verified' ? 'text-green-600' : 'text-amber-600'}`}>
+                                                    {comp.verificationStatus === 'Verified' ? <CheckCircle size={14} /> : <Clock size={14} />}
+                                                    {comp.verificationStatus}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${comp.status === 'Won' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                    comp.status === 'Qualified' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                                        'bg-gray-50 text-gray-600 border-gray-200'
+                                                    }`}>
+                                                    {comp.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {/* Mobile Card View */}
+                        <div className="md:hidden flex flex-col divide-y divide-gray-50 dark:divide-zinc-800/50">
+                            {competitions.map((comp, index) => (
+                                <div key={index} className="p-4 hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex-1 pr-4">
+                                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-tight mb-1">{comp.competitionName}</h4>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">{comp.platform}</p>
+                                        </div>
+                                        <span className={`flex-shrink-0 px-2 py-1 rounded text-[10px] font-bold tracking-wide uppercase border ${comp.status === 'Won' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                            comp.status === 'Qualified' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                                'bg-gray-50 text-gray-600 border-gray-200'
+                                            }`}>
+                                            {comp.status}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs mt-1">
+                                        <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                                            <Clock size={12} className="opacity-70" />
+                                            {formatDate(comp.registeredAt)}
+                                        </span>
+                                        <span className={`flex items-center gap-1.5 font-medium ${comp.verificationStatus === 'Verified' ? 'text-green-600' : 'text-amber-600'}`}>
+                                            {comp.verificationStatus === 'Verified' ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
+                                            {comp.verificationStatus}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </>
                 ) : (
                     <div className="p-12 text-center text-gray-500 dark:text-gray-400">
                         <Award size={48} className="mx-auto text-gray-300 mb-4" />

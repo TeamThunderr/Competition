@@ -199,6 +199,15 @@ const CompetitionCard = (props) => {
             }
 
             // If not shortlisted, show Registered status BUT allow uploading shortlist proof
+            if (my_registration.shortlist_proof_url && !my_registration.qualification_verified) {
+                return (
+                    <span className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold tracking-wide border dark:bg-transparent dark:border-yellow-500/30 text-yellow-700 dark:text-yellow-400 bg-yellow-50">
+                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></div>
+                        Shortlist Verification Pending
+                    </span>
+                );
+            }
+
             return (
                 <div className="flex gap-2 flex-1">
                     <span className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold tracking-wide border

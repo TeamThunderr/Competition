@@ -118,15 +118,15 @@ const FacultyVerify = () => {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-4 border-b border-border mb-6">
+                <div className="flex overflow-x-auto whitespace-nowrap gap-2 sm:gap-4 border-b border-border mb-6 pb-1" style={{ scrollbarWidth: 'none' }}>
                     <button
                         onClick={() => setActiveTab('registration')}
-                        className={`pb-3 px-1 text-sm font-medium transition-colors relative ${activeTab === 'registration'
+                        className={`pb-3 px-2 text-sm font-medium transition-colors relative ${activeTab === 'registration'
                             ? 'text-primary border-b-2 border-primary'
                             : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
-                        Registration Proofs
+                        Registration <span className="hidden sm:inline">Proofs</span>
                         {registrations.length > 0 && (
                             <span className="ml-2 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full dark:bg-primary/20">
                                 {registrations.length}
@@ -135,12 +135,12 @@ const FacultyVerify = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('shortlist')}
-                        className={`pb-3 px-1 text-sm font-medium transition-colors relative ${activeTab === 'shortlist'
+                        className={`pb-3 px-2 text-sm font-medium transition-colors relative ${activeTab === 'shortlist'
                             ? 'text-primary border-b-2 border-primary'
                             : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
-                        Shortlisted Proofs
+                        Shortlisted <span className="hidden sm:inline">Proofs</span>
                         {shortlisted.length > 0 && (
                             <span className="ml-2 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full dark:bg-primary/20">
                                 {shortlisted.length}
@@ -149,12 +149,12 @@ const FacultyVerify = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('winning')}
-                        className={`pb-3 px-1 text-sm font-medium transition-colors relative ${activeTab === 'winning'
+                        className={`pb-3 px-2 text-sm font-medium transition-colors relative ${activeTab === 'winning'
                             ? 'text-primary border-b-2 border-primary'
                             : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
-                        Winning Proofs
+                        Winning <span className="hidden sm:inline">Proofs</span>
                         {winning.length > 0 && (
                             <span className="ml-2 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full dark:bg-primary/20">
                                 {winning.length}
@@ -184,7 +184,7 @@ const FacultyVerify = () => {
                             return (
                                 <div key={item.id} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden flex flex-col md:flex-row">
                                     {/* Proof Image Preview (Click to open modal) */}
-                                    <div className="w-full md:w-64 h-48 md:h-auto bg-muted/10 md:border-r border-border relative group cursor-pointer"
+                                    <div className="w-full md:w-56 h-36 md:h-auto bg-muted/10 md:border-r border-border relative group cursor-pointer"
                                          onClick={() => setSelectedImage(proofUrl)}>
                                         <img
                                             src={proofUrl}
@@ -200,12 +200,12 @@ const FacultyVerify = () => {
                                     </div>
 
                                     {/* Details */}
-                                    <div className="flex-1 p-6 flex flex-col justify-center">
+                                    <div className="flex-1 p-4 md:p-6 flex flex-col justify-center">
                                         <div className="flex justify-between items-start mb-2">
-                                            <h3 className="text-lg font-bold text-foreground">
+                                            <h3 className="text-base md:text-lg font-bold text-foreground line-clamp-1 pr-2">
                                                 {item.competitions?.title || item.competitionTitle || item.competition || 'Unknown Competition'}
                                             </h3>
-                                            <span className={`px-2 py-1 text-xs rounded-full font-medium ${activeTab === 'registration'
+                                            <span className={`px-2 py-1 text-[10px] md:text-xs rounded-full font-bold uppercase tracking-wider ${activeTab === 'registration'
                                                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
                                                 : activeTab === 'shortlist'
                                                     ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
@@ -215,22 +215,22 @@ const FacultyVerify = () => {
                                             </span>
                                         </div>
 
-                                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                                        <div className="mt-2 md:mt-4 grid grid-cols-2 gap-2 md:gap-4 text-xs md:text-sm">
                                             <div>
-                                                <span className="text-muted block">Student Name</span>
-                                                <span className="font-medium text-foreground">{item.users?.full_name || item.studentName || 'N/A'}</span>
+                                                <span className="text-muted block text-[10px] md:text-xs uppercase font-semibold mb-0.5">Student Name</span>
+                                                <span className="font-medium text-foreground truncate block">{item.users?.full_name || item.studentName || 'N/A'}</span>
                                             </div>
                                             <div>
-                                                <span className="text-muted block">Registration No</span>
+                                                <span className="text-muted block text-[10px] md:text-xs uppercase font-semibold mb-0.5">Registration No</span>
                                                 <span className="font-medium text-foreground">{item.users?.registration_no || item.regNo || 'N/A'}</span>
                                             </div>
                                             <div>
-                                                <span className="text-muted block">Class/Section</span>
-                                                <span className="font-medium text-foreground">Section {item.users?.section || item.section || 'N/A'}</span>
+                                                <span className="text-muted block text-[10px] md:text-xs uppercase font-semibold mb-0.5">Section</span>
+                                                <span className="font-medium text-foreground">{item.users?.section || item.section || 'N/A'}</span>
                                             </div>
 
                                             <div>
-                                                <span className="text-muted block">Submitted At</span>
+                                                <span className="text-muted block text-[10px] md:text-xs uppercase font-semibold mb-0.5">Submitted At</span>
                                                 <span className="font-medium text-foreground">
                                                     {formatDate(item.created_at || item.submittedAt || item.registered_at)}
                                                 </span>
@@ -239,25 +239,25 @@ const FacultyVerify = () => {
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="p-6 flex flex-col justify-center gap-3 border-t md:border-t-0 md:border-l border-border bg-gray-50/50 dark:bg-gray-800/30">
+                                    <div className="p-3 md:p-6 grid grid-cols-2 md:flex md:flex-col justify-center gap-2 md:gap-3 border-t md:border-t-0 md:border-l border-border bg-gray-50/50 dark:bg-gray-800/30">
                                         <button
                                             onClick={() => handleAction(item.id, 'approve')}
                                             disabled={!!actionLoading}
-                                            className="flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 shadow-sm"
+                                            className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 md:px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 shadow-sm text-sm"
                                         >
                                             {actionLoading === item.id ? (
                                                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                             ) : (
-                                                <CheckCircle size={18} />
+                                                <CheckCircle size={16} />
                                             )}
                                             Approve
                                         </button>
                                         <button
                                             onClick={() => handleAction(item.id, 'reject')}
                                             disabled={!!actionLoading}
-                                            className="flex items-center justify-center gap-2 bg-white text-red-600 border border-red-200 px-6 py-2 rounded-lg font-medium hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50 dark:bg-gray-800 dark:border-red-900/50 dark:hover:bg-red-900/20"
+                                            className="flex items-center justify-center gap-2 bg-white text-red-600 border border-red-200 px-4 md:px-6 py-2 rounded-lg font-medium hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50 dark:bg-gray-800 dark:border-red-900/50 dark:hover:bg-red-900/20 text-sm"
                                         >
-                                            <XCircle size={18} />
+                                            <XCircle size={16} />
                                             Reject
                                         </button>
                                     </div>

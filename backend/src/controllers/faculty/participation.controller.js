@@ -3,6 +3,7 @@ const supabase = require('../../config/supabaseClient');
 const gmailService = require('../../services/gmail/gmail.service');
 const { google } = require('googleapis');
 const { addGmailSyncJob } = require('../../queues/gmailSync.queue');
+const { buildXlsxBuffer } = require('../../utils/exportHelper');
 
 // Helper to get OAuth2 Client with Refresh Token
 const getAuthClient = (refreshToken) => {
@@ -139,16 +140,30 @@ const exportParticipationStats = async (req, res) => {
 
         if (regError) throw regError;
 
-        const header = "Student Name,Reg No,Section,Competition,Platform,Status,Source,Verified\n";
-        const rows = registrations.map(r => {
+        const headers = ['Student Name', 'Reg No', 'Section', 'Competition', 'Platform', 'Status', 'Source', 'Verified'];
+        
+        const xlsxData = registrations.reduce((acc, r) => {
             const student = myStudents.find(s => s.id === r.user_id);
-            if (!student) return null;
-            return `${student.full_name},${student.registration_no},${student.section},"${r.competitions?.title}","${r.competitions?.platform}",${r.status},${r.source},${r.verified}`;
-        }).filter(r => r).join("\n");
+            if (student) {
+                acc.push({
+                    'Student Name': student.full_name || 'N/A',
+                    'Reg No': student.registration_no || 'N/A',
+                    'Section': student.section || 'N/A',
+                    'Competition': r.competitions?.title || 'N/A',
+                    'Platform': r.competitions?.platform || 'N/A',
+                    'Status': r.status || 'N/A',
+                    'Source': r.source || 'N/A',
+                    'Verified': r.verified ? 'Yes' : 'No'
+                });
+            }
+            return acc;
+        }, []);
 
-        res.header('Content-Type', 'text/csv');
-        res.attachment(`registration_report_${new Date().getTime()}.csv`);
-        res.send(header + rows);
+        const buffer = buildXlsxBuffer(xlsxData, headers, 'Report');
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="registration_report_${Date.now()}.xlsx"`);
+        res.status(200).send(buffer);
 
     } catch (err) {
         console.error('[Export] Error:', err);

@@ -8,6 +8,7 @@ const supabase = require('../../config/supabaseClient');
 const statsService = require('../../services/admin/stats.service');
 const { performBatchSync } = require('./participation.controller');
 const { formatIST } = require('../../utils/dateFormatter');
+const { buildXlsxBuffer } = require('../../utils/exportHelper');
 const { paginatedResponse } = require('../../utils/paginate.util');
 
 // ------------------------------------------------------------------
@@ -874,36 +875,29 @@ const downloadParticipationReport = async (req, res) => {
 
         if (error) throw error;
 
-        // Generate CSV
-        const csvRows = [];
-        // Header
-        csvRows.push(['Student Name', 'Register No', 'Section', 'Email', 'Phone', 'Competition', 'Organizer', 'Platform', 'Date', 'Status', 'Verified', 'Registered At', 'Venue'].join(','));
+        // Generate XLSX
+        const headers = ['Student Name', 'Register No', 'Section', 'Email', 'Phone', 'Competition', 'Organizer', 'Platform', 'Date', 'Status', 'Verified', 'Registered At', 'Venue'];
+        const xlsxData = reportData.map(r => ({
+            'Student Name': r.users?.full_name || 'N/A',
+            'Register No': r.users?.registration_no || 'N/A',
+            'Section': r.users?.section || 'N/A',
+            'Email': r.users?.email || 'N/A',
+            'Phone': r.users?.phone_number || 'N/A',
+            'Competition': r.competitions?.title || 'N/A',
+            'Organizer': r.competitions?.organizer || 'N/A',
+            'Platform': r.competitions?.platform || 'N/A',
+            'Date': r.competitions?.event_date || 'N/A',
+            'Status': r.status || 'Pending',
+            'Verified': r.verified ? 'Yes' : 'No',
+            'Registered At': formatIST(r.registered_at),
+            'Venue': r.competitions?.venue || 'N/A'
+        }));
 
-        reportData.forEach(r => {
-            const row = [
-                r.users?.full_name || 'N/A',
-                r.users?.registration_no || 'N/A',
-                r.users?.section || 'N/A',
-                r.users?.email || 'N/A',
-                r.users?.phone_number || 'N/A',
-                r.competitions?.title || 'N/A',
-                r.competitions?.organizer || 'N/A',
-                r.competitions?.platform || 'N/A',
-                r.competitions?.event_date || 'N/A',
-                r.status || 'Pending',
-                r.verified ? 'Yes' : 'No',
-                formatIST(r.registered_at),
-                r.competitions?.venue || 'N/A'
-            ].map(field => `"${String(field).replace(/"/g, '""')}"`); // Escape quotes
+        const buffer = buildXlsxBuffer(xlsxData, headers, 'Report');
 
-            csvRows.push(row.join(','));
-        });
-
-        const csvString = csvRows.join('\n');
-
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename="participation_report_${Date.now()}.csv"`);
-        res.status(200).send(csvString);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="participation_report_${Date.now()}.xlsx"`);
+        res.status(200).send(buffer);
 
     } catch (err) {
         console.error('[Faculty] Export Error:', err);

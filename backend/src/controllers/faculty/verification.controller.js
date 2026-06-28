@@ -104,7 +104,6 @@ const getPendingShortlistVerifications = async (req, res) => {
                 competitions!inner ( title )
             `)
             .in('user_id', myStudentIds)
-            .eq('status', 'Qualified')
             .eq('qualification_verified', false)
             .not('shortlist_proof_url', 'is', null)
             .order('registered_at', { ascending: false });
@@ -140,11 +139,25 @@ const verifyShortlist = async (req, res) => {
 
     try {
         if (action === 'approve') {
+            const { data: regData, error: fetchError } = await supabase
+                .from('registrations')
+                .select('user_id, competition_id')
+                .eq('id', registration_id)
+                .single();
+            if (fetchError) throw fetchError;
+
             const { error } = await supabase
                 .from('registrations')
-                .update({ qualification_verified: true })
+                .update({ qualification_verified: true, status: 'Qualified' })
                 .eq('id', registration_id);
             if (error) throw error;
+            
+            await supabase.from('competition_status').upsert({
+                user_id: regData.user_id,
+                competition_id: regData.competition_id,
+                is_shortlisted: true,
+                updated_at: new Date()
+            }, { onConflict: 'user_id, competition_id' });
         } else if (action === 'reject') {
             const { error } = await supabase
                 .from('registrations')
@@ -235,9 +248,16 @@ const verifyWinning = async (req, res) => {
                     status: 'Winner'
                 })
                 .eq('id', registration_id)
-                .select();
+                .select('user_id, competition_id');
 
             if (error) throw error;
+            
+            await supabase.from('competition_status').upsert({
+                user_id: data[0].user_id,
+                competition_id: data[0].competition_id,
+                is_winner: true,
+                updated_at: new Date()
+            }, { onConflict: 'user_id, competition_id' });
             sendResponse(res, 200, data, 'Winning Status Verified Successfully');
 
         } else if (action === 'reject') {

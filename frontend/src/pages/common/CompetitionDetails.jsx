@@ -315,7 +315,7 @@ const CompetitionDetails = () => {
                                 </div>
                             )}
 
-                            <div className="overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] flex-1">
+                            <div className="overflow-y-auto h-72 md:h-96 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {isHOD && unregisteredSections ? (
                                     filterByYear(unregisteredSections).length > 0 ? (
                                         filterByYear(unregisteredSections).map((group, gIdx) => (
@@ -391,7 +391,7 @@ const CompetitionDetails = () => {
                                 )
                             }
 
-                            <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                            <div className="overflow-y-auto h-72 md:h-96 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {isHOD && statsData.registered_sections ? (
                                     filterByYear(statsData.registered_sections).length > 0 ? (
                                         filterByYear(statsData.registered_sections).map((group, gIdx) => (
@@ -469,7 +469,7 @@ const CompetitionDetails = () => {
                                 <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
                                 <span className="truncate">Shortlisted ({statsData.shortlisted?.length || 0})</span>
                             </h3>
-                            <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                            <div className="overflow-y-auto h-72 md:h-96 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {statsData.shortlisted?.map(student => (
                                     <div key={student.id} className="text-sm p-3 bg-purple-50 rounded-lg border border-purple-100 dark:bg-purple-900/20 dark:border-purple-800">
                                         <div className="font-medium text-foreground truncate">{student.name}</div>
@@ -508,7 +508,7 @@ const CompetitionDetails = () => {
                                 )
                             }
 
-                            <div className="h-96 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                            <div className="overflow-y-auto h-72 md:h-96 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {statsData.winners?.map(student => (
                                     <div key={student.id} className="text-sm p-3 bg-green-50 rounded-lg border border-green-100 dark:bg-green-900/20 dark:border-green-800">
                                         <div className="font-medium text-foreground truncate">{student.name}</div>
