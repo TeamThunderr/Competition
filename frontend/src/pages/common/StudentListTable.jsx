@@ -25,7 +25,8 @@ const StudentListTable = ({
     onRowClick,
     emptyMessage = "No students found.",
     role = 'STUDENT',
-    showSection = true
+    showSection = true,
+    showRegisteredCount = false
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -71,13 +72,14 @@ const StudentListTable = ({
                             <th className="px-6 py-4">Register No</th>
                             <th className="px-6 py-4">Name</th>
                             {showSection && <th className="px-6 py-4">Section</th>}
+                            {showRegisteredCount && <th className="px-6 py-4 text-center">Registered</th>}
                             <th className="px-6 py-4">Email</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border bg-card">
                         {loading ? (
                             <tr>
-                                <td colSpan={showSection ? 5 : 4} className="px-6 py-12">
+                                <td colSpan={showSection && showRegisteredCount ? 6 : (showSection || showRegisteredCount ? 5 : 4)} className="px-6 py-12">
                                     <RoleBasedLoader role={role} />
                                 </td>
                             </tr>
@@ -113,6 +115,11 @@ const StudentListTable = ({
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted/10 text-foreground">
                                                 {student.section}
                                             </span>
+                                        </td>
+                                    )}
+                                    {showRegisteredCount && (
+                                        <td className="px-6 py-4 text-sm font-bold text-blue-600 text-center">
+                                            {student.registeredCount || 0}
                                         </td>
                                     )}
                                     <td className="px-6 py-4 text-sm text-muted">{student.email}</td>
