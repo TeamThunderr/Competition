@@ -251,10 +251,12 @@ const getCompetitionStudents = async (req, res) => {
                 })
                 .map(s => {
                     const isReg = regMap.has(s.id);
+                    const isReg = regMap.has(s.id);
                     return {
                         id: s.id,
                         name: s.full_name,
                         regNo: s.registration_no,
+                        status: isReg ? 'PENDING' : 'NOT_REGISTERED',
                         status: isReg ? 'PENDING' : 'NOT_REGISTERED',
                         lastSynced: null,
                         confidence: 0,
@@ -363,7 +365,7 @@ const exportCompetitionStudents = async (req, res) => {
         if (type === 'registered') {
             // All registered students (including shortlisted/winners/etc)
             exportData = myStudents
-                .filter(s => regMap.has(s.id))
+                .filter(s => regMap.has(s.id) && regMap.get(s.id).verified)
                 .map(s => {
                     const reg = regMap.get(s.id);
                     return {
@@ -375,7 +377,7 @@ const exportCompetitionStudents = async (req, res) => {
         } else {
             // Unregistered students
             exportData = myStudents
-                .filter(s => !regMap.has(s.id))
+                .filter(s => !regMap.has(s.id) || !regMap.get(s.id).verified)
                 .map(s => ({
                     ...s,
                     status: 'Not Registered',

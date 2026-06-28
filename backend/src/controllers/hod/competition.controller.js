@@ -222,7 +222,7 @@ const getCompetitionStats = async (req, res) => {
         const winnersSet = new Set(statusData.filter(s => s.is_winner).map(s => s.user_id));
 
         const registeredStudents = allStudents
-            .filter(s => registeredMap.has(s.id))
+            .filter(s => registeredMap.has(s.id) && registeredMap.get(s.id).verified)
             .map(s => ({
                 id: s.id,
                 full_name: s.full_name,

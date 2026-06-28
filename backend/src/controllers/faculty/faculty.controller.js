@@ -286,6 +286,7 @@ const getDashboardStats = async (req, res) => {
             const { data, error: regError } = await supabase
                 .from('registrations')
                 .select('user_id, competition_id') // Fetch competition_id for debugging
+                .eq('verified', true) // Only count verified registrations
                 .in('user_id', myStudentIds);
 
             if (regError) throw regError;
