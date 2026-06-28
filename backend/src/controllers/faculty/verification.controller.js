@@ -138,14 +138,14 @@ const verifyShortlist = async (req, res) => {
     const { registration_id, action } = req.body;
 
     try {
-        if (action === 'approve') {
-            const { data: regData, error: fetchError } = await supabase
-                .from('registrations')
-                .select('user_id, competition_id')
-                .eq('id', registration_id)
-                .single();
-            if (fetchError) throw fetchError;
+        const { data: regData, error: fetchError } = await supabase
+            .from('registrations')
+            .select('user_id, competition_id')
+            .eq('id', registration_id)
+            .single();
+        if (fetchError) throw fetchError;
 
+        if (action === 'approve') {
             const { error } = await supabase
                 .from('registrations')
                 .update({ qualification_verified: true, status: 'Qualified' })
@@ -164,6 +164,11 @@ const verifyShortlist = async (req, res) => {
                 .update({ shortlist_proof_url: null, qualification_verified: false })
                 .eq('id', registration_id);
             if (error) throw error;
+            
+            await supabase.from('competition_status').update({
+                is_shortlisted: false,
+                updated_at: new Date()
+            }).eq('user_id', regData.user_id).eq('competition_id', regData.competition_id);
         }
 
         sendResponse(res, 200, null, `Shortlist ${action}d successfully`);

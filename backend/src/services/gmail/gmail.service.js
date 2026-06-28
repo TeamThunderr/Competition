@@ -73,6 +73,22 @@ const tokenize = (text) => {
         .filter(t => t.length > 2);
 };
 
+const buildSearchQuery = (competition) => {
+    // Filter out common stop words and years to get the true "core" words of the competition
+    const stopWords = ['the', 'and', 'for', 'with', '2023', '2024', '2025', '2026', 'hackathon', 'competition', 'challenge', 'symposium', 'event'];
+    const titleTokens = tokenize(competition.title).filter(t => !stopWords.includes(t));
+    
+    // Take up to 4 significant words
+    const mainTerms = titleTokens.slice(0, 4).join(' ');
+    
+    // Wrap in parentheses for an AND search on those terms
+    let queryString = `(${mainTerms})`;
+    if (competition.platform) {
+        queryString = `${queryString} OR "${competition.platform}"`;
+    }
+    return queryString;
+};
+
 const extractCleanTextFromPayload = (payload) => {
     let body = '';
     let isHtml = false;
@@ -449,12 +465,7 @@ const syncStudentCompetition = async (userId, competition, lastSyncedAt = null) 
         const gmail = google.gmail({ version: 'v1', auth });
 
         // 1. Construct Query
-        const titleTokens = tokenize(competition.title);
-        const mainTerms = titleTokens.slice(0, 2).join(' ');
-        let queryString = `"${mainTerms}"`;
-        if (competition.platform) {
-            queryString = `(${queryString}) OR "${competition.platform}"`;
-        }
+        let queryString = buildSearchQuery(competition);
 
         // Date Query
         if (lastSyncedAt) {
@@ -646,12 +657,7 @@ const checkShortlistStatus = async (userId, competition, lastSyncedAt = null) =>
 
         // 1. Construct Query (Similar to sync but focused on recent updates)
         // We assume the user is already registered, so we look for NEW emails since last sync
-        const titleTokens = tokenize(competition.title);
-        const mainTerms = titleTokens.slice(0, 2).join(' ');
-        let queryString = `"${mainTerms}"`;
-        if (competition.platform) {
-            queryString = `(${queryString}) OR "${competition.platform}"`;
-        }
+        let queryString = buildSearchQuery(competition);
 
         // 2. Strict Time Window
         const date = new Date(lastSyncedAt);
@@ -729,14 +735,7 @@ const ingestStudentEmails = async (userId, competition, lastSyncedAt = null) => 
         const auth = await getOAuthClientForUser(userId);
         const gmail = google.gmail({ version: 'v1', auth });
 
-        const titleTokens = tokenize(competition.title);
-        const mainTerms = titleTokens.slice(0, 2).join(' ');
-        
-        // Use an AND query without exact phrase quotes so Gmail finds emails where the words are separated
-        let queryString = `${mainTerms}`;
-        if (competition.platform) {
-            queryString = `(${queryString}) OR "${competition.platform}"`;
-        }
+        let queryString = buildSearchQuery(competition);
 
         if (lastSyncedAt) {
             const date = new Date(lastSyncedAt);

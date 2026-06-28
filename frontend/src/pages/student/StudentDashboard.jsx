@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Menu, Trophy } from 'lucide-react';
+import { Clock, Menu, Trophy, RefreshCw } from 'lucide-react';
 import CompetitionCard from '../../components/features/competitions/CompetitionCard';
 
 import UploadProofModal from '../../components/common/UploadProofModal';
@@ -10,8 +10,10 @@ import { studentService } from '../../services/studentService';
 import { useToast } from '../../contexts/ToastContext';
 import { formatDate } from '../../utils/dateFormatter';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import { useAuth } from '../../context/AuthContext';
 
 const StudentDashboard = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [competitions, setCompetitions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -24,7 +26,43 @@ const StudentDashboard = () => {
     const [isShortlistUpload, setIsShortlistUpload] = useState(false);
     const [selectedTeamData, setSelectedTeamData] = useState(null);
     const [odRequests, setOdRequests] = useState([]);
+    const [appliedCompetitions, setAppliedCompetitions] = useState({});
     const { addToast } = useToast();
+
+
+
+    const handleToggleApplied = async (compId) => {
+        if (!user?.id) return;
+        const currentlyApplied = !!appliedCompetitions[compId];
+        const nextState = !currentlyApplied;
+
+        // Optimistic UI update
+        setAppliedCompetitions(prev => {
+            const newState = { ...prev };
+            if (currentlyApplied) {
+                delete newState[compId];
+            } else {
+                newState[compId] = Date.now();
+            }
+            return newState;
+        });
+
+        try {
+            await studentService.toggleTempRegistration(compId, nextState);
+        } catch (err) {
+            console.error("Failed to sync temp registration to DB:", err);
+            // Revert on failure
+            setAppliedCompetitions(prev => {
+                const newState = { ...prev };
+                if (currentlyApplied) {
+                    newState[compId] = Date.now();
+                } else {
+                    delete newState[compId];
+                }
+                return newState;
+            });
+        }
+    };
 
     // Alert Modal
     const [confirmModal, setConfirmModal] = useState({
@@ -54,7 +92,54 @@ const StudentDashboard = () => {
 
     useEffect(() => {
         fetchCompetitions();
-    }, []);
+    }, [user?.id]);
+
+    const latestSyncTime = useMemo(() => {
+        if (!competitions || competitions.length === 0) return null;
+        const times = competitions
+            .map(c => c.last_synced_at)
+            .filter(t => t)
+            .map(t => new Date(t).getTime());
+
+        if (times.length === 0) return null;
+        return new Date(Math.max(...times));
+    }, [competitions]);
+
+    useEffect(() => {
+        if (user?.id && competitions.length > 0) {
+            const cleaned = {};
+            competitions.forEach(c => {
+                if (c.is_temp_registered && !c.my_registration) {
+                    cleaned[c.id] = c.temp_registered_at ? new Date(c.temp_registered_at).getTime() : Date.now();
+                }
+            });
+            setAppliedCompetitions(cleaned);
+
+            const unverifiedComps = competitions.filter(c => {
+                const toggleVal = cleaned[c.id];
+                if (!toggleVal || c.my_registration) return false;
+                
+                const syncTime = c.last_synced_at ? new Date(c.last_synced_at).getTime() : (latestSyncTime ? latestSyncTime.getTime() : 0);
+                const toggleTime = typeof toggleVal === 'number' ? toggleVal : 0;
+                return syncTime > toggleTime;
+            });
+
+            if (unverifiedComps.length > 0 && !sessionStorage.getItem(`notified_temp_${user.id}`)) {
+                sessionStorage.setItem(`notified_temp_${user.id}`, 'true');
+                const messageList = unverifiedComps.map(c => 
+                    `Even after the latest sync, your competition "${c.title}" is still showing as unregistered — even though you had marked it as temporarily registered. Please verify whether you completed your registration, or upload manual proof for admin review.`
+                ).join('\n\n');
+
+                setConfirmModal({
+                    isOpen: true,
+                    title: "Post-Sync Registration Alert",
+                    message: messageList,
+                    type: "warning",
+                    onConfirm: closeConfirmModal
+                });
+            }
+        }
+    }, [competitions, user?.id]);
 
     // Derived State for OD Status Card
     const getODStatusCard = () => {
@@ -142,61 +227,15 @@ const StudentDashboard = () => {
         compId: null
     });
 
-    const handleAutoSync = async (compId) => {
-        try {
-            const statusRes = await studentService.checkGmailStatus();
-            if (!statusRes.data?.connected) {
-                setConfirmModal({
-                    isOpen: true,
-                    title: 'Gmail Not Connected',
-                    message: 'Please connect your Gmail in Settings to use Auto-Detect.',
-                    type: 'warning',
-                    onConfirm: () => {
-                        closeConfirmModal();
-                        navigate('/student/settings');
-                    }
-                });
-                return;
-            }
-            
-            addToast("Scanning Gmail for registration...", "info");
-            const res = await studentService.checkStatus(compId, null);
-            if (res.data?.status === 'REGISTERED' || res.data?.status === 'QUALIFIED') {
-                addToast("Competition registered successfully from Gmail!", "success");
-                fetchCompetitions();
-            } else {
-                setConfirmModal({
-                    isOpen: true,
-                    title: 'Not Found',
-                    message: 'Could not find registration email. Try manual upload.',
-                    type: 'warning',
-                    onConfirm: closeConfirmModal
-                });
-            }
-        } catch (err) {
-            console.error("Auto-sync error", err);
-            
-            if (err.response?.status === 403 && err.response?.data?.reason === 'gmail_not_connected') {
-                setConfirmModal({
-                    isOpen: true,
-                    title: 'Gmail Access Revoked',
-                    message: 'Your Gmail access has expired or been revoked. Please reconnect in Settings.',
-                    type: 'error',
-                    onConfirm: () => {
-                        closeConfirmModal();
-                        navigate('/student/settings');
-                    }
-                });
-            } else {
-                setConfirmModal({
-                    isOpen: true,
-                    title: 'Sync Failed',
-                    message: 'Failed to scan Gmail. ' + (err.response?.data?.error || err.message),
-                    type: 'error',
-                    onConfirm: closeConfirmModal
-                });
-            }
-        }
+    const handleAutoSync = (compId) => {
+        addToast("Our auto-detect is still putting on its detective hat. Hang tight — Sherlock is almost ready!", "info");
+        setConfirmModal({
+            isOpen: true,
+            title: 'Sherlock on the Case! 🕵️‍♂️',
+            message: 'Our auto-detect is still putting on its detective hat. Hang tight — Sherlock is almost ready!',
+            type: 'info',
+            onConfirm: closeConfirmModal
+        });
     };
 
     const handleWonStatusUpdate = (compId) => {
@@ -278,6 +317,12 @@ const StudentDashboard = () => {
                         <div>
                             <h1 className="text-2xl font-bold text-foreground">Welcome back !</h1>
                             <p className="text-muted mt-1">Here's what's happening with your competitions.</p>
+                            {latestSyncTime && (
+                                <div className="mt-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-lg text-xs font-medium border border-blue-100 dark:border-blue-800/30 w-fit flex items-center gap-2">
+                                    <RefreshCw className="w-3.5 h-3.5" />
+                                    <span>Faculty Last Synced: {latestSyncTime.toLocaleString()}</span>
+                                </div>
+                            )}
                         </div>
                         <div className="md:w-1/3 w-full">
                             {getODStatusCard()}
@@ -316,6 +361,8 @@ const StudentDashboard = () => {
                                         onRegister={handleRegisterClick}
                                         onRequestOD={handleRequestOD}
                                         onAutoSync={handleAutoSync}
+                                        onToggleApplied={handleToggleApplied}
+                                        isApplied={appliedCompetitions[comp.id]}
                                     />
                                 ))}
                             </div>
@@ -341,6 +388,9 @@ const StudentDashboard = () => {
                                             onWonStatusUpdate={handleWonStatusUpdate}
                                             onRegister={handleRegisterClick}
                                             onRequestOD={handleRequestOD}
+                                            onAutoSync={handleAutoSync}
+                                            onToggleApplied={handleToggleApplied}
+                                            isApplied={appliedCompetitions[comp.id]}
                                         />
                                     ))}
                                 </div>
@@ -353,7 +403,7 @@ const StudentDashboard = () => {
                                     <p className="text-muted text-sm mt-1 mb-4">You haven't registered for any events yet.</p>
                                     <button
                                         onClick={() => navigate('/student/competitions')}
-                                        className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition"
+                                        className="px-4 py-2 bg-brand-600 text-white dark:text-zinc-900 rounded-lg text-sm font-medium hover:bg-brand-700 transition"
                                     >
                                         Browse Competitions
                                     </button>

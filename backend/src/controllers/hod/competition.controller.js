@@ -240,7 +240,7 @@ const getCompetitionStats = async (req, res) => {
             registered: registeredStudents, // Keep flat list for counts/compatibility
             registered_sections: groupStudentsBySection(registeredStudents), // New grouped list
             shortlisted: allStudents
-                .filter(s => shortlistedSet.has(s.id))
+                .filter(s => shortlistedSet.has(s.id) && registeredMap.has(s.id) && registeredMap.get(s.id).verified)
                 .map(s => ({
                     id: s.id,
                     name: s.full_name,
@@ -248,7 +248,7 @@ const getCompetitionStats = async (req, res) => {
                     section: s.section
                 })),
             winners: allStudents
-                .filter(s => winnersSet.has(s.id))
+                .filter(s => winnersSet.has(s.id) && registeredMap.has(s.id) && registeredMap.get(s.id).verified)
                 .map(s => ({
                     id: s.id,
                     name: s.full_name,

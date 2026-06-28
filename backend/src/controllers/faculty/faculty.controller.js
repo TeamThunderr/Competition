@@ -300,23 +300,30 @@ const getDashboardStats = async (req, res) => {
             console.error('[Faculty] Registration stats FAILED:', err.message);
         }
 
-        // 2. Qualified Count: is_shortlisted = true
-        const { count: qualifiedCount, error: qualError } = await supabase
-            .from('competition_status')
-            .select('*', { count: 'exact', head: true })
-            .in('user_id', myStudentIds)
-            .eq('is_shortlisted', true);
+        // 2 & 3. Qualified and Won Counts (Must be verified registered)
+        const verifiedRegs = new Set(regData?.map(r => `${r.user_id}-${r.competition_id}`) || []);
+        
+        let qualifiedCount = 0;
+        let wonCount = 0;
 
-        if (qualError) throw qualError;
+        try {
+            const { data: statuses, error: statusError } = await supabase
+                .from('competition_status')
+                .select('user_id, competition_id, is_shortlisted, is_winner')
+                .in('user_id', myStudentIds);
 
-        // 3. Won Count: is_winner = true
-        const { count: wonCount, error: wonError } = await supabase
-            .from('competition_status')
-            .select('*', { count: 'exact', head: true })
-            .in('user_id', myStudentIds)
-            .eq('is_winner', true);
+            if (statusError) throw statusError;
 
-        if (wonError) throw wonError;
+            statuses?.forEach(st => {
+                // Strictly enforce that the student is verified registered for this specific competition
+                if (verifiedRegs.has(`${st.user_id}-${st.competition_id}`)) {
+                    if (st.is_shortlisted) qualifiedCount++;
+                    if (st.is_winner) wonCount++;
+                }
+            });
+        } catch (err) {
+            console.error('[Faculty] Status stats FAILED:', err.message);
+        }
 
         // 5. Calculate batch label
         let batchLabel = 'N/A';

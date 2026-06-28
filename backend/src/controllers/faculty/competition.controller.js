@@ -196,10 +196,13 @@ const getCompetitionStudents = async (req, res) => {
                     const r = regMap.get(s.id);
                     const source = r?.source || 'UNKNOWN';
                     const verified = r?.verified || false;
-                    const confidence = r?.confidence_score || 100;
-                    const remarks = r?.source === 'AUTO_GMAIL'
-                        ? `Gmail Verified`
-                        : (r?.proof_url ? 'Manual Verified' : '');
+                    const confidence = source === 'AUTO_GMAIL' ? (r?.confidence_score || 100) : (r?.confidence_score || 0);
+                    let remarks = '';
+                    if (source === 'AUTO_GMAIL') {
+                        remarks = 'Gmail Verified';
+                    } else if (r?.proof_url) {
+                        remarks = verified ? 'Manual Verified' : 'Pending Verification';
+                    }
 
                     return {
                         id: s.id,
@@ -215,8 +218,9 @@ const getCompetitionStudents = async (req, res) => {
 
             shortlisted: myStudents
                 .filter(s => {
+                    const isReg = regMap.has(s.id);
                     const st = statusMap.get(s.id);
-                    return st?.is_shortlisted && !st?.is_winner;
+                    return isReg && st?.is_shortlisted && !st?.is_winner;
                 })
                 .map(s => {
                     return {
@@ -229,8 +233,9 @@ const getCompetitionStudents = async (req, res) => {
 
             winners: myStudents
                 .filter(s => {
+                    const isReg = regMap.has(s.id);
                     const st = statusMap.get(s.id);
-                    return st?.is_winner;
+                    return isReg && st?.is_winner;
                 })
                 .map(s => {
                     return {
@@ -242,13 +247,7 @@ const getCompetitionStudents = async (req, res) => {
                 }),
 
             unregistered: myStudents
-                .filter(s => {
-                    const isReg = regMap.has(s.id);
-                    const st = statusMap.get(s.id);
-                    const isShort = st?.is_shortlisted;
-                    const isWinner = st?.is_winner;
-                    return !isReg && !isShort && !isWinner;
-                })
+                .filter(s => !regMap.has(s.id))
                 .map(s => {
                     const isReg = regMap.has(s.id);
                     return {
