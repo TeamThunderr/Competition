@@ -3,6 +3,7 @@
 // UPDATED: Removed all participation table references - uses registrations only
 
 const supabase = require('../../config/supabaseClient');
+const { formatIST } = require('../../utils/dateFormatter');
 
 const getAllCompetitions = async (req, res) => {
     try {
@@ -342,7 +343,7 @@ const exportCompetitionStudents = async (req, res) => {
                     return {
                         ...s,
                         status: 'Registered',
-                        registered_at: reg.registered_at ? new Date(reg.registered_at).toLocaleString() : 'N/A',
+                        registered_at: formatIST(reg.registered_at),
                         verified: reg.verified ? 'Yes' : 'No'
                     };
                 });

@@ -7,6 +7,7 @@ import { getHODCompetitionStats } from '../../services/hodService';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 
+import { formatDate } from '../../utils/dateFormatter';
 import StudentListModal from '../../components/common/StudentListModal';
 import TotalSectionsStats from '../../components/features/competitions/stats/TotalSectionsStats';
 import StudentStatsList from '../../components/features/competitions/stats/StudentStatsList';
@@ -236,7 +237,7 @@ const CompetitionDetails = () => {
                                 <Clock size={12} /> Registration Ends
                             </span>
                             <span className="font-medium text-foreground text-sm">
-                                {competition.registration_deadline ? new Date(competition.registration_deadline).toLocaleDateString() : "TBA"}
+                                {formatDate(competition.registration_deadline)}
                             </span>
                         </div>
                         <div className="flex flex-col">
@@ -244,7 +245,7 @@ const CompetitionDetails = () => {
                                 <Calendar size={12} /> Event Date
                             </span>
                             <span className="font-medium text-foreground text-sm">
-                                {competition.event_date ? new Date(competition.event_date).toLocaleDateString() : "TBA"}
+                                {formatDate(competition.event_date)}
                             </span>
                         </div>
                         <div className="flex flex-col">
@@ -541,7 +542,7 @@ const CompetitionDetails = () => {
                                     </span>
                                     <span className="font-medium text-foreground">
                                         {competition.registration_deadline
-                                            ? new Date(competition.registration_deadline).toLocaleDateString()
+                                            ? formatDate(competition.registration_deadline)
                                             : "TBA"}
                                     </span>
                                 </div>
@@ -551,7 +552,7 @@ const CompetitionDetails = () => {
                                     </span>
                                     <span className="font-medium text-foreground">
                                         {competition.event_date
-                                            ? new Date(competition.event_date).toLocaleDateString()
+                                            ? formatDate(competition.event_date)
                                             : "TBA"}
                                     </span>
                                 </div>

@@ -21,9 +21,7 @@ import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import StudentList from './pages/faculty/StudentList';
 import StudentDetail from './pages/faculty/StudentDetail';
 import FacultyVerify from './pages/faculty/FacultyVerify';
-import FacultyTeamVerify from './pages/faculty/FacultyTeamVerify';
 import ActiveCompetitions from './pages/faculty/ActiveCompetitions';
-import ManualVerification from './pages/faculty/ManualVerification';
 
 import HodDashboard from './pages/hod/HodDashboard';
 import OdApprovals from './pages/hod/OdApprovals';
@@ -83,11 +81,9 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={['FACULTY']} />}>
             <Route path="/faculty" element={<FacultyLayout />}>
               <Route index element={<FacultyDashboard />} />
-              <Route path="verification" element={<ManualVerification />} />
               <Route path="students" element={<StudentList />} />
               <Route path="students/:id" element={<StudentDetail />} />
               <Route path="verify" element={<FacultyVerify />} />
-              <Route path="verify-teams" element={<FacultyTeamVerify />} />
               <Route path="competitions" element={<ActiveCompetitions />} />
             </Route>
           </Route>

@@ -4,6 +4,7 @@ import HodLayout from './HodLayout';
 import { ShieldCheck, Check, X, Calendar, ChevronRight, ExternalLink } from 'lucide-react';
 import { getPendingODRequests, manageODRequest } from '../../services/hodService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+import { formatDate } from '../../utils/dateFormatter';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
 const OdApprovals = () => {
@@ -193,7 +194,7 @@ const OdApprovals = () => {
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <Calendar size={16} className="text-gray-400" />
-                                        <span>{approval.competitions?.event_date ? new Date(approval.competitions.event_date).toLocaleDateString() : 'Date N/A'}</span>
+                                        <span>{approval.competitions?.event_date ? formatDate(approval.competitions.event_date) : 'Date N/A'}</span>
                                     </div>
                                 </div>
                             </div>

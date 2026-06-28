@@ -13,7 +13,7 @@ const fetchDashboardStats = async () => {
   return {
     activeCompetitions: competitions,
     totalParticipation: participation,
-    lastSync: new Date().toLocaleString()
+    lastSync: new Date().toISOString()
   };
 };
 
