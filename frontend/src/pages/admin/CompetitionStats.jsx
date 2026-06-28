@@ -179,8 +179,8 @@ const CompetitionStats = () => {
 
                         {/* Filter Bar */}
                         {/* Breadcrumb Navigation */}
-                        <div className="px-6 py-5 border-b border-border bg-muted/10 flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-sm">
+                        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-border bg-muted/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+                            <div className="flex items-center gap-1 sm:gap-2 text-sm flex-wrap">
                                 <button onClick={resetDrillDown} className={`font-medium ${viewLevel === 'YEARS' ? 'text-foreground cursor-default' : 'text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300'}`}>
                                     All Years
                                 </button>
@@ -234,10 +234,10 @@ const CompetitionStats = () => {
                                             <div
                                                 key={yearStats.key}
                                                 onClick={() => selectYear(yearStats.key)}
-                                                className="group flex items-center justify-between p-6 hover:bg-muted/10 transition-all cursor-pointer"
+                                                className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 hover:bg-muted/10 transition-all cursor-pointer gap-4 sm:gap-0"
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <div className="h-12 w-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white dark:bg-blue-900/30 dark:text-blue-300 transition-colors shadow-sm">
+                                                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-base sm:text-lg group-hover:bg-blue-600 group-hover:text-white dark:bg-blue-900/30 dark:text-blue-300 transition-colors shadow-sm shrink-0">
                                                         {yearStats.key}
                                                     </div>
                                                     <div>
@@ -246,24 +246,24 @@ const CompetitionStats = () => {
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-6 sm:gap-12 w-full sm:w-auto justify-end">
-                                                    <div className="grid grid-cols-3 gap-8 text-right min-w-[300px]">
+                                                <div className="flex items-center gap-2 sm:gap-6 lg:gap-12 w-full sm:w-auto justify-between sm:justify-end">
+                                                    <div className="grid grid-cols-3 gap-2 sm:gap-8 text-center sm:text-right w-full sm:w-auto sm:min-w-[300px]">
                                                         <div>
-                                                            <div className="text-xl font-bold text-foreground">{yearStats.total}</div>
-                                                            <div className="text-[10px] text-muted uppercase font-semibold tracking-wide">Registered</div>
+                                                            <div className="text-lg sm:text-xl font-bold text-foreground">{yearStats.total}</div>
+                                                            <div className="text-[9px] sm:text-[10px] text-muted uppercase font-semibold tracking-wide">Registered</div>
                                                         </div>
                                                         <div className="relative">
-                                                            <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{yearStats.shortlisted}</div>
-                                                            <div className="text-[10px] text-muted uppercase font-semibold tracking-wide">Qualified</div>
-                                                            <div className="absolute -left-4 top-1 bottom-1 w-px bg-border"></div>
+                                                            <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400">{yearStats.shortlisted}</div>
+                                                            <div className="text-[9px] sm:text-[10px] text-muted uppercase font-semibold tracking-wide">Qualified</div>
+                                                            <div className="hidden sm:block absolute -left-4 top-1 bottom-1 w-px bg-border"></div>
                                                         </div>
                                                         <div className="relative">
-                                                            <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{yearStats.winners}</div>
-                                                            <div className="text-[10px] text-muted uppercase font-semibold tracking-wide">Won</div>
-                                                            <div className="absolute -left-4 top-1 bottom-1 w-px bg-border"></div>
+                                                            <div className="text-lg sm:text-xl font-bold text-yellow-600 dark:text-yellow-400">{yearStats.winners}</div>
+                                                            <div className="text-[9px] sm:text-[10px] text-muted uppercase font-semibold tracking-wide">Won</div>
+                                                            <div className="hidden sm:block absolute -left-4 top-1 bottom-1 w-px bg-border"></div>
                                                         </div>
                                                     </div>
-                                                    <ChevronRight className="text-muted group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-1 transition-all h-6 w-6" />
+                                                    <ChevronRight className="text-muted group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-1 transition-all h-5 w-5 sm:h-6 sm:w-6 shrink-0" />
                                                 </div>
                                             </div>
                                         ))}
@@ -284,10 +284,10 @@ const CompetitionStats = () => {
                                             <div
                                                 key={deptStats.key}
                                                 onClick={() => selectDept(deptStats.key)}
-                                                className="group flex items-center justify-between p-6 hover:bg-muted/10 transition-all cursor-pointer"
+                                                className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 hover:bg-muted/10 transition-all cursor-pointer gap-4 sm:gap-0"
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <div className="h-12 w-12 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm group-hover:bg-indigo-600 group-hover:text-white dark:bg-indigo-900/30 dark:text-indigo-300 transition-colors shadow-sm">
+                                                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs sm:text-sm group-hover:bg-indigo-600 group-hover:text-white dark:bg-indigo-900/30 dark:text-indigo-300 transition-colors shadow-sm shrink-0">
                                                         {deptStats.key}
                                                     </div>
                                                     <div>
@@ -296,22 +296,24 @@ const CompetitionStats = () => {
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-6 sm:gap-12 w-full sm:w-auto justify-end">
-                                                    <div className="grid grid-cols-3 gap-8 text-right min-w-[300px]">
+                                                <div className="flex items-center gap-2 sm:gap-6 lg:gap-12 w-full sm:w-auto justify-between sm:justify-end">
+                                                    <div className="grid grid-cols-3 gap-2 sm:gap-8 text-center sm:text-right w-full sm:w-auto sm:min-w-[300px]">
                                                         <div>
-                                                            <div className="text-xl font-bold text-foreground">{deptStats.total}</div>
-                                                            <div className="text-[10px] text-muted uppercase font-semibold tracking-wide">Registered</div>
+                                                            <div className="text-lg sm:text-xl font-bold text-foreground">{deptStats.total}</div>
+                                                            <div className="text-[9px] sm:text-[10px] text-muted uppercase font-semibold tracking-wide">Registered</div>
                                                         </div>
-                                                        <div>
-                                                            <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{deptStats.shortlisted}</div>
-                                                            <div className="text-[10px] text-muted uppercase font-semibold tracking-wide">Qualified</div>
+                                                        <div className="relative">
+                                                            <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400">{deptStats.shortlisted}</div>
+                                                            <div className="text-[9px] sm:text-[10px] text-muted uppercase font-semibold tracking-wide">Qualified</div>
+                                                            <div className="hidden sm:block absolute -left-4 top-1 bottom-1 w-px bg-border"></div>
                                                         </div>
-                                                        <div>
-                                                            <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{deptStats.winners}</div>
-                                                            <div className="text-[10px] text-muted uppercase font-semibold tracking-wide">Won</div>
+                                                        <div className="relative">
+                                                            <div className="text-lg sm:text-xl font-bold text-yellow-600 dark:text-yellow-400">{deptStats.winners}</div>
+                                                            <div className="text-[9px] sm:text-[10px] text-muted uppercase font-semibold tracking-wide">Won</div>
+                                                            <div className="hidden sm:block absolute -left-4 top-1 bottom-1 w-px bg-border"></div>
                                                         </div>
                                                     </div>
-                                                    <ChevronRight className="text-muted group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:translate-x-1 transition-all h-6 w-6" />
+                                                    <ChevronRight className="text-muted group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:translate-x-1 transition-all h-5 w-5 sm:h-6 sm:w-6 shrink-0" />
                                                 </div>
                                             </div>
                                         ))}
@@ -331,10 +333,10 @@ const CompetitionStats = () => {
                                             <div
                                                 key={secStats.key}
                                                 onClick={() => selectSection(secStats.key)}
-                                                className="group flex items-center justify-between p-6 hover:bg-muted/10 transition-all cursor-pointer"
+                                                className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 hover:bg-muted/10 transition-all cursor-pointer gap-4 sm:gap-0"
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <div className="h-10 w-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold text-lg group-hover:bg-green-600 group-hover:text-white dark:bg-green-900/30 dark:text-green-300 transition-colors">
+                                                    <div className="h-10 w-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold text-base sm:text-lg group-hover:bg-green-600 group-hover:text-white dark:bg-green-900/30 dark:text-green-300 transition-colors shrink-0">
                                                         {secStats.key}
                                                     </div>
                                                     <div>
@@ -343,12 +345,12 @@ const CompetitionStats = () => {
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-12 mr-4">
-                                                    <div className="text-right">
-                                                        <span className="text-2xl font-bold text-foreground">{secStats.total}</span>
-                                                        <span className="text-sm text-muted ml-2">Students</span>
+                                                <div className="flex items-center w-full sm:w-auto justify-between sm:justify-end gap-12 sm:mr-4">
+                                                    <div className="text-left sm:text-right w-full sm:w-auto">
+                                                        <span className="text-xl sm:text-2xl font-bold text-foreground">{secStats.total}</span>
+                                                        <span className="text-xs sm:text-sm text-muted ml-2">Students</span>
                                                     </div>
-                                                    <ChevronRight className="text-muted group-hover:text-green-600 dark:group-hover:text-green-400 group-hover:translate-x-1 transition-all h-6 w-6" />
+                                                    <ChevronRight className="text-muted group-hover:text-green-600 dark:group-hover:text-green-400 group-hover:translate-x-1 transition-all h-5 w-5 sm:h-6 sm:w-6 shrink-0" />
                                                 </div>
                                             </div>
                                         ))}
@@ -369,7 +371,7 @@ const CompetitionStats = () => {
                                         </h3>
                                     </div>
 
-                                    <div>
+                                    <div className="overflow-x-auto">
                                         <table className="min-w-full divide-y divide-border">
                                             <thead className="bg-muted/5">
                                                 <tr>
