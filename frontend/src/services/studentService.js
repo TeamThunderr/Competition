@@ -9,6 +9,13 @@ export const getAllCompetitions = async () => {
     return await api.get('/api/student/competitions');
 };
 
+export const toggleTempRegistration = async (competitionId, isTempRegistered) => {
+    return await api.post('/api/student/toggle-temp-registration', {
+        competition_id: competitionId,
+        is_temp_registered: isTempRegistered
+    });
+};
+
 // Gmail Status Check
 export const checkStatus = async (competitionId, providerToken) => {
     return await api.post('/api/student/check-status', {
@@ -128,6 +135,7 @@ export const validateTeammate = async (regNo, name, competitionId) => {
 // Export as object for convenience
 export const studentService = {
     getAllCompetitions,
+    toggleTempRegistration,
     checkStatus,
     uploadProof,
     requestOD,
