@@ -221,7 +221,7 @@ const uploadProof = async (req, res) => {
             updateData = {
                 proof_url: publicUrl,
                 verified: false, // Needs faculty approval
-                status: 'Registered',
+                status: 'Pending',
                 source: 'MANUAL_SCREENSHOT'
             };
         }
