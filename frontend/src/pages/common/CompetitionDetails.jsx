@@ -6,6 +6,7 @@ import { getCompetitionStudents } from '../../services/facultyService';
 import { getHODCompetitionStats } from '../../services/hodService';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
+import { getAcademicYearLabel } from '../../utils/academicYear';
 
 import { formatDate } from '../../utils/dateFormatter';
 import StudentListModal from '../../components/common/StudentListModal';
@@ -76,9 +77,30 @@ const CompetitionDetails = () => {
         if (isFaculty && statsData.unregistered) {
             return statsData.unregistered.length;
         }
-        // HOD view: uses grouped sections
-        return unregisteredSections.reduce((sum, group) => sum + group.totalStudents, 0);
-    }, [unregisteredSections, statsData.unregistered, isFaculty]);
+        // HOD view: uses grouped sections, filtered by year
+        const yearGroups = filterByYear(unregisteredSections);
+        return yearGroups.reduce((sum, group) => sum + group.totalStudents, 0);
+    }, [unregisteredSections, statsData.unregistered, isFaculty, selectedYear]);
+
+    const totalRegisteredCount = useMemo(() => {
+        if (isHOD && statsData.registered_sections) {
+            const yearGroups = filterByYear(statsData.registered_sections);
+            return yearGroups.reduce((sum, group) => sum + group.totalStudents, 0);
+        }
+        return statsData.registered?.length || 0;
+    }, [statsData.registered_sections, statsData.registered, isHOD, selectedYear]);
+
+    const filteredShortlisted = useMemo(() => {
+        if (!statsData.shortlisted) return [];
+        if (isFaculty) return statsData.shortlisted;
+        return statsData.shortlisted.filter(s => getAcademicYearLabel(s.admission_year) === selectedYear);
+    }, [statsData.shortlisted, isFaculty, selectedYear]);
+
+    const filteredWinners = useMemo(() => {
+        if (!statsData.winners) return [];
+        if (isFaculty) return statsData.winners;
+        return statsData.winners.filter(s => getAcademicYearLabel(s.admission_year) === selectedYear);
+    }, [statsData.winners, isFaculty, selectedYear]);
 
     const handleSectionClick = (students, year, sectionName, type = 'Total') => {
         const title = `${year} - Section ${sectionName} (${type})`;
@@ -287,6 +309,25 @@ const CompetitionDetails = () => {
 
             {isFaculty || isHOD ? (
                 <div className="w-full">
+                    {/* Unified Year Filter Dropdown for HOD */}
+                    {isHOD && (
+                        <div className="flex justify-end mb-4">
+                            <div className="relative w-full sm:w-48">
+                                <select
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(e.target.value)}
+                                    className="w-full appearance-none bg-card border border-border text-foreground py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer shadow-sm"
+                                >
+                                    <option value="2nd Year">2nd Year</option>
+                                    <option value="3rd Year">3rd Year</option>
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-muted">
+                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
                         {/* Column 1: Unregistered Students */}
@@ -295,25 +336,6 @@ const CompetitionDetails = () => {
                                 <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>
                                 <span className="truncate">Unregistered ({totalUnregisteredCount})</span>
                             </h3>
-
-                            {/* Embedded Year Filter Dropdown */}
-                            {isHOD && (
-                                <div className="mb-3">
-                                    <div className="relative">
-                                        <select
-                                            value={selectedYear}
-                                            onChange={(e) => setSelectedYear(e.target.value)}
-                                            className="w-full appearance-none bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
-                                        >
-                                            <option value="2nd Year" className="dark:bg-gray-800">2nd Year</option>
-                                            <option value="3rd Year" className="dark:bg-gray-800">3rd Year</option>
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
 
                             <div className="overflow-y-auto h-72 md:h-96 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {isHOD && unregisteredSections ? (
@@ -367,29 +389,8 @@ const CompetitionDetails = () => {
                         < div className="bg-card rounded-xl border border-border shadow-sm p-6 overflow-hidden" >
                             <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                                 <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
-                                <span className="truncate">Registered ({statsData.registered?.length || 0})</span>
+                                <span className="truncate">Registered ({totalRegisteredCount})</span>
                             </h3>
-
-                            {/* Embedded Year Filter Dropdown */}
-                            {
-                                isHOD && (
-                                    <div className="mb-3">
-                                        <div className="relative">
-                                            <select
-                                                value={selectedYear}
-                                                onChange={(e) => setSelectedYear(e.target.value)}
-                                                className="w-full appearance-none bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
-                                            >
-                                                <option value="2nd Year" className="dark:bg-gray-800">2nd Year</option>
-                                                <option value="3rd Year" className="dark:bg-gray-800">3rd Year</option>
-                                            </select>
-                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            }
 
                             <div className="overflow-y-auto h-72 md:h-96 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                                 {isHOD && statsData.registered_sections ? (
@@ -467,16 +468,16 @@ const CompetitionDetails = () => {
                         < div className="bg-card rounded-xl border border-border shadow-sm p-6 overflow-hidden" >
                             <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                                 <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
-                                <span className="truncate">Shortlisted ({statsData.shortlisted?.length || 0})</span>
+                                <span className="truncate">Shortlisted ({filteredShortlisted?.length || 0})</span>
                             </h3>
                             <div className="overflow-y-auto h-72 md:h-96 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-                                {statsData.shortlisted?.map(student => (
+                                {filteredShortlisted?.map(student => (
                                     <div key={student.id} className="text-sm p-3 bg-purple-50 rounded-lg border border-purple-100 dark:bg-purple-900/20 dark:border-purple-800">
                                         <div className="font-medium text-foreground truncate">{student.name}</div>
                                         <div className="text-xs text-purple-600 truncate dark:text-purple-400">{student.regNo} {student.section && `(${student.section})`}</div>
                                     </div>
                                 ))}
-                                {(!statsData.shortlisted || statsData.shortlisted.length === 0) && <div className="text-sm text-muted text-center py-4">No shortlisted students</div>}
+                                {(!filteredShortlisted || filteredShortlisted.length === 0) && <div className="text-sm text-muted text-center py-4">No shortlisted students</div>}
                             </div>
                         </div >
 
@@ -484,38 +485,17 @@ const CompetitionDetails = () => {
                         < div className="bg-card rounded-xl border border-border shadow-sm p-6 overflow-hidden" >
                             <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                                 <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-                                <span className="truncate">Winners ({statsData.winners?.length || 0})</span>
+                                <span className="truncate">Winners ({filteredWinners?.length || 0})</span>
                             </h3>
 
-                            {/* Embedded Year Filter Dropdown */}
-                            {
-                                isHOD && (
-                                    <div className="mb-3">
-                                        <div className="relative">
-                                            <select
-                                                value={selectedYear}
-                                                onChange={(e) => setSelectedYear(e.target.value)}
-                                                className="w-full appearance-none bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 py-2 px-3 pr-8 rounded-lg font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
-                                            >
-                                                <option value="2nd Year" className="dark:bg-gray-800">2nd Year</option>
-                                                <option value="3rd Year" className="dark:bg-gray-800">3rd Year</option>
-                                            </select>
-                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            }
-
                             <div className="overflow-y-auto h-72 md:h-96 space-y-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-                                {statsData.winners?.map(student => (
+                                {filteredWinners?.map(student => (
                                     <div key={student.id} className="text-sm p-3 bg-green-50 rounded-lg border border-green-100 dark:bg-green-900/20 dark:border-green-800">
                                         <div className="font-medium text-foreground truncate">{student.name}</div>
                                         <div className="text-xs text-green-600 truncate dark:text-green-400">{student.regNo} {student.section && `(${student.section})`}</div>
                                     </div>
                                 ))}
-                                {(!statsData.winners || statsData.winners.length === 0) && <div className="text-sm text-muted text-center py-4">No winners yet</div>}
+                                {(!filteredWinners || filteredWinners.length === 0) && <div className="text-sm text-muted text-center py-4">No winners yet</div>}
                             </div>
                         </div >
                     </div >

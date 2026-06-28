@@ -96,7 +96,16 @@ const HodFaculty = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="text-sm font-medium text-foreground">
-                                                Mentor – 2nd Year
+                                                {(() => {
+                                                    if (member.stats?.yearBreakdown && Object.keys(member.stats.yearBreakdown).length > 0) {
+                                                        const years = Object.keys(member.stats.yearBreakdown).join(', ');
+                                                        return `Mentor – ${years}`;
+                                                    }
+                                                    if (member.sections && member.sections.length > 0) {
+                                                        return `Mentor – Sec ${member.sections.join(', ')}`;
+                                                    }
+                                                    return 'Faculty Member';
+                                                })()}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">

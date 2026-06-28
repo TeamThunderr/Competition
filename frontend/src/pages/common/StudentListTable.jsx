@@ -64,11 +64,11 @@ const StudentListTable = ({
             </div>
 
             {/* Table / List View */}
-            <div className="min-h-[400px] overflow-x-auto">
+            <div className="max-h-[500px] min-h-[400px] overflow-auto">
                 {/* Desktop Table View */}
-                <table className="w-full hidden md:table">
-                    <thead className="bg-muted/5">
-                        <tr className="text-left text-xs font-semibold text-muted uppercase tracking-wider">
+                <table className="w-full hidden md:table relative">
+                    <thead className="bg-card sticky top-0 z-10 shadow-sm">
+                        <tr className="text-left text-xs font-semibold text-muted uppercase tracking-wider bg-muted/5">
                             <th className="px-6 py-4 w-12">S.No</th>
                             <th className="px-6 py-4">Register No</th>
                             <th className="px-6 py-4">Name</th>
