@@ -245,7 +245,8 @@ const getCompetitionStats = async (req, res) => {
                     id: s.id,
                     name: s.full_name,
                     regNo: s.registration_no,
-                    section: s.section
+                    section: s.section,
+                    admission_year: s.admission_year
                 })),
             winners: allStudents
                 .filter(s => winnersSet.has(s.id) && registeredMap.has(s.id) && registeredMap.get(s.id).verified)
@@ -253,7 +254,8 @@ const getCompetitionStats = async (req, res) => {
                     id: s.id,
                     name: s.full_name,
                     regNo: s.registration_no,
-                    section: s.section
+                    section: s.section,
+                    admission_year: s.admission_year
                 }))
         };
 
