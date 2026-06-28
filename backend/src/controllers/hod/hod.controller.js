@@ -546,7 +546,7 @@ const getDashboardAnalysis = async (req, res) => {
         const trendMap = {};
         allRegistrations.forEach(r => {
             const date = new Date(r.created_at || r.registered_at); // specific fallback
-            const key = date.toLocaleString('default', { month: 'short', year: 'numeric' }); // e.g., "Dec 2024"
+            const key = date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', year: 'numeric' }); // e.g., "Dec 2024"
             if (!trendMap[key]) trendMap[key] = { name: key, date: date, count: 0 };
             trendMap[key].count++;
         });

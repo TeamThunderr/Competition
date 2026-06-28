@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Users, Trophy, ExternalLink, Mail } from 'lucide-react';
+import { Calendar, Users, Trophy, ExternalLink, Mail, XCircle } from 'lucide-react';
 
 const CompetitionCard = (props) => {
     const { competition, onRegister, onRequestOD, onWonStatusUpdate, showRegister = true, isApplied = false, onToggleApplied } = props;
@@ -48,6 +48,19 @@ const CompetitionCard = (props) => {
                         onClick={() => onRegister(competition.id, 'REGISTERED')}
                         className="flex-1 bg-white dark:bg-zinc-100 dark:text-black dark:border-transparent dark:hover:bg-zinc-200 border border-gray-300 text-gray-700 py-2.5 px-4 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm">
                         Upload Proof
+                    </button>
+                </div>
+            );
+        }
+
+        // 1.5 Rejected
+        if (my_registration.status === 'Rejected' && !my_registration.proof_url) {
+            return (
+                <div className="flex gap-2 flex-1 flex-col sm:flex-row items-stretch sm:items-center">
+                    <button
+                        onClick={() => onRegister(competition.id, 'REGISTERED')}
+                        className="flex-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 py-2.5 px-4 rounded-xl text-sm font-semibold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shadow-sm flex items-center justify-center gap-2">
+                        <XCircle size={16} /> Re-upload Proof
                     </button>
                 </div>
             );

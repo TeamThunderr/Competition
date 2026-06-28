@@ -1,7 +1,7 @@
 import React from 'react';
 import { Award, CheckCircle, Trophy, User, Clock, Phone, AlertCircle } from 'lucide-react';
 
-const StudentProfileView = ({ student }) => {
+const StudentProfileView = ({ student, onEditSection }) => {
     if (!student) return null;
 
     const { profile, stats, competitions } = student;
@@ -22,7 +22,18 @@ const StudentProfileView = ({ student }) => {
                         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-gray-500 dark:text-gray-400 mt-3 text-sm">
                             <span className="flex items-center gap-1.5"><User size={16} className="text-gray-400" /> {profile.rollNo}</span>
                             <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                            <span>{profile.department} - Section {profile.section}</span>
+                            <span className="flex items-center gap-1.5">
+                                {profile.department} - Section {profile.section}
+                                {onEditSection && (
+                                    <button 
+                                        onClick={onEditSection}
+                                        className="ml-2 text-xs bg-muted/20 hover:bg-muted/40 text-foreground px-2 py-0.5 rounded border border-border transition-colors font-medium"
+                                        title="Change Section"
+                                    >
+                                        Change
+                                    </button>
+                                )}
+                            </span>
                             <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                             <span>{profile.email}</span>
                             {profile.phoneNumber && profile.phoneNumber !== 'N/A' && (

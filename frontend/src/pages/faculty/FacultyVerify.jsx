@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 
 import { CheckCircle, XCircle, ExternalLink, Users, FileText } from 'lucide-react';
-import { getPendingVerifications, verifyRegistration, getPendingShortlistVerifications, verifyShortlist } from '../../services/facultyService';
-import { api } from '../../services/api'; // Direct API for team verification if service not unified
+import { 
+    getPendingVerifications, verifyRegistration, 
+    getPendingShortlistVerifications, verifyShortlist,
+    getPendingWinningVerifications, verifyWinning
+} from '../../services/facultyService';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
@@ -30,7 +33,7 @@ const FacultyVerify = () => {
             const [regData, shortlistData, winningData] = await Promise.all([
                 getPendingVerifications(),
                 getPendingShortlistVerifications(),
-                api.get('/api/faculty/pending-winning').then(res => res.data || res) // Use API directly if service not updated/exported correctly in this scope
+                getPendingWinningVerifications()
             ]);
 
             // Handle Registration Data
@@ -82,7 +85,7 @@ const FacultyVerify = () => {
                 await verifyShortlist(id, action);
                 setShortlisted(prev => prev.filter(p => p.id !== id));
             } else if (activeTab === 'winning') {
-                await api.post('/api/faculty/verify-winning', { registration_id: id, action });
+                await verifyWinning(id, action);
                 setWinning(prev => prev.filter(p => p.id !== id));
             }
 
@@ -234,32 +237,6 @@ const FacultyVerify = () => {
                                                     : (item.submittedAt || 'N/A')}
                                             </span>
                                         </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="mt-6 flex gap-3">
-                                        <button
-                                            onClick={() => handleAction(item.id, 'approve')}
-                                            disabled={actionLoading === item.id}
-                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
-                                        >
-                                            {actionLoading === item.id ? (
-                                                <span className="animate-pulse">Processing...</span>
-                                            ) : (
-                                                <>
-                                                    <CheckCircle size={18} />
-                                                    Accept
-                                                </>
-                                            )}
-                                        </button>
-                                        <button
-                                            onClick={() => handleAction(item.id, 'reject')}
-                                            disabled={actionLoading === item.id}
-                                            className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                                        >
-                                            <XCircle size={18} />
-                                            Reject
-                                        </button>
                                     </div>
                                 </div>
 
