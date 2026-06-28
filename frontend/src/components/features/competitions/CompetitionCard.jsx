@@ -261,7 +261,7 @@ const CompetitionCard = (props) => {
                 </div>
                 <div className="flex items-center text-sm text-muted">
                     <Users className="w-4 h-4 mr-2" />
-                    <span>Team: {competition.min_team_size}-{competition.max_team_size}</span>
+                    <span>Team: {competition.min_team_size === 1 && competition.max_team_size === 1 ? "Individual Participation" : `${competition.min_team_size}-${competition.max_team_size}`}</span>
                 </div>
                 {competition.venue && (
                     <div className="flex items-center text-sm text-muted">
