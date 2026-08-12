@@ -429,13 +429,44 @@ const getCompetitionSyncStatus = async (req, res) => {
 
         if (compError) throw compError;
 
+        const competitionIds = (competitions || []).map(comp => comp.id);
+        let latestJobsByCompetition = {};
+        if (competitionIds.length > 0) {
+            const { data: jobs, error: jobsError } = await supabase
+                .from('sync_jobs')
+                .select('id, competition_id, status, started_at, completed_at, total_students, students_processed, emails_found, emails_processed, registrations_updated, error_count, error_message, created_at')
+                .in('competition_id', competitionIds)
+                .order('created_at', { ascending: false });
+
+            if (jobsError) throw jobsError;
+
+            (jobs || []).forEach(job => {
+                if (!latestJobsByCompetition[job.competition_id]) {
+                    latestJobsByCompetition[job.competition_id] = job;
+                }
+            });
+        }
+
         const competitionsWithStatus = competitions.map(comp => ({
+            ...(latestJobsByCompetition[comp.id] ? {
+                jobId: latestJobsByCompetition[comp.id].id,
+                jobStatus: latestJobsByCompetition[comp.id].status,
+                startedAt: latestJobsByCompetition[comp.id].started_at,
+                completedAt: latestJobsByCompetition[comp.id].completed_at,
+                totalStudents: latestJobsByCompetition[comp.id].total_students,
+                studentsProcessed: latestJobsByCompetition[comp.id].students_processed,
+                emailsFound: latestJobsByCompetition[comp.id].emails_found,
+                emailsProcessed: latestJobsByCompetition[comp.id].emails_processed,
+                registrationsUpdated: latestJobsByCompetition[comp.id].registrations_updated,
+                errorCount: latestJobsByCompetition[comp.id].error_count,
+                errorMessage: latestJobsByCompetition[comp.id].error_message
+            } : {}),
             id: comp.id,
             title: comp.title,
             uploadedAt: comp.uploaded_at,
             lastSyncedAt: comp.last_synced_at || null,
             registrationDeadline: comp.registration_deadline,
-            syncStatus: comp.last_synced_at ? 'Synced' : 'Never Synced',
+            syncStatus: latestJobsByCompetition[comp.id]?.status || (comp.last_synced_at ? 'Synced' : 'Never Synced'),
             canSync: true,
             nextSyncFrom: comp.last_synced_at || comp.uploaded_at,
             isSyncing: comp.is_syncing,

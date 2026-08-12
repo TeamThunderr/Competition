@@ -5,6 +5,8 @@ const counter = {
     resetAt: Date.now() + 60000 // 1 minute from now
 };
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 const canCallGemini = () => {
     const now = Date.now();
     
@@ -14,8 +16,9 @@ const canCallGemini = () => {
         counter.resetAt = now + 60000;
     }
 
-    // Gemini 1.5 Flash free tier limits to 15 RPM. Leave 1 buffer.
-    if (counter.callsThisMinute >= 14) {
+    const rpmLimit = Math.max(Number(process.env.GEMINI_RPM_LIMIT || 14), 1);
+
+    if (counter.callsThisMinute >= rpmLimit) {
         return false;
     }
     
@@ -26,7 +29,16 @@ const recordGeminiCall = () => {
     counter.callsThisMinute++;
 };
 
+const waitForGeminiSlot = async () => {
+    while (!canCallGemini()) {
+        const waitMs = Math.max(counter.resetAt - Date.now(), 1000);
+        await sleep(waitMs);
+    }
+    recordGeminiCall();
+};
+
 module.exports = {
     canCallGemini,
-    recordGeminiCall
+    recordGeminiCall,
+    waitForGeminiSlot
 };

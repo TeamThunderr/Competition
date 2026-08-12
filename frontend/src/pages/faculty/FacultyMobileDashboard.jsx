@@ -126,18 +126,18 @@ const FacultyMobileDashboard = () => {
                     setSyncing(true);
                     try {
                         const { syncCompetition } = await import('../../services/facultyService');
-                        let totalDetected = 0;
+                        let totalQueued = 0;
                         for (const comp of activeCompetitions) {
                             const result = await syncCompetition(comp.id);
-                            if (result?.results) {
-                                totalDetected += (result.results.detected || 0);
+                            if (result?.jobId || result?.data?.jobId) {
+                                totalQueued++;
                             }
                         }
                         
-                        if (totalDetected > 0) {
-                            addToast(`Sync Complete: Found ${totalDetected} new registrations!`, 'success');
+                        if (totalQueued > 0) {
+                            addToast(`Sync started for ${totalQueued} competition${totalQueued === 1 ? '' : 's'}.`, 'info');
                         } else {
-                            addToast(`Sync Complete: Up to date!`, 'info');
+                            addToast(`No new sync jobs were started.`, 'info');
                         }
                     } catch (e) {
                         addToast("Sync Failed: " + (e.message || "Unknown error"), 'error');

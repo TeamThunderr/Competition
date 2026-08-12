@@ -12,11 +12,11 @@ const JOB_NAME    = 'sync-user-gmail';
 
 // ─── Job options ──────────────────────────────────────────────────────────────
 const JOB_OPTIONS = {
-    retryLimit:   3,
-    retryDelay:   5,         // seconds before first retry
-    retryBackoff: true,      // exponential: 5s, 10s, 20s
-    expireInSeconds: 60 * 5, // job is cancelled if not picked up within 5 min
-    keepUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // keep records 7 days
+    retryLimit: Number(process.env.SYNC_JOB_RETRY_LIMIT || 3),
+    retryDelay: Number(process.env.SYNC_JOB_RETRY_DELAY_SECONDS || 30),
+    retryBackoff: true,
+    expireInSeconds: Number(process.env.SYNC_JOB_EXPIRE_SECONDS || 60 * 60),
+    keepUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
 };
 
 /**
@@ -26,20 +26,17 @@ const JOB_OPTIONS = {
  *
  * @param {object} data - Payload passed to the worker.
  *   Required fields:
- *     - competitionId  {string}  UUID of the competition to sync
- *     - facultyId      {string}  UUID of the faculty user triggering the sync
- *     - departmentId   {string}  Faculty's department_id
- *     - assignedSections {Array} Faculty's assigned section list
+ *     - syncJobId      {string}  UUID of the durable sync_jobs row
  *
  * @returns {Promise<string>} The pg-boss job ID.
  */
 const addGmailSyncJob = async (data, delaySeconds = 0) => {
     const options = { ...JOB_OPTIONS };
     if (delaySeconds > 0) {
-        options.startAfter = delaySeconds;
+        options.startAfter = new Date(Date.now() + delaySeconds * 1000);
     }
     const jobId = await boss.send(QUEUE_NAME, { jobName: JOB_NAME, ...data }, options);
-    console.log(`[GmailQueue] Job enqueued. ID: ${jobId} | Competition: ${data.competitionId} | Delay: ${delaySeconds}s`);
+    console.log(`[GmailQueue] Job enqueued. ID: ${jobId} | SyncJob: ${data.syncJobId} | Delay: ${delaySeconds}s`);
     return jobId;
 };
 

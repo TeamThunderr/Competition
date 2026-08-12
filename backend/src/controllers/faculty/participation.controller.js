@@ -3,6 +3,7 @@ const supabase = require('../../config/supabaseClient');
 const gmailService = require('../../services/gmail/gmail.service');
 const { google } = require('googleapis');
 const { addGmailSyncJob } = require('../../queues/gmailSync.queue');
+const syncJobService = require('../../services/sync/syncJob.service');
 const { buildXlsxBuffer } = require('../../utils/exportHelper');
 
 // Helper to get OAuth2 Client with Refresh Token
@@ -27,9 +28,8 @@ const syncCompetition = async (req, res) => {
         const { id: competitionId } = req.params;
         const { id: facultyId, department_id, assigned_sections } = req.user;
 
-        console.log(`[Sync] Background request by Faculty ${facultyId} for Comp ${competitionId}`);
+        console.log(`[Sync] Queue request by Faculty ${facultyId} for Comp ${competitionId}`);
 
-        // Verify competition exists
         const { data: competition, error: compErr } = await supabase
             .from('competitions')
             .select('id, title, is_syncing')
@@ -40,41 +40,33 @@ const syncCompetition = async (req, res) => {
             return res.status(404).json({ error: 'Competition not found' });
         }
 
-        // Prevent duplicate runs while a sync is already running
-        if (competition.is_syncing) {
+        const job = await syncJobService.createSyncJob({
+            competitionId,
+            requestedBy: facultyId,
+            departmentId: department_id,
+            assignedSections: assigned_sections
+        });
+
+        if (job.alreadyRunning) {
             return res.status(409).json({
+                success: false,
                 error: 'Sync already in progress',
-                message: 'Another sync is currently running for this competition.'
+                message: job.message,
+                jobId: job.jobId
             });
         }
 
-        // Lock immediately so the frontend disables the button right away
-        await supabase.from('competitions').update({ 
-            is_syncing: true, 
-            sync_status: 'running', 
-            sync_progress: 'Initializing sync...'
-        }).eq('id', competitionId);
+        const bossJobId = await addGmailSyncJob({ syncJobId: job.jobId });
+        await syncJobService.attachBossJobId(job.jobId, bossJobId);
 
-        // Fetch the full competition record for performBatchSync
-        const { data: fullComp } = await supabase.from('competitions').select('*').eq('id', competitionId).single();
+        console.log(`[Sync] Job created and queued | sync_job_id=${job.jobId} competition_id=${competitionId} requested_by=${facultyId}`);
 
-        // Run sync in the background — respond immediately
-        setImmediate(async () => {
-            try {
-                await performBatchSync(fullComp, department_id, assigned_sections, facultyId);
-                console.log(`[Sync] Background sync complete for ${competitionId}`);
-            } catch (err) {
-                console.error(`[Sync] Background sync failed for ${competitionId}:`, err.message);
-                await supabase.from('competitions').update({ 
-                    is_syncing: false, sync_status: 'failed', sync_progress: 'Sync failed: ' + err.message 
-                }).eq('id', competitionId);
-            }
-        });
-
-        // Return 202 immediately
         return res.status(202).json({
-            message: 'Gmail sync started in background',
+            success: true,
+            message: 'Sync started',
             competitionId,
+            jobId: job.jobId,
+            queueJobId: bossJobId
         });
 
     } catch (err) {
@@ -83,11 +75,11 @@ const syncCompetition = async (req, res) => {
     }
 };
 
-// SYNC ALL Active Competitions — runs each in background
+// SYNC ALL Active Competitions — queues each sync as a durable background job
 const syncAllCompetitions = async (req, res) => {
     try {
         const { id: facultyId, department_id, assigned_sections } = req.user;
-        console.log(`[SyncAll] Background request by Faculty ${facultyId}`);
+        console.log(`[SyncAll] Queue request by Faculty ${facultyId}`);
 
         const now = new Date().toISOString();
         const { data: competitions, error: compError } = await supabase
@@ -100,44 +92,79 @@ const syncAllCompetitions = async (req, res) => {
             return res.status(500).json({ error: 'Database Error: Competitions' });
         }
 
-        // Filter out competitions that are already syncing
-        const compsToSync = (competitions || []).filter(c => !c.is_syncing);
+        const queued = [];
+        const skipped = [];
 
-        if (compsToSync.length > 0) {
-            const compIds = compsToSync.map(c => c.id);
-            // Lock immediately so the frontend reflects the change
-            await supabase.from('competitions').update({ 
-                is_syncing: true, 
-                sync_status: 'running', 
-                sync_progress: 'Initializing sync...'
-            }).in('id', compIds);
+        for (const comp of competitions || []) {
+            try {
+                const job = await syncJobService.createSyncJob({
+                    competitionId: comp.id,
+                    requestedBy: facultyId,
+                    departmentId: department_id,
+                    assignedSections: assigned_sections
+                });
+
+                if (job.alreadyRunning) {
+                    skipped.push({ competitionId: comp.id, jobId: job.jobId, reason: job.message });
+                    continue;
+                }
+
+                const bossJobId = await addGmailSyncJob({ syncJobId: job.jobId });
+                await syncJobService.attachBossJobId(job.jobId, bossJobId);
+                queued.push({ competitionId: comp.id, jobId: job.jobId, queueJobId: bossJobId });
+                console.log(`[SyncAll] Job queued | sync_job_id=${job.jobId} competition_id=${comp.id} requested_by=${facultyId}`);
+            } catch (err) {
+                skipped.push({ competitionId: comp.id, reason: err.message });
+            }
         }
 
-        console.log(`[SyncAll] Starting ${compsToSync.length} background sync jobs.`);
-
-        // Run each in background
-        compsToSync.forEach((comp) => {
-            setImmediate(async () => {
-                try {
-                    await performBatchSync(comp, department_id, assigned_sections, facultyId);
-                    console.log(`[SyncAll] Sync complete for ${comp.id}`);
-                } catch (err) {
-                    console.error(`[SyncAll] Sync failed for ${comp.id}:`, err.message);
-                    await supabase.from('competitions').update({ 
-                        is_syncing: false, sync_status: 'failed', sync_progress: 'Sync failed: ' + err.message
-                    }).eq('id', comp.id);
-                }
-            });
-        });
-
         return res.status(202).json({
-            message: 'Gmail sync started in background for all active competitions',
-            totalStarted: compsToSync.length,
+            success: true,
+            message: 'Gmail sync jobs queued for active competitions',
+            totalQueued: queued.length,
+            totalSkipped: skipped.length,
+            jobs: queued,
+            skipped
         });
 
     } catch (err) {
         console.error('[SyncAll] Critical Error:', err);
         res.status(500).json({ error: `Internal Server Error: ${err.message}` });
+    }
+};
+
+const getSyncJobStatus = async (req, res) => {
+    try {
+        const { id: facultyId, department_id } = req.user;
+        const { jobId } = req.params;
+
+        const job = await syncJobService.getSyncJob(jobId);
+        const canView = job.requested_by === facultyId || job.scope_department_id === department_id;
+        if (!canView) {
+            return res.status(403).json({ success: false, error: 'Forbidden' });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                jobId: job.id,
+                competitionId: job.competition_id,
+                status: job.status,
+                startedAt: job.started_at,
+                completedAt: job.completed_at,
+                totalStudents: job.total_students,
+                studentsProcessed: job.students_processed,
+                emailsFound: job.emails_found,
+                emailsProcessed: job.emails_processed,
+                registrationsUpdated: job.registrations_updated,
+                errorCount: job.error_count,
+                errorMessage: job.error_message,
+                retryCount: job.retry_count
+            }
+        });
+    } catch (err) {
+        console.error('[SyncJobStatus] Error:', err);
+        return res.status(500).json({ success: false, error: err.message });
     }
 };
 
@@ -202,7 +229,20 @@ const exportParticipationStats = async (req, res) => {
 };
 
 // Shared Logic for Batch Sync (Using Registrations Table ONLY)
-async function performBatchSync(competition, departmentId, assignedVersion, facultyId = null) {
+async function performBatchSync(competition, departmentId, assignedVersion, facultyId = null, options = {}) {
+    const syncJobId = options.syncJobId || null;
+    const studentChunkSize = Number(process.env.GMAIL_STUDENT_CHUNK_SIZE || 25);
+    const geminiBatchSize = Math.min(
+        Math.max(Number(process.env.GEMINI_BATCH_SIZE || 25), 1),
+        Number(process.env.GEMINI_MAX_BATCH_SIZE || 50)
+    );
+    const progress = async (message, jobUpdates = {}) => {
+        await supabase.from('competitions').update({ sync_progress: message }).eq('id', competition.id);
+        if (syncJobId) {
+            await syncJobService.heartbeat(syncJobId, jobUpdates);
+        }
+    };
+
     let syncFrom;
     if (competition.last_synced_at) {
         // If it was already synced, start from the last sync time minus a 2-day buffer (in case of delayed emails)
@@ -217,7 +257,7 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
     }
     const syncTo = new Date().toISOString();
 
-    const stats = { processed: 0, detected: 0, errors: 0, skipped: 0 };
+    const stats = { processed: 0, detected: 0, errors: 0, skipped: 0, emailsFound: 0, studentsProcessed: 0 };
     const logs = { processed: [], detected: [], errors: [], skipped: [] };
 
     try {
@@ -268,28 +308,48 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
         }
 
         const studentsToSync = targetStudents.filter(s => !!s.google_refresh_token);
+        if (syncJobId) {
+            await syncJobService.heartbeat(syncJobId, {
+                total_students: studentsToSync.length,
+                students_processed: 0,
+                emails_found: 0,
+                emails_processed: 0,
+                registrations_updated: 0,
+                error_count: 0
+            });
+        }
 
         // 3. PHASE 1: INGESTION
-        console.log(`[BatchSync] Phase 1: Ingesting emails for ${studentsToSync.length} students...`);
+        console.log(`[BatchSync] Phase 1: Ingesting emails for ${studentsToSync.length} students... | sync_job_id=${syncJobId || 'legacy'} competition_id=${competition.id} requested_by=${facultyId || 'unknown'}`);
         let currentStudent = 0;
         for (const student of studentsToSync) {
             currentStudent++;
-            // Update progress every 5 students or if it's the last one
-            if (currentStudent % 5 === 0 || currentStudent === studentsToSync.length) {
-                await supabase.from('competitions').update({
-                    sync_progress: `Ingesting emails from Gmail: Student ${currentStudent} of ${studentsToSync.length}`
-                }).eq('id', competition.id);
+            if ((currentStudent - 1) % studentChunkSize === 0) {
+                console.log(`[BatchSync] Gmail chunk started | sync_job_id=${syncJobId || 'legacy'} competition_id=${competition.id} requested_by=${facultyId || 'unknown'} student=${currentStudent}/${studentsToSync.length}`);
             }
             try {
-                await gmailService.ingestStudentEmails(student.id, competition, syncFrom);
+                const found = await gmailService.ingestStudentEmails(student.id, competition, syncFrom);
+                stats.emailsFound += found || 0;
             } catch (err) {
                 console.error(`[BatchSync] Ingestion failed for ${student.email}:`, err.message);
                 stats.errors++;
             }
+            stats.studentsProcessed++;
+            if (currentStudent % 5 === 0 || currentStudent === studentsToSync.length) {
+                await progress(`Ingesting emails from Gmail: Student ${currentStudent} of ${studentsToSync.length}`, {
+                    total_students: studentsToSync.length,
+                    students_processed: currentStudent,
+                    emails_found: stats.emailsFound,
+                    error_count: stats.errors
+                });
+            }
+            if (currentStudent % studentChunkSize === 0 || currentStudent === studentsToSync.length) {
+                console.log(`[BatchSync] Gmail chunk completed | sync_job_id=${syncJobId || 'legacy'} competition_id=${competition.id} requested_by=${facultyId || 'unknown'} student=${currentStudent}/${studentsToSync.length}`);
+            }
         }
 
         // 4. PHASE 2: BATCH PARSING
-        console.log(`[BatchSync] Phase 2: Processing emails in batches of 50...`);
+        console.log(`[BatchSync] Phase 2: Processing emails in batches of ${geminiBatchSize}... | sync_job_id=${syncJobId || 'legacy'} competition_id=${competition.id} requested_by=${facultyId || 'unknown'}`);
         
         const { data: pendingEmails, error: fetchErr } = await supabase
             .from('email_ingestion_buffer')
@@ -300,8 +360,8 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
         if (fetchErr) throw fetchErr;
 
         const emailBatches = [];
-        for (let i = 0; i < (pendingEmails || []).length; i += 50) {
-            emailBatches.push(pendingEmails.slice(i, i + 50));
+        for (let i = 0; i < (pendingEmails || []).length; i += geminiBatchSize) {
+            emailBatches.push(pendingEmails.slice(i, i + geminiBatchSize));
         }
 
         const { parseEmailBatch } = require('../../services/gmail/geminiParser.service');
@@ -312,11 +372,15 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
 
         for (const batch of emailBatches) {
             processedBatches++;
-            await supabase.from('competitions').update({
-                sync_progress: `AI Analyzing emails: Batch ${processedBatches} of ${totalBatches} (${totalEmails} total emails)`
-            }).eq('id', competition.id);
+            await progress(`AI Analyzing emails: Batch ${processedBatches} of ${totalBatches} (${totalEmails} total emails)`, {
+                emails_found: stats.emailsFound,
+                emails_processed: stats.processed,
+                registrations_updated: stats.detected,
+                error_count: stats.errors
+            });
 
             try {
+                console.log(`[BatchSync] Gemini batch started | sync_job_id=${syncJobId || 'legacy'} competition_id=${competition.id} requested_by=${facultyId || 'unknown'} batch=${processedBatches}/${totalBatches}`);
                 const results = await parseEmailBatch(batch, competition.title);
 
                 if (results && Array.isArray(results)) {
@@ -370,6 +434,7 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                         stats.processed++;
                     }
                 }
+                console.log(`[BatchSync] Gemini batch completed | sync_job_id=${syncJobId || 'legacy'} competition_id=${competition.id} requested_by=${facultyId || 'unknown'} batch=${processedBatches}/${totalBatches}`);
             } catch (batchErr) {
                 // If it's a QUOTA EXCEEDED, we must abort the sync and throw so pg-boss reschedules
                 if (batchErr.type === 'QUOTA_EXCEEDED') {
@@ -378,6 +443,7 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                 }
 
                 console.error('[BatchSync] Error processing batch:', batchErr.message);
+                stats.errors += batch.length;
                 
                 // Mark batch as error in buffer
                 const batchIds = batch.map(e => e.id);
@@ -390,6 +456,7 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
 
         // 5. Update Competition with Success Status
         const syncStatus = stats.errors > 0 ? (stats.detected > 0 ? 'partial' : 'failed') : 'success';
+        const jobStatus = stats.errors > 0 ? (stats.detected > 0 || stats.processed > 0 ? 'PARTIALLY_COMPLETED' : 'FAILED') : 'COMPLETED';
         await supabase
             .from('competitions')
             .update({
@@ -403,6 +470,17 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
             .eq('id', competition.id);
 
         console.log(`[BatchSync] Completed. Status: ${syncStatus}`, stats);
+        if (syncJobId) {
+            await syncJobService.completeSyncJob(syncJobId, jobStatus, {
+                students_processed: stats.studentsProcessed,
+                emails_found: stats.emailsFound,
+                emails_processed: stats.processed,
+                competitions_updated: stats.detected > 0 ? 1 : 0,
+                registrations_updated: stats.detected,
+                error_count: stats.errors,
+                error_message: stats.errors > 0 ? `Completed with ${stats.errors} errors` : null
+            });
+        }
         return { stats, logs };
 
     } catch (error) {
@@ -411,6 +489,13 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                 .from('competitions')
                 .update({ sync_status: 'paused_quota', sync_error_message: error.message })
                 .eq('id', competition.id);
+            if (syncJobId) {
+                await syncJobService.updateSyncJob(syncJobId, {
+                    status: 'PAUSED_RATE_LIMIT',
+                    error_message: error.message,
+                    error_count: stats.errors
+                });
+            }
             throw error; // pg-boss catches this
         }
 
@@ -422,8 +507,18 @@ async function performBatchSync(competition, departmentId, assignedVersion, facu
                 sync_error_message: error.message
             })
             .eq('id', competition.id);
+        if (syncJobId) {
+            await syncJobService.completeSyncJob(syncJobId, 'FAILED', {
+                students_processed: stats.studentsProcessed,
+                emails_found: stats.emailsFound,
+                emails_processed: stats.processed,
+                registrations_updated: stats.detected,
+                error_count: stats.errors + 1,
+                error_message: error.message
+            });
+        }
         throw error;
     }
 }
 
-module.exports = { syncCompetition, syncAllCompetitions, exportParticipationStats, performBatchSync };
+module.exports = { syncCompetition, syncAllCompetitions, getSyncJobStatus, exportParticipationStats, performBatchSync };
