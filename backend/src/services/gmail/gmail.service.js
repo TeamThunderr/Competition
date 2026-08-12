@@ -831,5 +831,7 @@ module.exports = {
     syncStudentCompetition,
     analyzeEmail,
     checkShortlistStatus,
-    ingestStudentEmails
+    ingestStudentEmails,
+    getOAuthClientForUser,
+    extractCleanTextFromPayload
 };

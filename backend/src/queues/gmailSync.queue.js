@@ -9,6 +9,8 @@ const boss = require('../config/pgBossClient');
 // ─── Job / Queue name constants ───────────────────────────────────────────────
 const QUEUE_NAME  = 'gmail-sync';
 const JOB_NAME    = 'sync-user-gmail';
+const PARTICIPATION_JOB_TYPE = 'PARTICIPATION';
+const DISCOVERY_JOB_TYPE = 'DISCOVERY';
 
 // ─── Job options ──────────────────────────────────────────────────────────────
 const JOB_OPTIONS = {
@@ -40,4 +42,22 @@ const addGmailSyncJob = async (data, delaySeconds = 0) => {
     return jobId;
 };
 
-module.exports = { boss, QUEUE_NAME, JOB_NAME, addGmailSyncJob };
+const addCompetitionDiscoveryJob = async (data, delaySeconds = 0) => {
+    const options = { ...JOB_OPTIONS };
+    if (delaySeconds > 0) {
+        options.startAfter = new Date(Date.now() + delaySeconds * 1000);
+    }
+    const jobId = await boss.send(QUEUE_NAME, { jobName: JOB_NAME, jobType: DISCOVERY_JOB_TYPE, ...data }, options);
+    console.log(`[GmailQueue] Discovery job enqueued. ID: ${jobId} | DiscoveryJob: ${data.discoveryJobId} | Delay: ${delaySeconds}s`);
+    return jobId;
+};
+
+module.exports = {
+    boss,
+    QUEUE_NAME,
+    JOB_NAME,
+    PARTICIPATION_JOB_TYPE,
+    DISCOVERY_JOB_TYPE,
+    addGmailSyncJob,
+    addCompetitionDiscoveryJob
+};
