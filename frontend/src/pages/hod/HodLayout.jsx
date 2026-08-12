@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import SharedSidebar from '../common/SharedSidebar';
-import { Menu, LayoutDashboard, CheckCircle, Briefcase, Users } from 'lucide-react';
+import { Menu, LayoutDashboard, CheckCircle, Briefcase, Users, Sparkles } from 'lucide-react';
 import logo from '../../assets/logo.png'; // Import default logo for mobile header
 
 const HodLayout = () => {
@@ -12,6 +12,7 @@ const HodLayout = () => {
         { icon: Users, label: 'Faculty Directory', path: '/hod/faculty' },
         { icon: CheckCircle, label: 'OD Approvals', path: '/hod/approvals' },
         { icon: Briefcase, label: 'All Competitions', path: '/hod/competitions' },
+        { icon: Sparkles, label: 'Discovery Review', path: '/hod/discovery' },
     ];
 
     return (

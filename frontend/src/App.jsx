@@ -32,6 +32,7 @@ import HodCompetitions from './pages/hod/HodCompetitions';
 import HodStudentDetail from './pages/hod/HodStudentDetail';
 import HodFaculty from './pages/hod/HodFaculty';
 import CompetitionSectionDetails from './pages/hod/CompetitionSectionDetails';
+import HodCompetitionDiscovery from './pages/hod/HodCompetitionDiscovery';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentSearch from './pages/admin/StudentSearch';
@@ -41,6 +42,7 @@ import ActivityLogs from './pages/admin/ActivityLogs';
 import StudentDetails from './pages/admin/StudentDetails';
 import CompetitionStats from './pages/admin/CompetitionStats';
 import DeptPerformance from './pages/admin/DeptPerformance';
+import AdminCompetitionDiscovery from './pages/admin/AdminCompetitionDiscovery';
 
 import CompetitionDetails from './pages/common/CompetitionDetails';
 import StudentLayout from './pages/student/StudentLayout';
@@ -101,6 +103,7 @@ function App() {
               <Route path="approvals" element={<OdApprovals />} />
               <Route path="analytics" element={<HodAnalytics />} />
               <Route path="competitions" element={<HodCompetitions />} />
+              <Route path="discovery" element={<HodCompetitionDiscovery />} />
               <Route path="students/:id" element={<HodStudentDetail />} />
               <Route path="faculty" element={<HodFaculty />} />
               <Route path="competitions/:id/section/:sectionName" element={<CompetitionSectionDetails />} />
@@ -113,6 +116,7 @@ function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="search" element={<StudentSearch />} />
               <Route path="upload" element={<UploadCompetitions />} />
+              <Route path="discovery" element={<AdminCompetitionDiscovery />} />
               <Route path="repository" element={<GlobalRepository />} />
               <Route path="logs" element={<ActivityLogs />} />
               <Route path="repository/:id" element={<CompetitionStats />} />
