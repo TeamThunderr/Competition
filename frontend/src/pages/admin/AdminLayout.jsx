@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import SharedSidebar from '../common/SharedSidebar';
-import { Menu, LayoutDashboard, Search, Upload, Bookmark, BarChart3, Sparkles } from 'lucide-react';
+import { Menu, LayoutDashboard, Search, Upload, Bookmark, BarChart3, Sparkles, Code2 } from 'lucide-react';
 import logo from '../../assets/logo.png';
 
 const AdminLayout = () => {
@@ -11,6 +11,7 @@ const AdminLayout = () => {
         { icon: LayoutDashboard, label: 'CIT Dashboard', path: '/admin' },
         { icon: Search, label: 'Student Search', path: '/admin/search' },
         { icon: Upload, label: 'Manage Competitions', path: '/admin/upload' },
+        { icon: Code2, label: 'Coding Analytics', path: '/admin/coding' },
         { icon: Sparkles, label: 'Discovery Review', path: '/admin/discovery' },
         { icon: Bookmark, label: 'Global Repository', path: '/admin/repository' },
         { icon: BarChart3, label: 'Dept. Performance', path: '/admin/performance' },
