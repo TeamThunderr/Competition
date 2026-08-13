@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
-import { User, Mail, Hash, BookOpen, Calendar, Award, Trophy, Star, Users, GraduationCap, Edit, Check, X, Phone } from 'lucide-react';
+import { User, Mail, Hash, BookOpen, Calendar, Award, Trophy, Star, Users, GraduationCap, Edit, Check, X, Phone, Code2, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { getCurrentUser } from '../../services/authService';
 import { api } from '../../services/api';
 import RoleBasedLoader from '../../components/common/RoleBasedLoader';
@@ -238,6 +239,31 @@ const Profile = () => {
                                     </div>
 
 
+                                </div>
+                            </div>
+
+                            <div className="bg-card rounded-xl border border-border shadow-sm p-6 transition-colors duration-200">
+                                <div className="flex items-start justify-between gap-4 mb-4">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                                            <Code2 size={18} className="text-blue-600" />
+                                            Coding Profiles
+                                        </h3>
+                                        <p className="text-sm text-muted mt-1">Connect your public LeetCode and CodeChef profiles.</p>
+                                    </div>
+                                    <Link to="/student/coding" className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700">
+                                        Open <ExternalLink size={14} />
+                                    </Link>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <Link to="/student/coding" className="rounded-lg border border-border px-4 py-3 hover:bg-muted/10 transition-colors">
+                                        <div className="text-sm font-semibold text-foreground">LeetCode</div>
+                                        <div className="text-xs text-muted">Username, solved, rating, contests</div>
+                                    </Link>
+                                    <Link to="/student/coding" className="rounded-lg border border-border px-4 py-3 hover:bg-muted/10 transition-colors">
+                                        <div className="text-sm font-semibold text-foreground">CodeChef</div>
+                                        <div className="text-xs text-muted">Username, rating, stars, rank</div>
+                                    </Link>
                                 </div>
                             </div>
                         </div>

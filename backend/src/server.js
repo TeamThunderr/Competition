@@ -6,6 +6,7 @@ const { PORT } = require('./config/env');
 const app = require('./app');
 const boss = require('./config/pgBossClient');
 const { registerGmailSyncWorker } = require('./workers/gmailSync.worker');
+const { registerCodingSyncWorker } = require('./workers/codingSync.worker');
 
 // Silence non-error logs in production for a clean console
 if (process.env.NODE_ENV === 'production') {
@@ -30,6 +31,11 @@ boss.start()
     // Register background workers
     await registerGmailSyncWorker();
     console.log('[Server] Gmail sync worker registered');
+
+    await boss.createQueue('coding-sync');
+    console.log('[PgBoss] Queue "coding-sync" ready');
+    await registerCodingSyncWorker();
+    console.log('[Server] Coding sync worker registered');
 
     // Start HTTP server only after queue is ready
     app.listen(PORT, () => {

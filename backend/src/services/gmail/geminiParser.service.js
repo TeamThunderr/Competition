@@ -1,4 +1,5 @@
 const { generateContentWithFallback } = require('../../config/geminiClient');
+const { waitForGeminiSlot } = require('../../utils/geminiRateGuard');
 
 const parseEmailBatch = async (emailsArray, competitionTitle) => {
 
@@ -44,7 +45,11 @@ Rules:
             }
         };
 
+        await waitForGeminiSlot();
         const result = await generateContentWithFallback(request);
+        if (!result) {
+            return [];
+        }
         const responseText = result.response.text();
         
         const parsedResult = JSON.parse(responseText);

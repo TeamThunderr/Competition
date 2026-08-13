@@ -17,6 +17,7 @@ import Settings from './pages/student/Settings';
 import Profile from './pages/student/Profile';
 import StudentAnalytics from './pages/student/StudentAnalytics';
 import Onboarding from './pages/student/Onboarding';
+import StudentCoding from './pages/student/StudentCoding';
 
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import StudentList from './pages/faculty/StudentList';
@@ -32,6 +33,8 @@ import HodCompetitions from './pages/hod/HodCompetitions';
 import HodStudentDetail from './pages/hod/HodStudentDetail';
 import HodFaculty from './pages/hod/HodFaculty';
 import CompetitionSectionDetails from './pages/hod/CompetitionSectionDetails';
+import HodCompetitionDiscovery from './pages/hod/HodCompetitionDiscovery';
+import HodCodingAnalytics from './pages/hod/HodCodingAnalytics';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentSearch from './pages/admin/StudentSearch';
@@ -41,6 +44,8 @@ import ActivityLogs from './pages/admin/ActivityLogs';
 import StudentDetails from './pages/admin/StudentDetails';
 import CompetitionStats from './pages/admin/CompetitionStats';
 import DeptPerformance from './pages/admin/DeptPerformance';
+import AdminCompetitionDiscovery from './pages/admin/AdminCompetitionDiscovery';
+import AdminCodingAnalytics from './pages/admin/AdminCodingAnalytics';
 
 import CompetitionDetails from './pages/common/CompetitionDetails';
 import StudentLayout from './pages/student/StudentLayout';
@@ -69,6 +74,7 @@ function App() {
               <Route path="dashboard" element={<StudentDashboard />} />
               <Route path="competitions" element={<StudentCompetitions />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="coding" element={<StudentCoding />} />
               <Route path="od-letters" element={<ODLetter />} />
               <Route path="settings" element={<Settings />} />
               <Route path="onboarding" element={<Onboarding />} />
@@ -100,7 +106,9 @@ function App() {
               <Route path="od-requests/:id" element={<OdRequestDetail />} />
               <Route path="approvals" element={<OdApprovals />} />
               <Route path="analytics" element={<HodAnalytics />} />
+              <Route path="coding" element={<HodCodingAnalytics />} />
               <Route path="competitions" element={<HodCompetitions />} />
+              <Route path="discovery" element={<HodCompetitionDiscovery />} />
               <Route path="students/:id" element={<HodStudentDetail />} />
               <Route path="faculty" element={<HodFaculty />} />
               <Route path="competitions/:id/section/:sectionName" element={<CompetitionSectionDetails />} />
@@ -113,6 +121,8 @@ function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="search" element={<StudentSearch />} />
               <Route path="upload" element={<UploadCompetitions />} />
+              <Route path="discovery" element={<AdminCompetitionDiscovery />} />
+              <Route path="coding" element={<AdminCodingAnalytics />} />
               <Route path="repository" element={<GlobalRepository />} />
               <Route path="logs" element={<ActivityLogs />} />
               <Route path="repository/:id" element={<CompetitionStats />} />

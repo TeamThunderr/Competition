@@ -3,6 +3,7 @@ const { classifyEmail } = require('./naiveBayes.classifier');
 const { parseEmailWithGemini } = require('./geminiParser.service');
 const { getCachedResult, setCachedResult } = require('./geminiCache.service');
 const { canCallGemini, recordGeminiCall } = require('../../utils/geminiRateGuard');
+const { waitForGmailSlot } = require('../../utils/gmailRateGuard');
 const supabase = require('../../config/supabaseClient');
 const cheerio = require('cheerio');
 
@@ -753,6 +754,7 @@ const ingestStudentEmails = async (userId, competition, lastSyncedAt = null) => 
         let totalIngested = 0;
 
         do {
+            await waitForGmailSlot();
             const response = await gmail.users.messages.list({
                 userId: 'me',
                 q: queryString,
@@ -766,6 +768,7 @@ const ingestStudentEmails = async (userId, competition, lastSyncedAt = null) => 
             if (messages.length === 0) break;
 
             for (const msg of messages) {
+                await waitForGmailSlot();
                 const msgDetails = await gmail.users.messages.get({
                     userId: 'me',
                     id: msg.id,
@@ -828,5 +831,7 @@ module.exports = {
     syncStudentCompetition,
     analyzeEmail,
     checkShortlistStatus,
-    ingestStudentEmails
+    ingestStudentEmails,
+    getOAuthClientForUser,
+    extractCleanTextFromPayload
 };

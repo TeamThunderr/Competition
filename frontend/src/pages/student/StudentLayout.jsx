@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import SharedSidebar from '../common/SharedSidebar';
-import { Menu, LayoutDashboard, Globe, User, FileText } from 'lucide-react';
+import { Menu, LayoutDashboard, Globe, User, FileText, Code2 } from 'lucide-react';
 import logo from '../../assets/logo.png';
 
 const StudentLayout = () => {
@@ -11,6 +11,7 @@ const StudentLayout = () => {
         { icon: Globe, label: 'Competitions', path: '/student/competitions' },
         { icon: LayoutDashboard, label: 'Dashboard', path: '/student/dashboard' },
         { icon: User, label: 'Profile', path: '/student/profile' },
+        { icon: Code2, label: 'Coding', path: '/student/coding' },
         { icon: FileText, label: 'OD History', path: '/student/od-history' },
     ];
 

@@ -92,6 +92,11 @@ export const getCompetitionSyncStatus = async () => {
     return response.data || response;
 };
 
+export const getSyncJobStatus = async (jobId) => {
+    const response = await api.get(`/api/faculty/sync-jobs/${jobId}?t=${Date.now()}`);
+    return response.data || response;
+};
+
 // Reports
 export const downloadParticipationReport = async () => {
     try {
@@ -164,5 +169,6 @@ export default {
     getPendingWinningVerifications,
     verifyWinning,
     downloadCompetitionStudents,
-    getCompetitionSyncStatus
+    getCompetitionSyncStatus,
+    getSyncJobStatus
 };

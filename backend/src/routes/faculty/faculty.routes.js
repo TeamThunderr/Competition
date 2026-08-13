@@ -38,6 +38,7 @@ const { gmailSyncLimiter } = require('../../middleware/rateLimiter.middleware');
 // V2 Sync Routes
 router.post('/competitions/sync-active', gmailSyncLimiter, participationController.syncAllCompetitions);
 router.post('/competition/:id/sync', gmailSyncLimiter, participationController.syncCompetition);
+router.get('/sync-jobs/:jobId', participationController.getSyncJobStatus);
 router.get('/competition-sync-status', facultyController.getCompetitionSyncStatus);
 
 // Verification Routes (Student Registration)

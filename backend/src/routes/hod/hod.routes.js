@@ -7,6 +7,7 @@ const router = express.Router();
 const hodController = require('../../controllers/hod/hod.controller');
 const hodCompetitionController = require('../../controllers/hod/competition.controller');
 const odController = require('../../controllers/hod/od.controller');
+const discoveryRoutes = require('./discovery.routes');
 const authMiddleware = require('../../middleware/authMiddleware');
 const roleMiddleware = require('../../middleware/role.middleware');
 const validate = require('../../middleware/validate.middleware');
@@ -39,6 +40,7 @@ router.get('/faculty', hodController.getDepartmentFaculty);
 router.get('/competitions', hodCompetitionController.getAllCompetitions);
 router.get('/competition/:id', hodCompetitionController.getCompetitionDetails);
 router.get('/competition/:id/stats', hodCompetitionController.getCompetitionStats);
+router.use(discoveryRoutes);
 
 // OD Management Routes
 router.get('/pending-od', odController.getPendingODRequests);

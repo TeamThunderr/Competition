@@ -18,7 +18,7 @@ const authLimiter = rateLimit({
 
 const gmailSyncLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 500, // Practically disabled
+    max: Number(process.env.GMAIL_SYNC_RATE_LIMIT_MAX || 3),
     message: { error: "Sync rate limit", message: "Gmail sync allowed 3 times per 5 minutes" },
     standardHeaders: true,
     legacyHeaders: false

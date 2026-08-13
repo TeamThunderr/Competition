@@ -27,7 +27,16 @@ export const SyncProvider = ({ children }) => {
             list.forEach(comp => {
                 if (comp.isSyncing) {
                     anySyncing = true;
-                    progressMap[comp.id] = comp.syncProgress || 'Initializing sync...';
+                    const studentProgress = comp.totalStudents
+                        ? ` Students: ${comp.studentsProcessed || 0}/${comp.totalStudents}.`
+                        : '';
+                    const emailProgress = comp.emailsProcessed
+                        ? ` Emails processed: ${comp.emailsProcessed}.`
+                        : '';
+                    const registrationProgress = comp.registrationsUpdated
+                        ? ` Registrations found: ${comp.registrationsUpdated}.`
+                        : '';
+                    progressMap[comp.id] = `${comp.syncProgress || comp.jobStatus || 'Sync in progress'}${studentProgress}${emailProgress}${registrationProgress}`;
                 } else if (comp.syncProgress) {
                     progressMap[comp.id] = comp.syncProgress;
                 }
